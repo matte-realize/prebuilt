@@ -29,4 +29,4 @@ It refuses to run while any field a seed-plate run needs is null (the tuning val
 
 Pending the real seed plates. Take the round-3 `isolated − networked, measured MAE` 5% and 95% values from `out/summary.md` (the row `predicted_range.round` names) into `predicted_range.range`. Record `prediction.json`'s command, git hash and prereg sha256 alongside. Then commit `prereg.yaml` and record that commit hash.
 
-Only numbers from this script at the committed prereg config count. Drafts made at 2000 particles and 3 MH steps (the old `Config` defaults, the Tier D demo, the first deck) overstate the sharing benefit, about 2.2 µm against 1.2-1.7 µm at 4000/6, and must not be reused.
+Only numbers from this script at the committed prereg config count. Drafts made at 2000 particles and 3 MH steps (the old `Config` defaults, and the Tier D demo and deck before 483b86e regenerated them at 4000/6) overstate the sharing benefit, about 2.2 µm against 1.2-1.7 µm at 4000/6, and must not be reused.
