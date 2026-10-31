@@ -28,7 +28,7 @@ py run.py --source real
 ```
 
 - It checks the prereg and prints its sha256. With no predicted range yet, it runs **the seed plate only**.
-- For each site it writes the plate files, prints the caliper-check slots, and asks for approval: answer `y`, or describe the edit or veto (logged on the receipt chain).
+- For each site it writes the plate files, prints the caliper-check slots, and asks for approval. Answer `y`; or describe an edit (printed, with the note logged); or `veto <reason>` to skip the plate, which isn't printed and leaves the round without it.
 - Then it waits for scans: `scans/<site>/<plate_id>-holes.png` and `-pins.png`. Press Enter once both are saved. Type `fail` if the whole plate failed to print.
 - Leave it running between prints. If it crashes or you stop it, run the same command again. It resumes from `receipts/real/state.pkl` and refuses if the settings changed.
 
@@ -44,6 +44,7 @@ py run.py --source real
    0,3,4.08,ok
    2,1,,failed
    ```
+   Held-out pieces are never in the caliper list. Bad rows are skipped with a warning.
    Hold the plate pins up with the notch toward you: row 0 is the far row and column 0 the left column, counting from 0 (matches the plate file). With 3+ checks per kind, the run subtracts the scanner-vs-caliper offset. That fixes pin shadows, which read ~50 µm small.
 6. Press Enter. Read the output:
    - `holes: n/n measured` and `pins: n/n measured`. Check that `um/px` matches your dpi (25400 / dpi).
@@ -74,9 +75,9 @@ py run.py --source real
 
 | Problem | Do |
 |---|---|
-| `could not find the three fiducials` | Whole plate in frame? Fiducials clean and visible? For pins scans, more contrast (darker cover). Rescan. |
+| `could not find the three fiducials` | The run asks you to rescan; it doesn't stop. Is the whole plate in frame? Are the fiducials clean and visible? For pins scans, use more contrast (a darker cover). Save over the same file and press Enter. |
 | Many `failed` on a plate that printed fine | Wrong scan mode or lighting: holes need backlight, pins need a dark cover. Rescan. |
 | `um/px` doesn't match the dpi | The scanner resampled. Set the dpi explicitly, turn off auto-crop and descreen, and rescan. |
-| The run crashed | Rerun the same command. It resumes from the last finished plate set. |
+| The run crashed | Rerun the same command. It resumes from the last checkpoint and logs a `resume` entry; the interrupted round reruns with the same plates. Scans already saved are reused. |
 | `was started with different settings` | Someone changed the prereg config after the seed plate. Revert it. Only the range may change. |
 | 5 PM and behind | Stop adding rounds. Measure what exists (03-saturday). |

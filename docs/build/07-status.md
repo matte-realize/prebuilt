@@ -99,6 +99,21 @@ Endpoint: `PREBUILT_LLM_URL` (OpenAI-compatible; default `http://localhost:8000/
 - Tier B: `run.py --source real --sim-site pla` (or `resin`) runs that site on a simulated world fixed by the config seed; `Config.sim_sites` records it and locks it on resume. **T:** in a tier B run the checkpoint's simulated site has simulated seed data, so `sim.calibrate --state` must skip `res.config["sim_sites"]`.
 - Tier D and backup demo: `demo/tier-d/`, with charts, viewer pages and numbers from 20 seeds (DRAFT config). Finding for T's tuning: with a bad-faith site, networked error is 46 µm in round 1 (isolated 16) before trust drops, so `trust_init = 1.0` costs a full round.
 
+## Real-run review fixes (Oct 31)
+
+An independent review of the real-printer path found these; all are fixed and tested:
+- **A crash mid-round broke both receipt chains on resume** (stale pickled seq/head), which made the privacy audit FAIL. Chains now continue from the file, and the run logs a `resume` entry. Test: crash in round 2, resume, chains verify and scores match an uninterrupted run exactly.
+- **Simulated printers replayed their noise after a resume** (tier B, rehearsal). Printer RNGs are now checkpointed.
+- **The caliper CSV crashed on blank rows, unknown slots or uppercase `OK`.** Bad rows are skipped with a warning.
+- **Held-out caliper values shaped the training offset.** Held-out pieces are no longer sampled or used for offsets.
+- **A veto was logged but the plate was still expected.** `veto <reason>` now skips the plate.
+- **A dropped plate and pieces the scan missed fed the printability agent's failure counts.** They're kept on the chain but never used as data (`NOT_DATA`).
+- **Reprints, vetoes and dropped plates are now on the chain** (`printer_event`).
+- **An unreadable scan now prompts a rescan** instead of crashing.
+- **Prereg failed-plate fraction and caliper settings now reach the run**, and resume locks them.
+
+Not changed: a crash during the seed plate (before the first checkpoint) re-logs the seed plate on a valid chain. `predicted_range.round` is documentation only.
+
 ## Not built yet (M)
 
 - Scanner on real scans: still to check with the paper target, then a test print. Synthetic stress test, 400 dpi, full plate, 3 scans each (RMS / max error, µm):

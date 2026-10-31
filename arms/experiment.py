@@ -43,6 +43,10 @@ SHARED_STD = {s.name: s.prior_std for s in SHARED}
 Data = list[tuple[Piece, Measurement]]
 
 
+# Measurements that say nothing about the printer: kept on the receipt chain, never used as data.
+NOT_DATA = {"failed-plate", "scanner-miss"}
+
+
 @dataclass
 class Config:
     rounds: int = 3
@@ -100,6 +104,10 @@ class Config:
     seed: int = 0
     prereg_sha256: str | None = None  # real runs: hash of prereg/prereg.yaml, written to the chains
     sim_sites: tuple[str, ...] = ()   # real runs, fallback tier B: sites printed by a simulator, not a printer
+    # Real runs, from the prereg's measurement section and failure rules (here so resume locks them).
+    failed_plate_fraction: float | None = None
+    caliper_checks: int = 10
+    caliper_min_pairs: int = 3
 
 
 @dataclass
@@ -146,12 +154,20 @@ def run_experiment(
     state = _load(checkpoint) if checkpoint and os.path.exists(checkpoint) else None
     if state is None:
         state = _init(printers, processes, cfg, chain_dir)
+    else:
+        for s, st in state["sites"].items():
+            # Entries an interrupted attempt wrote after the checkpoint stay on the chain;
+            # say so, then carry on from the checkpointed state (the round reruns).
+            st.chain.append("resume", {"next_round": state["next_round"],
+                                       "entries_after_checkpoint": getattr(st.chain, "unsaved_tail", 0)})
+            if s in state.get("printer_rng", {}) and hasattr(printers[s], "rng"):
+                printers[s].rng = state["printer_rng"][s]  # simulated printers continue their noise stream
     sites, pieces, res, rng = state["sites"], state["pieces"], state["res"], state["rng"]
 
     if state["next_round"] == 0:
         _print_all({s: seed_plate(s, cfg.seed_pieces) for s in sites}, printers, sites, pieces)
         state["next_round"] = 1
-        _save(checkpoint, state)
+        _save(checkpoint, state, printers)
 
     if cfg.prereg_sha256 and state["next_round"] <= cfg.rounds:
         for st in sites.values():  # the prereg in force for the rounds this call runs
@@ -177,7 +193,7 @@ def run_experiment(
         for s, st in sites.items():
             _score(r, st, pieces, oracle_post, cfg, rng, res)
         state["next_round"] = r + 1
-        _save(checkpoint, state)
+        _save(checkpoint, state, printers)
     return res
 
 
@@ -198,8 +214,9 @@ def _init(printers, processes, cfg: Config, chain_dir) -> dict:
     return {"sites": sites, "pieces": {}, "res": res, "rng": np.random.default_rng(cfg.seed), "next_round": 0}
 
 
-def _save(path: str | None, state: dict) -> None:
+def _save(path: str | None, state: dict, printers: dict | None = None) -> None:
     if path:
+        state["printer_rng"] = {s: p.rng for s, p in (printers or {}).items() if hasattr(p, "rng")}
         tmp = path + ".tmp"
         with open(tmp, "wb") as f:
             pickle.dump(state, f)
@@ -222,6 +239,8 @@ def _print_all(plates: dict, printers: dict[str, Printer], sites: dict[str, Site
                 sites[s].chain.append("approval", approval)
     for s, plate in plates.items():
         _ingest(plate, printers[s].print_and_measure(plate), sites[s])
+        for ev in getattr(printers[s], "pop_events", lambda: [])():  # reprints, vetoes, dropped plates
+            sites[s].chain.append("printer_event", ev)
         truth = getattr(printers[s], "truth", None)  # simulators only; never shown to agents
         if truth:
             sites[s].truth.update({p.piece_id: float(d) for p, d in zip(plate.pieces, truth(plate)) if p.arm == "heldout"})
@@ -345,6 +364,8 @@ def _ingest(plate, ms: list[Measurement], st: SiteState) -> None:
     by_id = {m.piece_id: m for m in ms}
     for p in plate.pieces:
         m = by_id[p.piece_id]
+        if m.method in NOT_DATA:  # dropped or vetoed plate, or a cell the scan didn't cover
+            continue
         if p.arm == "heldout":
             st.escrow.append((p, m))
         elif p.arm == "seed":

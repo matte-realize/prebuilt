@@ -38,14 +38,16 @@ def check_resume(checkpoint: str, cfg: Config) -> None:
         raise SystemExit(f"{checkpoint} was started with different settings (started, now): {diff}")
 
 
-def real_printers(cfg: Config, scans: str, failed_plate_fraction: float | None) -> dict:
+def real_printers(cfg: Config, scans: str) -> dict:
     """Printers for a real run: RealPrinter per site, except cfg.sim_sites, which print on a
     simulated world (sim.reference.make_world, fixed by cfg.seed) for fallback tier B."""
     from measure.real import RealPrinter
     from sim.reference import make_world
     world = make_world(SITES, cfg.seed) if cfg.sim_sites else {}
     return {s: world[s] if s in cfg.sim_sites else
-            RealPrinter(s, f"{scans}/{s}", failed_plate_fraction=failed_plate_fraction) for s in SITES}
+            RealPrinter(s, f"{scans}/{s}", failed_plate_fraction=cfg.failed_plate_fraction,
+                        caliper_checks=cfg.caliper_checks, caliper_min_pairs=cfg.caliper_min_pairs)
+            for s in SITES}
 
 
 def main() -> None:
@@ -84,14 +86,18 @@ def main() -> None:
         unknown = set(args.sim_site) - set(SITES)
         if unknown or len(set(args.sim_site)) == len(SITES):
             raise SystemExit(f"--sim-site must name some but not all of {sorted(SITES)}")
-        cfg = config_from(prereg, sha, rounds=0 if late else None, sim_sites=tuple(sorted(set(args.sim_site))))
+        meas = prereg.get("measurement") or {}
+        cfg = config_from(prereg, sha, rounds=0 if late else None, sim_sites=tuple(sorted(set(args.sim_site))),
+                          failed_plate_fraction=prereg["failed_plate_fraction"],
+                          caliper_checks=meas.get("caliper_checks_per_plate"),
+                          caliper_min_pairs=meas.get("caliper_offset_min_pairs"))
         if late:
             print("predicted range not committed yet: running the seed plate only. "
                   "Commit the range, then rerun to resume at round 1.")
         print(f"prereg sha256 {sha}")
         chains = args.chains or "receipts/real"
         check_resume(f"{chains}/state.pkl", cfg)
-        printers = real_printers(cfg, args.scans, prereg["failed_plate_fraction"])
+        printers = real_printers(cfg, args.scans)
         if cfg.sim_sites:
             print(f"fallback tier B: {', '.join(cfg.sim_sites)} simulated (world seed {cfg.seed}), the rest real")
         res = run_experiment(printers, SITES, cfg,
