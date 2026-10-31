@@ -112,6 +112,15 @@ def draw_sites(processes: list[str] | np.ndarray, seed: int, shared_jitter: floa
     return SiteBatch(proc, theta, radial, *_draw_orientation(len(proc), rng, orient_std))
 
 
+def _mix(x: np.ndarray) -> np.ndarray:
+    """splitmix64 finalizer, vectorized; wraps mod 2**64."""
+    with np.errstate(over="ignore"):
+        x = np.asarray(x, dtype=np.uint64) + np.uint64(0x9E3779B97F4A7C15)
+        x = (x ^ (x >> np.uint64(30))) * np.uint64(0xBF58476D1CE4E5B9)
+        x = (x ^ (x >> np.uint64(27))) * np.uint64(0x94D049BB133111EB)
+        return x ^ (x >> np.uint64(31))
+
+
 def plate_rotation(salt: int, plate_seed: int) -> float:
     """Hidden angle a plate sits at on a site's bed, rad."""
     return float(np.random.default_rng([int(salt), plate_seed & (2**64 - 1)]).uniform(0, 2 * np.pi))
@@ -134,7 +143,9 @@ def _print_kernel(
     fail_d: wp.array2d(dtype=wp.float64),    # [process, kind] 50% failure diameter
     exposure: wp.float64,
     fail_width: wp.float64,
-    seed: wp.int32,
+    job_seed: wp.array(dtype=wp.int32),      # [B] noise seed of each job, from its site's own stream
+    start: wp.array(dtype=wp.int32),         # [B] index of each job's first piece
+    sample: wp.int32,                        # 0: truth only, no failure or noise draws
     truth: wp.array(dtype=wp.float64),       # [M] out: noise-free, with unmodeled effects
     measured: wp.array(dtype=wp.float64),    # [M] out: NaN if failed
 ):
@@ -168,9 +179,12 @@ def _print_kernel(
     out = out + radial[s] * (ui * ui + vi * vi) / two
     out = out + orient_amp[s] * wp.cos(two * (wp.atan2(vi, ui) + rot[job[i]] - orient_phase[s]))
     truth[i] = out
+    if sample == 0:
+        measured[i] = wp.float64(wp.nan)
+        return
 
     # failure, then measurement noise (SimPrinter.print_and_measure)
-    state = wp.rand_init(seed, i)
+    state = wp.rand_init(job_seed[job[i]], i - start[job[i]])
     r = wp.float64(wp.randf(state))
     z = wp.float64(wp.randn(state))
     p_fail = one / (one + wp.exp((di - fail_d[process[s], kind[i]]) / fail_width))
@@ -193,13 +207,19 @@ class PrintBatch:
 
 
 class WarpSim:
-    """S sites resident on one device; prints any batch of plates in one launch."""
+    """S sites resident on one device; prints any batch of plates in one launch.
+
+    Like SimPrinter, each site has its own noise stream: a site's draws depend
+    only on its salt, `seed` and how many plates it has printed, never on
+    other sites or on how prints are batched. Truth-only calls draw nothing.
+    """
 
     def __init__(self, sites: SiteBatch, seed: int = 0, device: str | None = None):
         wp.init()
         self.sites = sites
         self.device = wp.get_device(device)
-        self.rng = np.random.default_rng(seed)  # launch seeds only
+        self._key = _mix(np.uint64(seed))
+        self._prints = np.zeros(len(sites), dtype=np.uint64)  # plates printed per site
         put = self._put
         self._process = put(sites.process, wp.int32)
         self._theta = put(sites.theta, wp.float64)
@@ -211,29 +231,59 @@ class WarpSim:
     def _put(self, a, dtype) -> wp.array:
         return wp.array(np.ascontiguousarray(a), dtype=dtype, device=self.device)
 
-    def print_arrays(self, site: np.ndarray, job: np.ndarray, d: np.ndarray, is_hole: np.ndarray,
-                     u: np.ndarray, v: np.ndarray, rot: np.ndarray) -> PrintBatch:
-        """Flat per-piece arrays [M] (site index, job index, geometry); rot is [B] per job."""
-        put, n = self._put, len(d)
+    def _job_seeds(self, job_site: np.ndarray) -> np.ndarray:
+        """Next noise seed from each job's site stream; a site printing k plates here takes k in turn."""
+        order = np.argsort(job_site, kind="stable")
+        ranked = job_site[order]
+        rank = np.empty(len(job_site), dtype=np.uint64)
+        rank[order] = np.arange(len(job_site)) - np.searchsorted(ranked, ranked)
+        count = self._prints[job_site] + rank
+        self._prints += np.bincount(job_site, minlength=len(self._prints)).astype(np.uint64)
+        return (_mix(_mix(self.sites.salt[job_site] ^ self._key) + count) & np.uint64(0x7FFFFFFF)).astype(np.int32)
+
+    def _launch(self, site, job, d, is_hole, u, v, rot, sample: bool) -> PrintBatch:
+        put, n, job = self._put, len(d), np.asarray(job)
+        site = np.asarray(site, dtype=np.int64)
+        b = len(rot)
+        if np.all(job[1:] >= job[:-1]):  # jobs laid out contiguously, the usual case
+            start = np.searchsorted(job, np.arange(b))
+        else:
+            start = np.full(b, n, dtype=np.int64)
+            np.minimum.at(start, job, np.arange(n))
+        job_site = np.zeros(b, dtype=np.int64)
+        job_site[job] = site
+        seeds = self._job_seeds(job_site) if sample else np.zeros(b, dtype=np.int32)
         truth = wp.empty(n, dtype=wp.float64, device=self.device)
         measured = wp.empty(n, dtype=wp.float64, device=self.device)
         wp.launch(_print_kernel, dim=n, device=self.device, inputs=[
             put(site, wp.int32), put(job, wp.int32), put(d, wp.float64), put(is_hole, wp.int32),
             put(u, wp.float64), put(v, wp.float64), put(rot, wp.float64),
             self._process, self._theta, self._radial, self._amp, self._phase, self._fail_d,
-            wp.float64(physics.RESIN_EXPOSURE), wp.float64(FAIL_WIDTH), int(self.rng.integers(2**31)),
+            wp.float64(physics.RESIN_EXPOSURE), wp.float64(FAIL_WIDTH),
+            put(seeds, wp.int32), put(start, wp.int32), int(sample),
         ], outputs=[truth, measured])
-        return PrintBatch(np.asarray(job), truth.numpy(), measured.numpy())
+        return PrintBatch(job, truth.numpy(), measured.numpy())
 
-    def print_plates(self, site: list[int], plates: list[Plate]) -> PrintBatch:
-        """Print plates[b] at site[b], all in one launch."""
+    def print_arrays(self, site: np.ndarray, job: np.ndarray, d: np.ndarray, is_hole: np.ndarray,
+                     u: np.ndarray, v: np.ndarray, rot: np.ndarray) -> PrintBatch:
+        """Flat per-piece arrays [M] (site index, job index, geometry); rot is [B] per job."""
+        return self._launch(site, job, d, is_hole, u, v, rot, sample=True)
+
+    def _plates_args(self, site: list[int], plates: list[Plate]) -> tuple:
         xs = [PieceArrays.from_pieces(p.pieces) for p in plates]
         lens = [len(x.d) for x in xs]
         cat = lambda f: np.concatenate([f(x) for x in xs]) if xs else np.empty(0)
         rot = [plate_rotation(self.sites.salt[s], p.seed) for s, p in zip(site, plates)]
-        return self.print_arrays(np.repeat(site, lens), np.repeat(np.arange(len(plates)), lens),
-                                 cat(lambda x: x.d), cat(lambda x: x.is_hole), cat(lambda x: x.u), cat(lambda x: x.v),
-                                 np.array(rot, float))
+        return (np.repeat(site, lens), np.repeat(np.arange(len(plates)), lens),
+                cat(lambda x: x.d), cat(lambda x: x.is_hole), cat(lambda x: x.u), cat(lambda x: x.v), np.array(rot, float))
+
+    def print_plates(self, site: list[int], plates: list[Plate]) -> PrintBatch:
+        """Print plates[b] at site[b], all in one launch."""
+        return self._launch(*self._plates_args(site, plates), sample=True)
+
+    def truth_plates(self, site: list[int], plates: list[Plate]) -> np.ndarray:
+        """Noise-free diameters of plates[b] at site[b], flat [M]; draws no noise."""
+        return self._launch(*self._plates_args(site, plates), sample=False).truth
 
 
 @dataclass
@@ -253,7 +303,7 @@ class WarpPrinter:
 
     def truth(self, plate: Plate) -> np.ndarray:
         """Noise-free diameters including unmodeled effects (for evaluation only)."""
-        return self.sim.print_plates([self.index], [plate]).truth
+        return self.sim.truth_plates([self.index], [plate])
 
     def print_and_measure(self, plate: Plate) -> list[Measurement]:
         res = self.sim.print_plates([self.index], [plate])
@@ -267,7 +317,7 @@ class WarpPrinter:
 def from_reference(printers: dict[str, reference.SimPrinter], seed: int, orient_std: float = ORIENT_STD,
                    device: str | None = None) -> dict[str, WarpPrinter]:
     """Same hidden theta and radial as the given SimPrinters, plus the orientation effect."""
-    rng = np.random.default_rng(seed)
+    rng = np.random.default_rng(np.random.SeedSequence(seed).spawn(1)[0])  # never a stream reference.make_world uses
     ps = list(printers.values())
     sites = SiteBatch(
         np.array([PROCESSES.index(p.process) for p in ps]),
@@ -283,7 +333,7 @@ def make_world(sites: dict[str, str], seed: int, shared_jitter: float = 0.2, rad
                orient_std: float = ORIENT_STD, device: str | None = None) -> dict[str, WarpPrinter]:
     """Drop-in for `sim.reference.make_world`: identical theta and radial for the same seed."""
     world = reference.make_world(sites, seed, shared_jitter, radial_std)
-    return from_reference(world, seed=seed + 1, orient_std=orient_std, device=device)
+    return from_reference(world, seed=seed, orient_std=orient_std, device=device)
 
 
 def bench(n_sites: int = 4096, n_ref: int = 64, seed: int = 0) -> None:
@@ -306,7 +356,7 @@ def bench(n_sites: int = 4096, n_ref: int = 64, seed: int = 0) -> None:
     m = len(x.d)
     args = (np.repeat(np.arange(n_sites), m), np.repeat(np.arange(n_sites), m), np.tile(x.d, n_sites),
             np.tile(x.is_hole, n_sites), np.tile(x.u, n_sites), np.tile(x.v, n_sites),
-            sim.rng.uniform(0, 2 * np.pi, n_sites))
+            np.random.default_rng(seed).uniform(0, 2 * np.pi, n_sites))
     sim.print_arrays(*args)  # compile and warm up
     t = time.perf_counter()
     reps = 10

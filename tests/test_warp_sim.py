@@ -1,10 +1,8 @@
 import numpy as np
 import pytest
 
-wp = pytest.importorskip("warp")
+wp = pytest.importorskip("warp")  # runs on the CUDA GPU if there is one, else on Warp's CPU device
 wp.config.quiet = True
-if not wp.get_cuda_device_count():
-    pytest.skip("no CUDA GPU for Warp", allow_module_level=True)
 
 from arms.experiment import Config, run_experiment
 from contracts import Piece, Plate
@@ -21,6 +19,11 @@ def small_plate(site: str, seed: int = 0) -> Plate:
     d = np.linspace(0.6, 3.0, 64)
     pieces = [Piece(f"{site}-p{i}", ("pin", "hole")[i % 2], float(d[i]), (i // 8, i % 8), "seed") for i in range(64)]
     return Plate(f"{site}-small-{seed}", site, pieces, seed)
+
+
+def test_kernel_columns_cover_physics_params():
+    # the kernel mirrors physics.predict_d by hand; a new parameter must be added there too
+    assert set(warp_sim.COLS) == {n for proc in warp_sim.PROCESSES for n in physics.names(proc)}
 
 
 @pytest.mark.parametrize("seed", [0, 1, 7, 123])
@@ -116,3 +119,34 @@ def test_arms_run_on_warp_printers():
     res = run_experiment(warp_sim.make_world(SITES, 3), SITES, Config(rounds=1, n_particles=300, seed=3))
     assert {r["arm"] for r in res.scores} == {"isolated", "networked", "oracle"}
     assert all(r["mae_truth"] is not None for r in res.scores)
+
+
+def test_site_noise_streams_are_independent():
+    sites = {f"s{i}": ("resin", "pla")[i % 2] for i in range(4)}
+    plates = {s: small_plate(s) for s in sites}
+
+    def run(order, truth_calls, batched):
+        w = warp_sim.make_world(sites, 9)
+        if batched:
+            sim = next(iter(w.values())).sim
+            res = sim.print_plates([w[s].index for s in order], [plates[s] for s in order])
+            return {s: res.measured[res.job == b] for b, s in enumerate(order)}
+        out = {}
+        for s in order:
+            out[s] = np.array([np.nan if m.measured_d is None else m.measured_d for m in w[s].print_and_measure(plates[s])])
+            if truth_calls:
+                w[s].truth(plates[s])
+        return out
+
+    base = run(list(sites), truth_calls=False, batched=False)
+    for other in (run(list(sites)[::-1], True, False), run(list(sites)[::-1], False, True)):
+        for s in sites:
+            np.testing.assert_array_equal(other[s], base[s])
+
+
+def test_orientation_draws_do_not_repeat_next_world():
+    # make_world(seed) must not reuse the stream reference.make_world(seed + 1) draws from
+    for seed in range(10):
+        amp = warp_sim.make_world(SITES, seed, orient_std=1.0)["resin"].sim.sites.orient_amp
+        nxt = np.random.default_rng(seed + 1).standard_normal(8)
+        assert not np.isclose(amp[:, None], nxt[None, :]).any()
