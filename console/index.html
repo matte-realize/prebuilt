@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prebuilt console</title>
+<style>
+:root {
+  --night: #0b1016; --panel: #111a24; --panel2: #16212d; --line: rgba(160, 185, 210, .18); --ink: #e7eef5; --muted: #9aabbd; --faint: #66778b;
+  --alone: #8d9bad; --net: #5b8cff; --pool: #e3a443; --exam: #2fc2c4; --good: #3cc48d; --bad: #f06a6a; --warn: #e3a443; --wall: #7fd6ff;
+  --body: -apple-system, BlinkMacSystemFont, "IBM Plex Sans", "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--night); color: var(--ink); font: 15px/1.5 var(--body); -webkit-font-smoothing: antialiased; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; border: 1px solid var(--line); background: var(--panel2); border-radius: 8px; padding: 8px 14px; }
+button:hover:not(:disabled) { border-color: var(--muted); }
+button:disabled { opacity: .45; cursor: default; }
+button.primary { background: var(--net); border-color: var(--net); color: #fff; font-weight: 600; }
+button.good { background: var(--good); border-color: var(--good); color: #06150f; font-weight: 600; }
+button.danger { color: var(--bad); border-color: rgba(240, 106, 106, .5); }
+button.sim { color: var(--wall); border-style: dashed; border-color: var(--wall); }
+:focus-visible { outline: 2px solid var(--net); outline-offset: 2px; }
+input[type=number], input[type=text], select { background: #0d151e; border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; }
+a { color: var(--wall); }
+header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: rgba(11, 16, 22, .95); z-index: 5; }
+header h1 { font-size: 18px; margin: 0; letter-spacing: .01em; }
+.chip { font: 600 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; border-radius: 6px; padding: 5px 7px; border: 1px solid var(--line); color: var(--muted); }
+.chip.practice { color: var(--pool); border-color: rgba(227, 164, 67, .5); }
+.chip.running { color: #fff; background: var(--net); border-color: var(--net); }
+.chip.waiting { color: #1a1204; background: var(--pool); border-color: var(--pool); }
+.chip.done { color: #06150f; background: var(--good); border-color: var(--good); }
+.chip.error, .chip.stopped { color: #fff; background: var(--bad); border-color: var(--bad); }
+header .sp { flex: 1; }
+main { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; padding: 16px; max-width: 1400px; margin: 0 auto; }
+@media (max-width: 900px) { main { grid-template-columns: minmax(0, 1fr); padding: 12px 16px; } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+.card + .card { margin-top: 16px; }
+.eyebrow { font: 500 11px/1.2 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+h2 { margin: 0 0 8px; font-size: 22px; line-height: 1.25; }
+h3 { margin: 0 0 8px; font-size: 15px; }
+.next { border-width: 2px; }
+.next.waiting { border-color: var(--pool); }
+.next.done { border-color: var(--good); }
+.next.error, .next.stopped { border-color: var(--bad); }
+.muted { color: var(--muted); } .faint { color: var(--faint); }
+.small { font-size: 13px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.row + .row { margin-top: 10px; }
+.note { font-size: 13px; color: var(--muted); border-left: 3px solid var(--line); padding: 4px 10px; margin: 10px 0; }
+.note.warn { border-color: var(--pool); color: var(--ink); }
+.note.err { border-color: var(--bad); color: var(--ink); }
+.err-msg { color: var(--bad); font-size: 13px; min-height: 1em; margin-top: 8px; white-space: pre-wrap; }
+form.setup { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
+@media (max-width: 560px) { form.setup { grid-template-columns: minmax(0, 1fr); } }
+form.setup label, form.setup fieldset { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+form.setup fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; }
+form.setup legend { padding: 0 4px; }
+.seg { display: flex; gap: 0; }
+.seg label { flex-direction: row !important; align-items: center; gap: 6px !important; color: var(--ink) !important; font-size: 14px !important; padding: 4px 10px 4px 0; }
+.check { flex-direction: row !important; align-items: center; gap: 8px !important; color: var(--ink) !important; font-size: 14px !important; }
+.full { grid-column: 1 / -1; }
+.plate-wrap { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 560px) { .plate-wrap { grid-template-columns: minmax(0, 1fr); } }
+svg.plate { width: 100%; height: auto; display: block; }
+svg.plate .pl { fill: #1b2733; stroke: #3a4b5d; stroke-width: .5; }
+svg.plate .cut { fill: var(--night); stroke: #3a4b5d; stroke-width: .3; }
+svg.plate .pin { fill: var(--alone); }
+svg.plate .hole { fill: var(--night); stroke: var(--alone); stroke-width: .5; }
+svg.plate .ho { stroke: var(--exam); stroke-width: .6; fill: none; stroke-dasharray: 1 .8; }
+svg.plate .lab { fill: var(--faint); font: 3px var(--mono); }
+svg.plate .hi { stroke: var(--pool) !important; stroke-width: 1.2 !important; }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+td.num, th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.scroll { overflow-x: auto; }
+.meas td { padding: 3px 6px; }
+.meas input[type=text] { width: 7.5em; font-family: var(--mono); }
+.meas tr.focus td { background: rgba(227, 164, 67, .1); }
+.meas tr.off input[type=text] { opacity: .35; }
+.meas .conv { font: 12px var(--mono); color: var(--pool); }
+.meas .bad { border-color: var(--bad); }
+.nom { display: none; } .shownom .nom { display: table-cell; }
+.steps { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 10px; }
+.steps span { font: 12px var(--mono); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); color: var(--faint); }
+.steps span.done { color: var(--good); border-color: rgba(60, 196, 141, .5); }
+.steps span.now { color: #fff; background: var(--net); border-color: var(--net); }
+.big { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.stat > div { background: var(--panel2); border-radius: 8px; padding: 10px; }
+.pass { color: var(--good); font-weight: 700; } .fail { color: var(--bad); font-weight: 700; }
+.tag { font: 600 10px/1 var(--mono); letter-spacing: .05em; text-transform: uppercase; padding: 3px 5px; border-radius: 4px; border: 1px solid; white-space: nowrap; }
+.tag.real { color: var(--pool); } .tag.sim { color: var(--wall); }
+pre.log { background: #070b10; border: 1px solid var(--line); border-radius: 8px; padding: 10px; font: 12px/1.45 var(--mono); color: var(--muted); max-height: 320px; overflow: auto; white-space: pre-wrap; word-break: break-word; margin: 0; }
+.best { color: var(--good); }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Prebuilt console</h1>
+  <span class="chip practice" title="Not a registered run: no prereg hash, files under console/runs/">Practice run · off the books</span>
+  <span class="sp"></span>
+  <span class="chip" id="statusChip">idle</span>
+  <button id="stopBtn" class="danger hidden">Stop run</button>
+</header>
+<main>
+  <section>
+    <div class="card next" id="next"></div>
+    <div class="card" id="setupCard">
+      <p class="eyebrow">New practice run</p>
+      <form class="setup" id="setup">
+        <fieldset><legend>Resin site (Form Studio 1)</legend>
+          <div class="seg"><label><input type="radio" name="resin" value="real" checked> real printer</label><label><input type="radio" name="resin" value="sim"> simulated</label></div></fieldset>
+        <fieldset><legend>PLA site</legend>
+          <div class="seg"><label><input type="radio" name="pla" value="real"> real printer</label><label><input type="radio" name="pla" value="sim" checked> simulated</label></div></fieldset>
+        <label>Rounds (1–5)<input type="number" name="rounds" min="1" max="5" id="fRounds"></label>
+        <label>World seed<input type="number" name="seed" value="0" min="0"></label>
+        <label>Particles<span class="row"><input type="number" name="particles" id="fParticles" min="100" max="20000" step="100" style="flex:1">
+          <button type="button" id="fastBtn" title="Quick test">fast</button><button type="button" id="preregBtn">prereg</button></span></label>
+        <label>Lying site (simulated sites only)<select name="liar" id="fLiar"><option value="">none</option><option value="resin">resin</option><option value="pla">pla</option></select></label>
+        <label class="check"><input type="checkbox" name="share_messages" checked> Share messages between sites</label>
+        <label class="check"><input type="checkbox" name="consistency_check"> Consistency check (drop contradicting notes)</label>
+        <label class="check full"><input type="checkbox" name="negative_control"> Negative-control world (sites share no physics; sharing should gain nothing)</label>
+        <div class="full row"><button class="primary" type="submit">Start practice run</button><span class="small muted">Both simulated = a full dry run.</span></div>
+      </form>
+      <p class="note">Practice runs are off the books: no prereg hash, and plates, scans, receipts and the checkpoint go under <code>console/runs/&lt;time&gt;/</code>. A registered real run stays on the CLI: <code>python run.py --source real</code> (see docs/build/09-run-sheet.md).</p>
+      <div class="err-msg" id="setupErr"></div>
+    </div>
+  </section>
+  <section id="live">
+    <div class="card">
+      <p class="eyebrow">Progress</p>
+      <div id="progress" class="muted small">No run yet.</div>
+    </div>
+    <div class="card">
+      <p class="eyebrow">Held-out error per round (<span style="text-transform:none">µm</span>, lower is better)</p>
+      <div class="scroll" id="scores"><span class="muted small">Scores appear after each round.</span></div>
+      <p class="small faint" style="margin:8px 0 0">"measured" = error against the held-out pieces as measured (includes measurement noise). "truth" = error against the simulator's hidden noise-free diameters, simulated sites only. Green = the better of isolated and networked.</p>
+    </div>
+    <div class="card">
+      <p class="eyebrow">What crossed the boundary</p>
+      <div id="crossed" class="muted small">Nothing yet.</div>
+    </div>
+    <div class="card">
+      <p class="eyebrow">Trust (receiver ← sender)</p>
+      <div class="scroll" id="trust"><span class="muted small">After round 1.</span></div>
+      <p class="eyebrow" style="margin-top:14px">Consistency check</p>
+      <div class="scroll" id="checks"><span class="muted small">—</span></div>
+    </div>
+    <div class="card">
+      <p class="eyebrow">Run log</p>
+      <pre class="log" id="log"></pre>
+    </div>
+  </section>
+</main>
+<script>
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+let S = null, defaults = null, promptShown = null, logStick = true, setupOpen = false;
+
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? {} : {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+
+// ---- plate drawing ---------------------------------------------------------
+function plateSVG(plate, opts = {}) {
+  const p = ['<svg viewBox="-9 -9 117 117" class="plate" role="img" aria-label="Plate ' + esc(plate.plate_id) + ', top view, notch at the bottom">',
+    '<rect x="0" y="0" width="100" height="100" rx="1.2" class="pl"/>',
+    '<rect x="47" y="97.5" width="6" height="2.6" class="cut"/>'];
+  for (const [fx, fy] of [[5, 5], [95, 5], [5, 95]]) p.push(`<rect x="${fx - 2}" y="${fy - 2}" width="4" height="4" class="cut"/>`);
+  for (let i = 0; i < 8; i++) {
+    p.push(`<text class="lab" x="${15 + 10 * i}" y="-3" text-anchor="middle">${i}</text>`);
+    p.push(`<text class="lab" x="-3" y="${16 + 10 * i}" text-anchor="end">${i}</text>`);
+  }
+  p.push('<text class="lab" x="-3" y="-3" text-anchor="end">r\\c</text>');
+  for (const q of plate.pieces) {
+    const cx = 15 + 10 * q.col, cy = 15 + 10 * q.row, r = q.nominal_d / 2;
+    p.push(`<circle id="pc-${q.row}-${q.col}" cx="${cx}" cy="${cy}" r="${r}" class="${q.kind === "pin" ? "pin" : "hole"}"/>`);
+    if (q.arm === "heldout") p.push(`<circle cx="${cx}" cy="${cy}" r="${Math.min(r + 1.1, 4.8)}" class="ho"/>`);
+  }
+  p.push("</svg>");
+  return p.join("") + `<div class="legend"><span><i style="background:var(--alone)"></i>pin</span><span><i style="border:1.5px solid var(--alone)"></i>hole</span><span><i style="border:1.5px dashed var(--exam)"></i>held-out (scoring)</span><span>■ fiducials · notch at bottom</span></div>`;
+}
+
+// ---- the one thing to do next ---------------------------------------------
+function renderNext() {
+  const el = $("#next"), run = S && S.run;
+  const st = run ? run.status : "idle";
+  el.className = "card next " + st;
+  const key = run && run.prompt ? run.name + ":" + run.prompt.id : st + ":" + (run ? run.name : "");
+  if (key === promptShown) { // keep forms (and what's typed) intact; just refresh the stage line
+    const ns = $("#nextStage"); if (ns && run) ns.textContent = stageText(run);
+    return;
+  }
+  promptShown = key;
+  if (!run) {
+    el.innerHTML = `<p class="eyebrow">Next</p><h2>Set up a practice run</h2><p class="muted">Pick which sites are real and press Start. A real site will ask you here to approve each plate and enter its measurements.</p>`;
+  } else if (run.prompt && run.prompt.kind === "approve") {
+    renderApprove(el, run);
+  } else if (run.prompt && run.prompt.kind === "measure") {
+    renderMeasure(el, run);
+  } else if (st === "running" || st === "starting") {
+    el.innerHTML = `<p class="eyebrow">Next</p><h2>Nothing to do: computing</h2><p class="muted" id="nextStage">${esc(stageText(run))}</p><p class="small faint">Real sites will ask here when a plate needs you.</p>`;
+  } else if (st === "done") {
+    const a = run.audit || {};
+    el.innerHTML = `<p class="eyebrow">Next</p><h2>Run finished</h2>
+      <p>Privacy audit: <span class="${a.passed ? "pass" : "fail"}">${a.passed ? "PASS" : "FAIL"}</span> <span class="muted small">(${a.crossings ?? 0} boundary crossings checked${a.problems && a.problems.length ? "; " + esc(a.problems.join("; ")) : ""})</span></p>
+      ${run.filled.length ? `<p class="note warn">Simulated readings were used for: ${esc(run.filled.join(", "))}. Those are not measurements.</p>` : ""}
+      <div class="row"><button class="primary" id="viewerBtn">Build and open the 3D viewer</button><button id="newBtn">New run</button></div>
+      <p class="small muted">Files: <code>${esc(run.dir)}</code></p><div class="err-msg" id="nextErr"></div>`;
+    $("#viewerBtn").onclick = buildViewer; $("#newBtn").onclick = () => { setupOpen = true; render(); };
+  } else {
+    el.innerHTML = `<p class="eyebrow">Next</p><h2>${st === "error" ? "The run stopped with an error" : "Run stopped"}</h2>
+      ${run.error ? `<p class="note err">${esc(run.error)}</p><p class="small muted">Full traceback in the run log.</p>` : ""}
+      <div class="row"><button class="primary" id="newBtn">New run</button>${run.rounds_done >= 0 && run.scores ? '<button id="viewerBtn">3D viewer of what finished</button>' : ""}</div><div class="err-msg" id="nextErr"></div>`;
+    $("#newBtn").onclick = () => { setupOpen = true; render(); };
+    if ($("#viewerBtn")) $("#viewerBtn").onclick = buildViewer;
+  }
+}
+
+function stageText(run) {
+  const s = run.stage || {};
+  if (!s.plate) return s.step || "";
+  if (s.step === "fitting") return `${s.plate} done; fitting models, then the next plate or scoring`;
+  return `${s.site}: ${s.step} ${s.plate}`;
+}
+
+function siteTag(run, site) { const m = run.modes[site]; return `<span class="tag ${m}">${m === "real" ? "real printer" : "simulated"}</span>`; }
+
+function renderApprove(el, run) {
+  const p = run.prompt, n = p.plate.pieces.length;
+  el.innerHTML = `<p class="eyebrow">Next · ${esc(p.site)} ${siteTag(run, p.site)}</p>
+    <h2>Approve plate ${esc(p.plate_id)} for printing</h2>
+    <div class="plate-wrap"><div>${plateSVG(p.plate)}</div><div>
+      <p class="small muted">${n} pieces: ${p.plate.pieces.filter(q => q.kind === "pin").length} pins, ${p.plate.pieces.filter(q => q.kind === "hole").length} holes. Check it is printable and safe on this printer, then print the STL.</p>
+      <p><a href="${esc(p.stl)}" download>Download STL</a> <span class="small faint">(${esc(p.plate_id)}.stl)</span></p>
+      <div class="row"><button class="good" id="apBtn">Approve</button></div>
+      <div class="row"><input type="text" id="noteIn" placeholder="edit note, e.g. rotated 90° in PreForm" style="flex:1;min-width:10em"><button id="noteBtn">Approve with note</button></div>
+      <div class="row"><input type="text" id="vetoIn" placeholder="veto reason" style="flex:1;min-width:10em"><button class="danger" id="vetoBtn">Veto (don't print)</button></div>
+      <p class="small faint">A vetoed plate is not printed; the round is scored without it.</p>
+      <div class="err-msg" id="nextErr"></div></div></div>`;
+  $("#apBtn").onclick = () => answer(p.id, "y");
+  $("#noteBtn").onclick = () => { const v = $("#noteIn").value.trim(); if (!v) return err("Type the edit note first."); answer(p.id, v.toLowerCase().startsWith("veto") ? "note: " + v : v); };
+  $("#vetoBtn").onclick = () => answer(p.id, "veto " + ($("#vetoIn").value.trim() || "no reason given"));
+}
+
+function renderMeasure(el, run) {
+  const p = run.prompt, pcs = p.plate.pieces;
+  el.innerHTML = `<p class="eyebrow">Next · ${esc(p.site)} ${siteTag(run, p.site)}</p>
+    <h2>Measure plate ${esc(p.plate_id)}</h2>
+    ${p.note ? `<p class="note warn">${esc(p.note)}</p>` : ""}
+    <p class="small muted">Enter each diameter in mm, or the micrometer reading in µm (over 100 is read as µm). Mark <b>failed</b> if the piece didn't print, <b>skip</b> if it printed but you can't measure it (e.g. holes without gauge pins). Skipped pieces are neither data nor failures.</p>
+    <div class="plate-wrap"><div>${plateSVG(p.plate)}</div><div>
+      <div class="row"><button class="sim" id="fillBtn" title="Dry run only: numbers from a simulated printer">Fill with simulated readings (dry run)</button></div>
+      <div class="small" id="fillNote" style="color:var(--wall)"></div>
+      <div class="row"><button id="skipHoles">Skip all holes</button><button id="skipPins">Skip all pins</button><label class="small muted"><input type="checkbox" id="nomTog"> show nominal sizes</label></div>
+      <div class="row"><button class="danger" id="wholeFail">Whole plate failed</button></div>
+    </div></div>
+    <div class="scroll" style="margin-top:12px"><table class="meas" id="measTable"><thead><tr><th>row</th><th>col</th><th>kind</th><th class="nom num">nominal</th><th>diameter</th><th>status</th><th></th></tr></thead><tbody>
+    ${pcs.map((q, i) => `<tr data-i="${i}" data-r="${q.row}" data-c="${q.col}"><td class="num">${q.row}</td><td class="num">${q.col}</td><td>${q.kind}${q.arm === "heldout" ? ' <span class="faint small">held-out</span>' : ""}</td>
+      <td class="nom num">${q.nominal_d.toFixed(1)}</td><td><input type="text" inputmode="decimal" autocomplete="off" aria-label="row ${q.row} col ${q.col} diameter"></td>
+      <td><select aria-label="status"><option value="ok">ok</option><option value="failed">failed</option><option value="skip">skip</option></select></td><td class="conv"></td></tr>`).join("")}
+    </tbody></table></div>
+    <div class="row" style="margin-top:12px"><button class="primary" id="submitBtn">Submit measurements</button><span class="small muted" id="measCount"></span></div>
+    <div class="err-msg" id="nextErr"></div>`;
+  const tb = $("#measTable tbody"); let source = "hand";
+  const rows = [...tb.rows];
+  const update = tr => {
+    const inp = $("input", tr), sel = $("select", tr), conv = $(".conv", tr), raw = inp.value.trim();
+    tr.classList.toggle("off", sel.value !== "ok"); inp.disabled = sel.value !== "ok";
+    inp.classList.remove("bad"); conv.textContent = "";
+    if (sel.value === "ok" && raw) {
+      const x = parseFloat(raw.replace(",", "."));
+      if (!isFinite(x)) { inp.classList.add("bad"); conv.textContent = "not a number"; }
+      else { const mm = x > 100 ? x / 1000 : x; if (x > 100) conv.textContent = `= ${mm.toFixed(4)} mm`; if (!(mm > 0 && mm < 20)) { inp.classList.add("bad"); conv.textContent = "out of range"; } }
+    }
+    const done = rows.filter(t => $("select", t).value !== "ok" || $("input", t).value.trim()).length;
+    $("#measCount").textContent = `${done} / ${rows.length} pieces done`;
+  };
+  rows.forEach((tr, i) => {
+    const inp = $("input", tr), sel = $("select", tr);
+    inp.oninput = () => update(tr);
+    sel.onchange = () => update(tr);
+    inp.onfocus = sel.onfocus = () => { rows.forEach(t => t.classList.remove("focus")); tr.classList.add("focus"); document.querySelectorAll("svg.plate .hi").forEach(c => c.classList.remove("hi")); const c = document.getElementById(`pc-${tr.dataset.r}-${tr.dataset.c}`); if (c) c.classList.add("hi"); };
+    inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); const nx = rows.slice(i + 1).find(t => !$("input", t).disabled); if (nx) $("input", nx).focus(); } };
+    update(tr);
+  });
+  const setKind = (kind, st) => rows.forEach((tr, i) => { if (pcs[i].kind === kind) { $("select", tr).value = st; update(tr); } });
+  $("#skipHoles").onclick = () => setKind("hole", "skip");
+  $("#skipPins").onclick = () => setKind("pin", "skip");
+  $("#nomTog").onchange = e => $("#measTable").classList.toggle("shownom", e.target.checked);
+  $("#fillBtn").onclick = async () => {
+    try {
+      const {rows: got} = await api("/api/fill", {id: p.id});
+      const by = Object.fromEntries(got.map(g => [g.row + "," + g.col, g]));
+      rows.forEach(tr => { const g = by[tr.dataset.r + "," + tr.dataset.c]; $("select", tr).value = g.status === "ok" ? "ok" : "failed"; $("input", tr).value = g.value ?? ""; update(tr); });
+      source = "sim-fill"; $("#fillNote").textContent = "Filled with SIMULATED readings, not measurements. This plate stays labeled simulated even if you edit values.";
+    } catch (e) { err(e.message); }
+  };
+  $("#wholeFail").onclick = () => { if (confirm("Mark the whole plate as failed? Past the prereg's limit it is reprinted once.")) answer(p.id, "fail"); };
+  $("#submitBtn").onclick = async () => {
+    const out = rows.map((tr, i) => ({row: pcs[i].row, col: pcs[i].col, status: $("select", tr).value, value: $("input", tr).value.trim().replace(",", ".")}));
+    const blank = out.filter(r => r.status === "ok" && !r.value);
+    if (blank.length) { err(`${blank.length} pieces have no value: enter one, or mark failed / skip.`); const t = rows[out.indexOf(blank[0])]; $("input", t).focus(); return; }
+    if (tb.querySelector(".bad")) return err("Some values are out of range (0–20 mm, or µm over 100).");
+    $("#submitBtn").disabled = true;
+    try { S = await api("/api/measure", {id: p.id, rows: out, source}); promptShown = null; render(); }
+    catch (e) { err(e.message); $("#submitBtn").disabled = false; }
+  };
+}
+
+function err(msg) { const e = $("#nextErr"); if (e) e.textContent = msg; }
+
+async function answer(id, text) {
+  try { S = await api("/api/answer", {id, answer: text}); promptShown = null; render(); } catch (e) { err(e.message); }
+}
+
+async function buildViewer() {
+  const b = $("#viewerBtn"); b.disabled = true; b.textContent = "Building the viewer…";
+  try { const {url} = await api("/api/viewer", {}); window.open(url, "_blank"); b.textContent = "Open the 3D viewer again"; b.disabled = false; b.onclick = () => window.open(url, "_blank"); }
+  catch (e) { err(e.message); b.disabled = false; b.textContent = "Build and open the 3D viewer"; }
+}
+
+// ---- live panels -----------------------------------------------------------
+const um = x => x == null ? "—" : (x * 1000).toFixed(1);
+
+function renderLive() {
+  const run = S && S.run;
+  if (!run) return;
+  const R = run.rounds, done = run.rounds_done ?? -1;
+  const steps = ["seed", ...Array.from({length: R}, (_, i) => "round " + (i + 1))];
+  const active = ["running", "waiting", "starting"].includes(run.status);
+  $("#progress").innerHTML = `<div class="steps">${steps.map((s, i) => `<span class="${i <= done ? "done" : (active && i === done + 1 ? "now" : "")}">${s}</span>`).join("")}</div>
+    <div class="small">${Object.keys(run.modes).map(s => `${esc(s)} ${siteTag(run, s)}${run.prompt && run.prompt.site === s ? ' <b style="color:var(--pool)">waiting on operator</b>' : ""}`).join(" &nbsp; ")}</div>
+    <div class="small muted" style="margin-top:6px">${esc(run.name)} · ${R} rounds · ${run.particles} particles · seed ${run.settings.seed}${run.settings.share_messages ? "" : " · network cut"}${run.settings.consistency_check ? " · consistency check" : ""}${run.settings.liar ? " · " + esc(run.settings.liar) + " lies" : ""}${run.settings.negative_control ? " · negative-control world" : ""}</div>
+    ${active ? `<div class="small" style="margin-top:4px">Now: ${esc(stageText(run))}</div>` : ""}`;
+
+  const sc = run.scores || [];
+  if (sc.length) {
+    const key = (r, s, a) => sc.find(x => x.round === r && x.site === s && x.arm === a);
+    const rounds = [...new Set(sc.map(x => x.round))], sites = [...new Set(sc.map(x => x.site))];
+    let h = `<table><thead><tr><th>round</th><th>site</th><th>vs</th><th class="num">isolated</th><th class="num">networked</th><th class="num">oracle</th><th class="num">n</th></tr></thead><tbody>`;
+    for (const r of rounds) for (const s of sites) {
+      const row = a => key(r, s, a) || {};
+      for (const [m, lbl] of [["mae", "measured"], ["mae_truth", "truth"]]) {
+        const vals = ["isolated", "networked", "oracle"].map(a => row(a)[m]);
+        if (vals.every(v => v == null)) continue;
+        const best = Math.min(vals[0] ?? Infinity, vals[1] ?? Infinity);
+        h += `<tr><td>${r}</td><td>${esc(s)}</td><td class="small muted">${lbl}${lbl === "truth" ? " (sim)" : ""}</td>${vals.map((v, i) => `<td class="num${i < 2 && v === best ? " best" : ""}">${um(v)}</td>`).join("")}<td class="num faint">${row("isolated").n_heldout ?? ""}</td></tr>`;
+      }
+    }
+    $("#scores").innerHTML = h + "</tbody></table>";
+  } else $("#scores").innerHTML = `<span class="muted small">Scores appear after each round.</span>`;
+
+  const c = run.crossed;
+  if (c) {
+    const kept = run.kept || {};
+    $("#crossed").innerHTML = `<div class="stat"><div><div class="big">${c.numbers}</div><div class="small muted">numbers crossed, in ${c.messages} messages (belief summaries, credibility)</div></div>
+      <div><div class="big pass">${c.measurements}</div><div class="small muted">measurements crossed</div></div></div>
+      <p class="small muted" style="margin:8px 0 0">Stayed home: ${Object.entries(kept).map(([s, n]) => `${esc(s)} ${n} measurements`).join(", ")}.</p>
+      ${run.audit ? `<p style="margin:6px 0 0">Privacy audit: <span class="${run.audit.passed ? "pass" : "fail"}">${run.audit.passed ? "PASS" : "FAIL"}</span> <span class="small muted">(${run.audit.crossings} crossings replayed from the receipt chains)</span></p>` : `<p class="small faint" style="margin:6px 0 0">Privacy audit runs at the end.</p>`}`;
+  }
+  const tr = run.trust || [];
+  $("#trust").innerHTML = tr.length ? `<table><thead><tr><th>round</th><th>receiver ← sender</th><th class="num">trust</th></tr></thead><tbody>${tr.map(t => `<tr><td>${t.round}</td><td>${esc(t.receiver)} ← ${esc(t.sender)}</td><td class="num">${t.trust.toFixed(3)}</td></tr>`).join("")}</tbody></table>` : `<span class="muted small">${run.settings.share_messages ? "After round 1." : "Network cut: no messages."}</span>`;
+  const ch = run.checks || [];
+  $("#checks").innerHTML = !run.settings.consistency_check ? `<span class="muted small">Off for this run.</span>` : ch.length ? `<table><thead><tr><th>round</th><th>receiver ← sender</th><th class="num">χ²</th><th>note</th></tr></thead><tbody>${ch.map(t => `<tr><td>${t.round}</td><td>${esc(t.receiver)} ← ${esc(t.sender)}</td><td class="num">${t.chi2.toFixed(2)}</td><td>${t.dropped ? '<span class="fail">dropped</span>' : "kept"}</td></tr>`).join("")}</tbody></table>` : `<span class="muted small">After round 1.</span>`;
+  const lg = $("#log");
+  logStick = lg.scrollTop + lg.clientHeight >= lg.scrollHeight - 20;
+  if (lg.textContent !== run.log) { lg.textContent = run.log; if (logStick) lg.scrollTop = lg.scrollHeight; }
+}
+
+function render() {
+  const run = S && S.run, st = run ? run.status : "idle";
+  const chip = $("#statusChip");
+  chip.className = "chip " + st;
+  chip.textContent = st === "waiting" ? "waiting on operator" : st;
+  const active = ["running", "waiting", "starting"].includes(st);
+  $("#stopBtn").classList.toggle("hidden", !active);
+  $("#setupCard").classList.toggle("hidden", active || (run && !setupOpen));
+  renderNext();
+  renderLive();
+  document.title = (st === "waiting" ? "● " : "") + "Prebuilt console";
+}
+
+async function poll() {
+  try { S = await api("/api/state"); if (!defaults) initDefaults(S.defaults); render(); } catch (e) { $("#statusChip").textContent = "server offline"; }
+  setTimeout(poll, 1000);
+}
+
+function initDefaults(d) {
+  defaults = d;
+  $("#fRounds").value = d.rounds; $("#fParticles").value = d.particles;
+  $("#fastBtn").onclick = () => $("#fParticles").value = d.fast_particles;
+  $("#preregBtn").onclick = () => $("#fParticles").value = d.particles;
+}
+
+$("#setup").onsubmit = async e => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const body = {resin: f.get("resin"), pla: f.get("pla"), rounds: f.get("rounds"), seed: f.get("seed"), particles: f.get("particles"),
+    liar: f.get("liar"), share_messages: f.has("share_messages"), consistency_check: f.has("consistency_check"), negative_control: f.has("negative_control")};
+  if (body.liar && body[body.liar] !== "sim") { $("#setupErr").textContent = "The lying site must be a simulated site."; return; }
+  $("#setupErr").textContent = "";
+  try { S = await api("/api/run", body); setupOpen = false; promptShown = null; render(); } catch (e2) { $("#setupErr").textContent = e2.message; }
+};
+$("#stopBtn").onclick = async () => {
+  if (!confirm("Stop this run? It stops at the next plate; finished rounds stay in the checkpoint.")) return;
+  try { S = await api("/api/stop", {}); render(); } catch (e) { alert(e.message); }
+};
+poll();
+</script>
+</body>
+</html>

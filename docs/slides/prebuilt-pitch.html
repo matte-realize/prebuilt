@@ -140,6 +140,10 @@ body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; 
 .plate { max-width: 34cqw; }
 .timeline > div { font-size: 2cqw; } .t { font-size: 1.5cqw; }
 .hero .big { font-size: 8cqw; } .hero .cell p { font-size: 2cqw; }
+.sites-chart { width: 100%; max-width: 38cqw; height: auto; display: block; }
+.sites-chart .bar { fill: var(--net); } .sites-chart .axis { stroke: var(--line); stroke-width: 1.5; }
+.sites-chart .val { font: 700 26px var(--display); fill: var(--ink); }
+.sites-chart .lab { font: 600 15px var(--body); fill: var(--ink); } .sites-chart .sub { font: 12px var(--mono); fill: var(--muted); }
 
 .arch { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 2cqw; align-items: center; }
 .node { border: 2px solid var(--ink); border-radius: 8px; padding: 2cqw; display: grid; gap: .6cqw; text-align: center; }
@@ -180,6 +184,7 @@ body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; 
 .demo .spike { font: 700 15px var(--body); fill: var(--net); }
 @media (max-width: 720px) {
   .slide h2 { font-size: 28px; } .slide .body { font-size: 15px; } .lede { font-size: 19px; } .foot { font-size: 13px; }
+  .sites-chart { max-width: 100%; }
   .arch, .demo { grid-template-columns: 1fr; } .node h3 { font-size: 20px; } .node p, .stays, .timeline > div { font-size: 14px; }
   .msg { font-size: 13px; padding: 6px 12px; } .arrow { font-size: 28px; } .wall-tag, .proc, .t { font-size: 11px; }
   .link { border-left: 0; border-right: 0; border-top: 3px dashed var(--amber); border-bottom: 3px dashed var(--amber); }
@@ -201,24 +206,24 @@ body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; 
   <h2>Every shop re-learns its own printer</h2>
   <div class="body"><div class="split">
   <div class="stack">
-    <p class="lede">A 3D printer is only useful once you know how it misses: holes come out small, pins come out fat, edges drift.</p>
-    <p>Every site learns that from scratch, one test print at a time. Sites can't pool the data, because measurements expose process know-how and customer parts.</p>
+    <p class="lede">No printed part matches its file. Holes come out small, pins come out fat, by tens to hundreds of microns, and that decides whether parts fit.</p>
+    <p>The error belongs to your machine today: its resin, settings and wear. No datasheet knows it; you learn it by printing. Every site does that from scratch, and can't pool the data, because measurements expose process know-how and customer parts.</p>
     <p class="big-q">Can printers learn from each other without sharing a single measurement?</p>
   </div>
-  <figure class="fig"><svg viewBox="-6 -6 112 112" class="plate" role="img" aria-label="The seed test plate: pins and holes, 1 to 7 mm"><rect x="0" y="0" width="100" height="100" rx="1.2" class="pl"/><rect x="47" y="97.5" width="6" height="2.6" class="cut"/><rect x="3" y="3" width="4" height="4" class="cut"/><rect x="93" y="3" width="4" height="4" class="cut"/><rect x="3" y="93" width="4" height="4" class="cut"/><circle cx="25" cy="15" r="2.45" class="pin"/><circle cx="45" cy="15" r="2.05" class="pin ho"/><circle cx="75" cy="15" r="0.75" class="pin"/><circle cx="15" cy="25" r="1.15" class="hole"/><circle cx="75" cy="25" r="1.85" class="hole ho"/><circle cx="85" cy="25" r="2.65" class="hole"/><circle cx="25" cy="35" r="3.5" class="pin ho"/><circle cx="35" cy="45" r="0.75" class="hole"/><circle cx="45" cy="45" r="3.1" class="hole"/><circle cx="55" cy="45" r="0.55" class="hole ho"/><circle cx="85" cy="45" r="3.5" class="pin"/><circle cx="45" cy="55" r="2.0" class="pin"/><circle cx="55" cy="55" r="2.85" class="pin"/><circle cx="85" cy="55" r="2.9" class="pin ho"/><circle cx="25" cy="65" r="3.1" class="pin"/><circle cx="35" cy="65" r="2.65" class="hole ho"/><circle cx="55" cy="65" r="3.5" class="hole"/><circle cx="65" cy="65" r="2.25" class="hole"/><circle cx="25" cy="75" r="1.6" class="pin"/><circle cx="65" cy="75" r="3.65" class="pin ho"/><circle cx="75" cy="75" r="1.15" class="pin"/><circle cx="15" cy="85" r="2.4" class="hole ho"/><circle cx="25" cy="85" r="1.8" class="hole"/><circle cx="45" cy="85" r="1.4" class="hole"/></svg><figcaption>The test plate: pins and holes, 1–7 mm, read by an ordinary flatbed scanner.</figcaption></figure>
+  <figure class="fig"><svg viewBox="-6 -6 112 112" class="plate" role="img" aria-label="The seed test plate: pins and holes, 1 to 7 mm"><rect x="0" y="0" width="100" height="100" rx="1.2" class="pl"/><rect x="47" y="97.5" width="6" height="2.6" class="cut"/><rect x="3" y="3" width="4" height="4" class="cut"/><rect x="93" y="3" width="4" height="4" class="cut"/><rect x="3" y="93" width="4" height="4" class="cut"/><circle cx="25" cy="15" r="2.45" class="pin"/><circle cx="45" cy="15" r="2.05" class="pin ho"/><circle cx="75" cy="15" r="0.75" class="pin"/><circle cx="15" cy="25" r="1.15" class="hole"/><circle cx="75" cy="25" r="1.85" class="hole ho"/><circle cx="85" cy="25" r="2.65" class="hole"/><circle cx="25" cy="35" r="3.5" class="pin ho"/><circle cx="35" cy="45" r="0.75" class="hole"/><circle cx="45" cy="45" r="3.1" class="hole"/><circle cx="55" cy="45" r="0.55" class="hole ho"/><circle cx="85" cy="45" r="3.5" class="pin"/><circle cx="45" cy="55" r="2.0" class="pin"/><circle cx="55" cy="55" r="2.85" class="pin"/><circle cx="85" cy="55" r="2.9" class="pin ho"/><circle cx="25" cy="65" r="3.1" class="pin"/><circle cx="35" cy="65" r="2.65" class="hole ho"/><circle cx="55" cy="65" r="3.5" class="hole"/><circle cx="65" cy="65" r="2.25" class="hole"/><circle cx="25" cy="75" r="1.6" class="pin"/><circle cx="65" cy="75" r="3.65" class="pin ho"/><circle cx="75" cy="75" r="1.15" class="pin"/><circle cx="15" cy="85" r="2.4" class="hole ho"/><circle cx="25" cy="85" r="1.8" class="hole"/><circle cx="45" cy="85" r="1.4" class="hole"/></svg><figcaption>The test plate: pins and holes, 1–7 mm. Print it, measure it, and you know your printer.</figcaption></figure>
 </div></div>
-  <aside class="note">Hold up a printed plate if you have one. One sentence on why pooling is off the table.</aside>
+  <aside class="note">Hold up a printed plate. The point: precision is a property of your machine, and the only way to learn it is to print.</aside>
 </section>
-<section class="slide" id="s2" aria-label="Slide 2: Two printers, one boundary, only beliefs cross">
+<section class="slide" id="s2" aria-label="Slide 2: Two printer sites, one boundary, only beliefs cross">
   <header><span class="kick">0:25–0:50 · What we built</span><span class="num">2 / 6</span></header>
-  <h2>Two printers, one boundary, only beliefs cross</h2>
+  <h2>Two printer sites, one boundary, only beliefs cross</h2>
   <div class="body"><div class="arch">
-  <div class="node"><span class="proc">SLA</span><h3>Resin printer</h3><p>prints, scans, learns its own model</p></div>
+  <div class="node"><span class="proc">SLA · simulated</span><h3>Resin site</h3><p>prints, measures, learns its own model</p></div>
   <div class="link"><span class="msg">μ, σ of 3 shared parameters</span><span class="arrow" aria-hidden="true">⇄</span><span class="wall-tag">schema-checked · on a receipt</span></div>
-  <div class="node"><span class="proc">FDM</span><h3>PLA printer</h3><p>different machine, different physics</p></div>
+  <div class="node"><span class="proc">FDM · simulated</span><h3>PLA site</h3><p>different machine, different physics</p></div>
 </div>
-<div class="stays"><b>Stays home:</b> every scan, every measurement, every machine-specific parameter.</div></div>
-  <aside class="note">Point at the middle: that's the whole interface. Errors that every printer shares (small features shrink, edges drift) are learned together; everything else stays local.</aside>
+<div class="stays"><b>Stays home:</b> every measurement, every machine-specific parameter.</div></div>
+  <aside class="note">Point at the middle: that's the whole interface. Errors that every printer shares (small features shrink, edges drift) are learned together; everything else stays local. Both sites are simulated printers whose true behavior we know, which is how every result is scored.</aside>
 </section>
 <section class="slide" id="s3" aria-label="Slide 3: Watch the network learn">
   <header><span class="kick">0:50–1:40 · Demo</span><span class="num">3 / 6</span></header>
@@ -252,41 +257,41 @@ body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; 
     <span class="tiny" id="cap">Simulation with hidden truth, frozen config, 20 worlds. Model error on held-out pieces, µm.</span>
   </div>
 </div></div>
-  <aside class="note">In Present mode it plays by itself. Narrate the caption line. Then L: resin's error spikes in round 1, trust collapses to 0.01 once held-out pieces expose the lie, and by round 3 resin is back level with learning alone. A liar costs one round.</aside>
+  <aside class="note">In Present mode it plays by itself. Narrate the caption line. Then L: resin's error spikes in round 1, trust collapses to 0.01 once held-out pieces expose the lie, and by round 3 resin is back level with learning alone. Without a check, a liar costs one round (slide 4: with the check, none).</aside>
 </section>
-<section class="slide" id="s4" aria-label="Slide 4: As good as pooling the data, without pooling it">
-  <header><span class="kick">1:40–2:15 · Results</span><span class="num">4 / 6</span></header>
-  <h2>As good as pooling the data, without pooling it</h2>
+<section class="slide" id="s4" aria-label="Slide 4: The win is many sites, not many agents">
+  <header><span class="kick">1:40–2:15 · Results, in simulation</span><span class="num">4 / 6</span></header>
+  <h2>The win is many sites, not many agents</h2>
   <div class="body"><div class="cols3 hero">
   <div class="cell"><span class="big">12%</span><p>lower error than learning alone, in 75 of 100 worlds. Pooling all the raw data: also 12%.</p></div>
-  <div class="cell"><span class="big">25%</span><p>with four sites that each know little. More sites with less data is where sharing pays.</p></div>
-  <div class="cell"><span class="big">1 round</span><p>is all a lying site gets. Then its trust is 0.01, and the audit shows nothing but beliefs ever crossed.</p></div>
+  <div class="cell"><span class="big">35%</span><p>with eight sites that each know little, better in 20 of 20 worlds. Many data-poor sites is where sharing pays.</p></div>
+  <div class="cell"><span class="big">0 rounds</span><p>for a liar: a consistency check catches its notes on arrival (180 of 180, 0 honest notes dropped). Without it, a liar costs one round.</p></div>
 </div>
-<p class="foot">Simulation with hidden truth, frozen config, paired per world. At two sites the gain is 1.6 µm, small next to scanner noise, so the real-printer claim is a committed prediction.</p></div>
-  <aside class="note">Say the honest size once: a couple of microns at two sites. The case grows with the number of data-poor sites.</aside>
+<p class="foot">Simulation with hidden truth, frozen config, paired per world. The consistency check is an added protocol option, off in the registered config, tested in 60 worlds. The agent layer adds nothing measurable: with messages cut, learned credibility ties equal votes. At two sites the gain is 1.6 µm, below what you can measure on a real part, so we don't claim it there.</p></div>
+  <aside class="note">Say it plainly: these are simulation numbers, the gain comes from sharing between sites, not from the agents, and at two sites it is a couple of microns. It grows with the number of data-poor sites.</aside>
 </section>
-<section class="slide" id="s5" aria-label="Slide 5: We wrote the prediction down before printing">
-  <header><span class="kick">2:15–2:40 · Science, not a demo</span><span class="num">5 / 6</span></header>
-  <h2>We wrote the prediction down before printing</h2>
+<section class="slide" id="s5" aria-label="Slide 5: Grounded in a real printer, scored in simulation">
+  <header><span class="kick">2:15–2:40 · Why simulation</span><span class="num">5 / 6</span></header>
+  <h2>Grounded in a real printer, scored in simulation</h2>
   <div class="body"><div class="timeline">
-  <div><span class="t">Simulation</span><p>Hidden-truth printers. Config tuned, then frozen.</p></div>
-  <div><span class="t">Pre-registered</span><p>Claims, metric, fit classes, failure rules and fallbacks, hashed onto both receipt chains.</p></div>
-  <div><span class="t">Seed plates</span><p>Simulator calibrated to the real printers. Predicted range committed before round 1.</p></div>
-  <div><span class="t">Real rounds</span><p>Does the real resin + PLA network land inside the prediction?</p></div>
+  <div><span class="t">Real printer</span><p>Formlabs Form Studio 1: a 1.5 mm pin measured 1.41–1.48 mm by micrometer, 24–89 µm small.</p></div>
+  <div><span class="t">Vendor spec</span><p>±0.08 mm on 1–30 mm features. Real error is tens of µm, as the spec says.</p></div>
+  <div><span class="t">Simulator</span><p>Simulated resin pins miss by −0.1 to +0.27 mm and holes by up to −0.35 mm: the real printer sits inside.</p></div>
+  <div><span class="t">Why not real</span><p>The sharing gain is 1.6 µm. Two readings of one pin differed by 65 µm. Only hidden truth can score it.</p></div>
 </div>
-<p class="foot">Every plate, measurement, bid and message is on a hash chain anyone can replay.</p></div>
-  <aside class="note">If real rounds are in, put the real point on screen here instead of the timeline.</aside>
+<p class="foot">Registered before printing: two printers can't show the sharing gain on real parts. The test plate, a hand-measurement sheet and the scanner pipeline are built for real sites; the simulator says when the gain becomes measurable: many sites, each with little data.</p></div>
+  <aside class="note">Hold up the printed plate. Say it once: the real printer tells us the simulator is the right size; the simulator is the only place a 1.6 µm gain can be scored. Don't claim the model was fit on the real printer: three pieces aren't enough.</aside>
 </section>
 <section class="slide" id="s6" aria-label="Slide 6: Print anywhere, trust the part">
   <header><span class="kick">2:40–3:00 · Next</span><span class="num">6 / 6</span></header>
   <h2>Print anywhere, trust the part</h2>
   <div class="body"><div class="split">
   <div class="stack"><p class="lede">Any shop that can print a flat plate can join, learn faster, and keep its data.</p>
-  <p>Released today: the process-agnostic test plate, the flatbed scanner tool, and the hidden-truth multi-site printer simulator.</p>
+  <p>Released today: the process-agnostic test plate, its measurement tools, and the hidden-truth multi-site printer simulator, which tells you how many sites it takes before sharing pays.</p>
   <p class="meta mono">github.com/matte-realize/prebuilt</p></div>
-  <figure class="fig small"><svg viewBox="-6 -6 112 112" class="plate" role="img" aria-label="The seed test plate: pins and holes, 1 to 7 mm"><rect x="0" y="0" width="100" height="100" rx="1.2" class="pl"/><rect x="47" y="97.5" width="6" height="2.6" class="cut"/><rect x="3" y="3" width="4" height="4" class="cut"/><rect x="93" y="3" width="4" height="4" class="cut"/><rect x="3" y="93" width="4" height="4" class="cut"/><circle cx="25" cy="15" r="2.45" class="pin"/><circle cx="45" cy="15" r="2.05" class="pin ho"/><circle cx="75" cy="15" r="0.75" class="pin"/><circle cx="15" cy="25" r="1.15" class="hole"/><circle cx="75" cy="25" r="1.85" class="hole ho"/><circle cx="85" cy="25" r="2.65" class="hole"/><circle cx="25" cy="35" r="3.5" class="pin ho"/><circle cx="35" cy="45" r="0.75" class="hole"/><circle cx="45" cy="45" r="3.1" class="hole"/><circle cx="55" cy="45" r="0.55" class="hole ho"/><circle cx="85" cy="45" r="3.5" class="pin"/><circle cx="45" cy="55" r="2.0" class="pin"/><circle cx="55" cy="55" r="2.85" class="pin"/><circle cx="85" cy="55" r="2.9" class="pin ho"/><circle cx="25" cy="65" r="3.1" class="pin"/><circle cx="35" cy="65" r="2.65" class="hole ho"/><circle cx="55" cy="65" r="3.5" class="hole"/><circle cx="65" cy="65" r="2.25" class="hole"/><circle cx="25" cy="75" r="1.6" class="pin"/><circle cx="65" cy="75" r="3.65" class="pin ho"/><circle cx="75" cy="75" r="1.15" class="pin"/><circle cx="15" cy="85" r="2.4" class="hole ho"/><circle cx="25" cy="85" r="1.8" class="hole"/><circle cx="45" cy="85" r="1.4" class="hole"/></svg></figure>
+  <figure class="fig"><svg viewBox="0 0 360 230" class="sites-chart" role="img" aria-label="Lower error than learning alone: 2 sites 11%, 4 sites 28%, 8 sites 35%"><line x1="20" x2="340" y1="186" y2="186" class="axis"/><rect x="20.0" y="145.7" width="74" height="40.3" rx="3" class="bar"/><text x="57.0" y="135.7" text-anchor="middle" class="val">11%</text><text x="57.0" y="206" text-anchor="middle" class="lab">2 sites</text><text x="57.0" y="223" text-anchor="middle" class="sub">39/60 worlds</text><rect x="143.0" y="77.8" width="74" height="108.2" rx="3" class="bar"/><text x="180.0" y="67.8" text-anchor="middle" class="val">28%</text><text x="180.0" y="206" text-anchor="middle" class="lab">4 sites</text><text x="180.0" y="223" text-anchor="middle" class="sub">35/40 worlds</text><rect x="266.0" y="54.2" width="74" height="131.8" rx="3" class="bar"/><text x="303.0" y="44.2" text-anchor="middle" class="val">35%</text><text x="303.0" y="206" text-anchor="middle" class="lab">8 sites</text><text x="303.0" y="223" text-anchor="middle" class="sub">20/20 worlds</text></svg><figcaption>Lower error than learning alone, by number of sites. Each starts with 4 test pieces and prints 2 a round; round 3, simulation.</figcaption></figure>
 </div></div>
-  <aside class="note">End on the line. Stop talking.</aside>
+  <aside class="note">Point at the bars once: 2, 4, 8 sites. That's what the simulator is for. End on the line. Stop talking.</aside>
 </section>
 </main>
 
@@ -334,7 +339,7 @@ body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; 
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let mode = 'honest', shown = 3, timer = null, run = 0;
   const SAY = {
-    honest: ['Each round both sites print and scan a plate. Only belief summaries cross.',
+    honest: ['Each round both sites print and measure a plate. Only belief summaries cross.',
       'Round 1: networked (orange) already beats learning alone (blue).',
       'Round 2: it matches pooling all the raw data (green), which never moved.',
       'Round 3: 12% lower error than alone, and still zero measurements crossed.'],
@@ -375,7 +380,7 @@ body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; 
     $('trustTxt').textContent = t.toFixed(2);
     $('trustG').style.opacity = mode === 'liar' ? 1 : 0.3;
     $('nameB').textContent = mode === 'liar' ? 'PLA (lying)' : 'PLA';
-    const label = shown ? `round ${shown} plate scanned` : 'seed plate scanned';
+    const label = shown ? `round ${shown} plate measured` : 'seed plate measured';
     $('platesA').textContent = $('platesB').textContent = label;
     $('measA').textContent = $('measB').textContent = SEED + PER_ROUND * shown;
     $('crossed').textContent = `crossed: 0 measurements · ${2 * NUMBERS * shown} numbers`;

@@ -42,6 +42,7 @@ python run.py --source real                                     # real printers 
 | `prereg/` | Pre-registration and the held-out manifest |
 | `hpc/` | Benchmarks, Nebius jobs, Phase C sweeps, Phase D |
 | `viewer/` | Self-contained HTML page for a run |
+| `console/` | Local web UI that drives a practice run from the browser: approve plates, enter hand measurements, watch scores (`python -m console`, [12-console.md](docs/build/12-console.md)) |
 | `docs/` | Spec, build walkthrough, task split, status, run sheet ([index](docs/README.md)) |
 
 ## Reusable tools

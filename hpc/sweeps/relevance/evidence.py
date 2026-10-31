@@ -3,7 +3,9 @@
     PYTHONPATH=. .venv/bin/python hpc/sweeps/relevance/evidence.py
 
 Reads results/worlds.jsonl (worlds.py: 100 worlds x {notes, no notes, liar}, 8 rounds) and, if present,
-results/regimes.jsonl (regimes.py). Errors are against the simulator's true sizes (mae_truth) unless
+results/regimes.jsonl (regimes.py), consistency(_protocol).jsonl, negative_control.jsonl, and
+../coldstart/results/grid.jsonl (sites needed). `consistency_check` comes from the protocol sweep when
+present (source: protocol), else from the prototype. Errors are against the simulator's true sizes (mae_truth) unless
 named "measured". Every gain is paired per world: same world, same printers, one thing changed.
 """
 from __future__ import annotations
@@ -61,6 +63,87 @@ def gain(better, base):
     w = int((d > 0).sum())
     return {"um": float(np.median(d)), "pct": float(np.median(d / base * 100)), "pct_ci": ci(d / base * 100),
             "wins": w, "n": len(d), "p": sign_p(w, int((d != 0).sum()))}
+
+
+def _site_mean(scores, arm, r, site=None, key="mae_truth"):
+    return 1000 * float(np.mean([x[key] for x in scores if x["arm"] == arm and x["round"] == r and x.get(key) is not None
+                                 and (site is None or x["site"] == site)]))
+
+
+def consistency_protocol(path: Path) -> dict:
+    """consistency_protocol.py: Config.consistency_check on/off, honest and lying pla, plus no notes."""
+    runs = [json.loads(line) for line in _open(path)]
+    by = defaultdict(dict)
+    for r in runs:
+        by[(r["cond"], r["check"])][r["seed"]] = r
+    seeds = sorted(set.intersection(*(set(v) for v in by.values())))
+    e = lambda cond, chk, arm="networked", r=HORIZON, site=None: np.array([_site_mean(by[(cond, chk)][s]["scores"], arm, r, site) for s in seeds])
+    caught = [c for s in seeds for c in by[("liar", True)][s]["checks"] if c["sender"] == "pla"]
+    honest = [c for s in seeds for (cond, chk) in (("normal", True), ("liar", True)) for c in by[(cond, chk)][s]["checks"]
+              if not (cond == "liar" and c["sender"] == "pla")]
+    return {
+        "source": "protocol",  # Config.consistency_check in arms/experiment.py; off in the frozen config
+        "worlds": len(seeds), "rounds": HORIZON,
+        "liar_caught": int(sum(c["dropped"] for c in caught)), "liar_notes": len(caught),
+        "honest_dropped": int(sum(c["dropped"] for c in honest)), "honest_notes": len(honest),
+        "liar_chi2_min": float(min(c["chi2"] for c in caught)) if caught else None,
+        "honest_chi2_p99": float(np.percentile([c["chi2"] for c in honest], 99)) if honest else None,
+        "threshold": 16.27,
+        "resin_round1_um": {"liar_no_check": float(np.median(e("liar", False, r=1, site="resin"))),
+                            "liar_check": float(np.median(e("liar", True, r=1, site="resin"))),
+                            "no_notes": float(np.median(e("alone", False, r=1, site="resin"))),
+                            "honest": float(np.median(e("normal", False, r=1, site="resin")))},
+        "round1_check_vs_no_check": gain(e("liar", True, r=1), e("liar", False, r=1)),
+        "error_um_by_round": {f"{c}{' + check' if k else ''}": [float(np.median(e(c, k, r=r))) for r in range(1, HORIZON + 1)]
+                              for c, k in (("alone", False), ("normal", False), ("normal", True), ("liar", False), ("liar", True))},
+        "honest_together_vs_alone": {"check_off": gain(e("normal", False), e("normal", False, "isolated")),
+                                     "check_on": gain(e("normal", True), e("normal", True, "isolated"))},
+        "honest_check_vs_no_check": gain(e("normal", True), e("normal", False)),
+        "liar_check_vs_no_notes": gain(e("liar", True), e("alone", False)),
+        "liar_no_check_vs_no_notes": gain(e("liar", False), e("alone", False)),
+        "liar_check_together_vs_alone": gain(e("liar", True), e("liar", True, "isolated")),
+    }
+
+
+def negative_control(path: Path) -> dict:
+    """negative_control.py: the normal world vs one where every site's 'shared' parameters are drawn independently."""
+    runs = [json.loads(line) for line in _open(path)]
+    by = defaultdict(dict)
+    for r in runs:
+        by[(r["world"], r["cond"])][r["seed"]] = r
+    seeds = sorted(set.intersection(*(set(v) for v in by.values())))
+    e = lambda world, cond, arm, r=HORIZON: np.array([_site_mean(by[(world, cond)][s]["scores"], arm, r) for s in seeds])
+    out = {"worlds": len(seeds), "rounds": HORIZON}
+    for w in ("normal", "control"):
+        out[w] = {"alone_um": float(np.median(e(w, "normal", "isolated"))), "together_um": float(np.median(e(w, "normal", "networked"))),
+                  "together_vs_alone": gain(e(w, "normal", "networked"), e(w, "normal", "isolated")),
+                  "notes_vs_no_notes": gain(e(w, "normal", "networked"), e(w, "alone", "networked")),
+                  "pooled_vs_alone": gain(e(w, "normal", "oracle"), e(w, "normal", "isolated"))}
+        if (w, "check") in by:  # same, with the consistency check on
+            chk = [c for s in seeds for c in by[(w, "check")][s]["checks"]]
+            out[w]["check"] = {"together_vs_alone": gain(e(w, "check", "networked"), e(w, "check", "isolated")),
+                               "vs_no_check": gain(e(w, "check", "networked"), e(w, "normal", "networked")),
+                               "dropped": int(sum(c["dropped"] for c in chk)), "notes": len(chk)}
+    return out
+
+
+def sites_needed(path: Path, cell=(4, 2), r=HORIZON) -> dict:
+    """coldstart/results/grid.jsonl at warm-up 4, 2 pieces/round: networked vs isolated by number of sites.
+    pct is the coldstart README's metric (mean gain / mean isolated error); the paired gain() is alongside."""
+    acc = defaultdict(dict)
+    for line in _open(path):
+        d = json.loads(line)
+        c = d["cell"]
+        if (c.get("seed_pieces"), c.get("slots")) != cell or set(c) != {"n", "seed_pieces", "slots"}:
+            continue
+        acc[c["n"]][d["seed"]] = (_site_mean(d["scores"], "isolated", r), _site_mean(d["scores"], "networked", r))
+    rows = []
+    for n in sorted(acc):
+        iso, net = (np.array(v) for v in zip(*acc[n].values()))
+        g = gain(net, iso)
+        rows.append({"sites": n, "worlds": len(iso), "alone_um": float(iso.mean()), "together_um": float(net.mean()),
+                     "pct": float(100 * (iso - net).mean() / iso.mean()), "wins": g["wins"], "n": g["n"], "p": g["p"], "paired": g})
+    return {"source": "hpc/sweeps/coldstart/results/" + Path(path).name, "seed_pieces": cell[0], "per_round": cell[1], "round": r, "rows": rows}
 
 
 def main() -> None:
@@ -146,6 +229,15 @@ def main() -> None:
             "resin_round1_um": {"liar_no_check": float(np.median(cell("liar", False))), "liar_check": float(np.median(cell("liar", True))),
                                 "no_notes": float(np.median(cell("alone", False)))},
         }
+    proto = res("consistency_protocol")
+    if proto.exists() and proto.stat().st_size:
+        ev["consistency_check"] = consistency_protocol(proto)  # replaces the prototype's numbers
+    neg = res("negative_control")
+    if neg.exists() and neg.stat().st_size:
+        ev["negative_control"] = negative_control(neg)
+    cold = next((p for p in (ROOT / "hpc/sweeps/coldstart/results/grid.jsonl", ROOT / "hpc/sweeps/coldstart/results/grid.jsonl.gz") if p.exists()), None)
+    if cold:
+        ev["sites_needed"] = sites_needed(cold)
     out = ROOT / "viewer" / "evidence.json"
     out.write_text(json.dumps(ev, indent=1))
     print(f"wrote {out}")

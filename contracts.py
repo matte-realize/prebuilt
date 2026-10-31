@@ -33,8 +33,8 @@ class Measurement:
     plate_id: str
     site: str
     measured_d: float | None   # None if failed
-    status: str                # "ok" | "failed"
-    method: str                # "scanner" | "caliper" | "sim"
+    status: str                # "ok" | "failed" | "skipped" (hand sheet: printed, not measured)
+    method: str                # "scanner" | "caliper" | "sim" | "not-measured" | ...
 
 
 class Printer(Protocol):

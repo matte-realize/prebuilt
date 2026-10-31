@@ -45,7 +45,8 @@ Data = list[tuple[Piece, Measurement]]
 
 
 # Measurements that say nothing about the printer: kept on the receipt chain, never used as data.
-NOT_DATA = {"failed-plate", "scanner-miss"}
+# "not-measured": a piece on a hand sheet nobody measured (measure.real.NOT_MEASURED).
+NOT_DATA = {"failed-plate", "scanner-miss", "not-measured"}
 
 
 @dataclass
@@ -91,6 +92,11 @@ class Config:
     # Ablations
     share_messages: bool = True      # False = cut the network
     bad_sites: tuple[str, ...] = ()  # sites that broadcast corrupted beliefs
+    # Receiver-side consistency check (hpc/sweeps/relevance/consistency.py): drop, for this
+    # round, an incoming note whose shared-parameter summary contradicts the receiver's own
+    # data (chi-square at 0.999 over the shared parameters). Trust is left alone, so the
+    # sender is re-checked every round. Off in the frozen config.
+    consistency_check: bool = False
     agents: tuple[str, ...] = tuple(AGENT_NAMES)
     seed_pieces: int | None = SEED_PIECES  # calibration pieces on the seed plate (None = all 56)
     # Challenge round (spec 6.5 step 3) and spawn of dormant agents (6.7). Off for the
@@ -140,6 +146,7 @@ class Results:
     challenges: list[dict] = field(default_factory=list)  # one row per flag
     spawned: list[dict] = field(default_factory=list)
     predictions: list[dict] = field(default_factory=list)  # one row per (round, site, arm, held-out piece); viewer only
+    checks: list[dict] = field(default_factory=list)  # consistency check: one row per (round, receiver, sender)
 
 
 def run_experiment(
@@ -195,7 +202,7 @@ def run_experiment(
             _credit(r, st, pieces, contribs[s], cfg, rng, res)
             _unmet_needs(r, st, pieces, cfg, rng)
         if cfg.share_messages:
-            _broadcast(r, sites, pieces, cfg, rng)
+            _broadcast(r, sites, pieces, cfg, rng, res)
         for st in sites.values():
             _spawn(r, st, cfg, res)
         oracle_post = _fit_oracle(sites, pieces, cfg, rng)
@@ -507,12 +514,13 @@ def _spawn(r: int, st: SiteState, cfg: Config, res: Results) -> None:
         st.chain.append("spawn", {"round": r, "agent": t, "unmet": st.unmet[t], "credibility": roster.cred})
 
 
-def _broadcast(r: int, sites: dict[str, SiteState], pieces, cfg: Config, rng) -> None:
+def _broadcast(r: int, sites: dict[str, SiteState], pieces, cfg: Config, rng, res: Results | None = None) -> None:
     """Each site sends the shared-parameter summary of its own data only (no echo of others' messages)."""
-    outgoing = {}
+    outgoing, own = {}, {}
     for s, st in sites.items():
         local = _fit(st, pieces, st.data["networked"], cfg, rng)
         summ, _, _ = local.summary("shared")
+        own[s] = summ
         if s in cfg.bad_sites:
             summ = _corrupt(summ)
         outgoing[s] = Message(s, r, summ, dict(st.roster.cred), [], list(st.unmet_out))
@@ -520,6 +528,26 @@ def _broadcast(r: int, sites: dict[str, SiteState], pieces, cfg: Config, rng) ->
         for o, other in sites.items():
             if o != s:
                 other.inbox[s] = protocol.send(msg, sites[s].chain, other.chain)
+    if cfg.consistency_check and res is not None:
+        for o, other in sites.items():
+            for s in [s for s in other.inbox if other.inbox[s].round == r]:
+                stat, dropped = consistency(other.inbox[s].shared_params, own[o], cfg)
+                res.checks.append({"round": r, "receiver": o, "sender": s, "chi2": stat, "dropped": dropped})
+                other.chain.append("consistency_check", {"round": r, "sender": s, "chi2": round(stat, 3), "dropped": dropped})
+                if dropped:
+                    del other.inbox[s]
+
+
+CHI2_999 = {1: 10.83, 2: 13.82, 3: 16.27}  # chi-square 0.999 quantiles by degrees of freedom
+
+
+def consistency(incoming: dict[str, tuple[float, float]], own: dict[str, tuple[float, float]], cfg: Config) -> tuple[float, bool]:
+    """Chi-square of an incoming shared-parameter summary against the receiver's own (mean, var),
+    with the between-site spread the model already allows. Returns (statistic, drop?)."""
+    z2 = [(m - own[k][0]) ** 2 / (v + own[k][1] + (cfg.between_site_sd * SHARED_STD[k]) ** 2)
+          for k, (m, v) in incoming.items() if k in own]
+    stat = float(np.sum(z2))
+    return stat, bool(z2) and stat > CHI2_999[min(len(z2), 3)]
 
 
 def _corrupt(summ: dict[str, tuple[float, float]]) -> dict[str, tuple[float, float]]:

@@ -5,7 +5,8 @@
 Shares deck_template.html's styles with the full deck (make_deck.py). Slide 3 is the demo:
 an animation driven by real simulation numbers (demo/tier-d, frozen config), so the pitch
 never leaves the deck. Numbers on slide 4 come from hpc/sweeps/relevance/README.md (100
-worlds, frozen config). Script and Q&A: docs/slides/pitch-notes.md.
+worlds, frozen config); the consistency-check cell and the slide-6 chart read viewer/evidence.json
+(hpc/sweeps/relevance/evidence.py). Script and Q&A: docs/slides/pitch-notes.md.
 """
 import json
 from collections import defaultdict
@@ -28,6 +29,28 @@ def curves(path: Path, site: str | None = None) -> dict:
 DATA = {"honest": curves(ROOT / "demo/tier-d/sim.json"),
         "liar": curves(ROOT / "demo/tier-d/bad-site.json", site="resin")}
 SEED = json.loads((ROOT / "plates/out/resin/resin-seed.json").read_text())
+EV = json.loads((ROOT / "viewer/evidence.json").read_text())  # hpc/sweeps/relevance/evidence.py
+SITES_NEEDED = EV["sites_needed"]   # coldstart grid: warm-up 4, 2 pieces/round, round 3
+CHECK = EV["consistency_check"]     # protocol sweep: Config.consistency_check, off in the frozen config
+
+
+def sites_svg() -> str:
+    """Bars: gain over learning alone at 2 / 4 / 8 data-poor sites (simulation)."""
+    rows = SITES_NEEDED["rows"]
+    W, H, X0, Y0, Y1 = 360, 230, 20, 186, 34
+    top = max(40, -(-max(r["pct"] for r in rows) // 10) * 10)
+    bw, gap = 74, (W - 2 * X0 - 3 * 74) / 2
+    y = lambda v: Y0 - (Y0 - Y1) * v / top
+    parts = [f'<svg viewBox="0 0 {W} {H}" class="sites-chart" role="img" aria-label="Lower error than learning alone: '
+             + ", ".join(f'{r["sites"]} sites {round(r["pct"])}%' for r in rows) + '">',
+             f'<line x1="{X0}" x2="{W - X0}" y1="{Y0}" y2="{Y0}" class="axis"/>']
+    for i, r in enumerate(rows):
+        x = X0 + i * (bw + gap)
+        parts.append(f'<rect x="{x:.1f}" y="{y(r["pct"]):.1f}" width="{bw}" height="{Y0 - y(r["pct"]):.1f}" rx="3" class="bar"/>'
+                     f'<text x="{x + bw / 2:.1f}" y="{y(r["pct"]) - 10:.1f}" text-anchor="middle" class="val">{round(r["pct"])}%</text>'
+                     f'<text x="{x + bw / 2:.1f}" y="{Y0 + 20}" text-anchor="middle" class="lab">{r["sites"]} sites</text>'
+                     f'<text x="{x + bw / 2:.1f}" y="{Y0 + 37}" text-anchor="middle" class="sub">{r["wins"]}/{r["n"]} worlds</text>')
+    return "".join(parts) + "</svg>"
 
 
 def plate_svg() -> str:
@@ -47,22 +70,22 @@ SLIDES = [
     ("0:00–0:25 · The problem", "Every shop re-learns its own printer",
      f"""<div class="split">
   <div class="stack">
-    <p class="lede">A 3D printer is only useful once you know how it misses: holes come out small, pins come out fat, edges drift.</p>
-    <p>Every site learns that from scratch, one test print at a time. Sites can't pool the data, because measurements expose process know-how and customer parts.</p>
+    <p class="lede">No printed part matches its file. Holes come out small, pins come out fat, by tens to hundreds of microns, and that decides whether parts fit.</p>
+    <p>The error belongs to your machine today: its resin, settings and wear. No datasheet knows it; you learn it by printing. Every site does that from scratch, and can't pool the data, because measurements expose process know-how and customer parts.</p>
     <p class="big-q">Can printers learn from each other without sharing a single measurement?</p>
   </div>
-  <figure class="fig">{plate_svg()}<figcaption>The test plate: pins and holes, 1–7 mm, read by an ordinary flatbed scanner.</figcaption></figure>
+  <figure class="fig">{plate_svg()}<figcaption>The test plate: pins and holes, 1–7 mm. Print it, measure it, and you know your printer.</figcaption></figure>
 </div>""",
-     "Hold up a printed plate if you have one. One sentence on why pooling is off the table."),
+     "Hold up a printed plate. The point: precision is a property of your machine, and the only way to learn it is to print."),
 
-    ("0:25–0:50 · What we built", "Two printers, one boundary, only beliefs cross",
+    ("0:25–0:50 · What we built", "Two printer sites, one boundary, only beliefs cross",
      """<div class="arch">
-  <div class="node"><span class="proc">SLA</span><h3>Resin printer</h3><p>prints, scans, learns its own model</p></div>
+  <div class="node"><span class="proc">SLA · simulated</span><h3>Resin site</h3><p>prints, measures, learns its own model</p></div>
   <div class="link"><span class="msg">μ, σ of 3 shared parameters</span><span class="arrow" aria-hidden="true">⇄</span><span class="wall-tag">schema-checked · on a receipt</span></div>
-  <div class="node"><span class="proc">FDM</span><h3>PLA printer</h3><p>different machine, different physics</p></div>
+  <div class="node"><span class="proc">FDM · simulated</span><h3>PLA site</h3><p>different machine, different physics</p></div>
 </div>
-<div class="stays"><b>Stays home:</b> every scan, every measurement, every machine-specific parameter.</div>""",
-     "Point at the middle: that's the whole interface. Errors that every printer shares (small features shrink, edges drift) are learned together; everything else stays local."),
+<div class="stays"><b>Stays home:</b> every measurement, every machine-specific parameter.</div>""",
+     "Point at the middle: that's the whole interface. Errors that every printer shares (small features shrink, edges drift) are learned together; everything else stays local. Both sites are simulated printers whose true behavior we know, which is how every result is scored."),
 
     ("0:50–1:40 · Demo", "Watch the network learn",
      """<div class="demo" id="demo">
@@ -94,35 +117,35 @@ SLIDES = [
     <span class="tiny" id="cap">Simulation with hidden truth, frozen config, 20 worlds. Model error on held-out pieces, µm.</span>
   </div>
 </div>""",
-     "In Present mode it plays by itself. Narrate the caption line. Then L: resin's error spikes in round 1, trust collapses to 0.01 once held-out pieces expose the lie, and by round 3 resin is back level with learning alone. A liar costs one round."),
+     "In Present mode it plays by itself. Narrate the caption line. Then L: resin's error spikes in round 1, trust collapses to 0.01 once held-out pieces expose the lie, and by round 3 resin is back level with learning alone. Without a check, a liar costs one round (slide 4: with the check, none)."),
 
-    ("1:40–2:15 · Results", "As good as pooling the data, without pooling it",
-     """<div class="cols3 hero">
+    ("1:40–2:15 · Results, in simulation", "The win is many sites, not many agents",
+     f"""<div class="cols3 hero">
   <div class="cell"><span class="big">12%</span><p>lower error than learning alone, in 75 of 100 worlds. Pooling all the raw data: also 12%.</p></div>
-  <div class="cell"><span class="big">25%</span><p>with four sites that each know little. More sites with less data is where sharing pays.</p></div>
-  <div class="cell"><span class="big">1 round</span><p>is all a lying site gets. Then its trust is 0.01, and the audit shows nothing but beliefs ever crossed.</p></div>
+  <div class="cell"><span class="big">35%</span><p>with eight sites that each know little, better in 20 of 20 worlds. Many data-poor sites is where sharing pays.</p></div>
+  <div class="cell"><span class="big">0 rounds</span><p>for a liar: a consistency check catches its notes on arrival ({CHECK["liar_caught"]} of {CHECK["liar_notes"]}, {CHECK["honest_dropped"]} honest notes dropped). Without it, a liar costs one round.</p></div>
 </div>
-<p class="foot">Simulation with hidden truth, frozen config, paired per world. At two sites the gain is 1.6 µm, small next to scanner noise, so the real-printer claim is a committed prediction.</p>""",
-     "Say the honest size once: a couple of microns at two sites. The case grows with the number of data-poor sites."),
+<p class="foot">Simulation with hidden truth, frozen config, paired per world. The consistency check is an added protocol option, off in the registered config, tested in {CHECK["worlds"]} worlds. The agent layer adds nothing measurable: with messages cut, learned credibility ties equal votes. At two sites the gain is 1.6 µm, below what you can measure on a real part, so we don't claim it there.</p>""",
+     "Say it plainly: these are simulation numbers, the gain comes from sharing between sites, not from the agents, and at two sites it is a couple of microns. It grows with the number of data-poor sites."),
 
-    ("2:15–2:40 · Science, not a demo", "We wrote the prediction down before printing",
+    ("2:15–2:40 · Why simulation", "Grounded in a real printer, scored in simulation",
      """<div class="timeline">
-  <div><span class="t">Simulation</span><p>Hidden-truth printers. Config tuned, then frozen.</p></div>
-  <div><span class="t">Pre-registered</span><p>Claims, metric, fit classes, failure rules and fallbacks, hashed onto both receipt chains.</p></div>
-  <div><span class="t">Seed plates</span><p>Simulator calibrated to the real printers. Predicted range committed before round 1.</p></div>
-  <div><span class="t">Real rounds</span><p>Does the real resin + PLA network land inside the prediction?</p></div>
+  <div><span class="t">Real printer</span><p>Formlabs Form Studio 1: a 1.5 mm pin measured 1.41–1.48 mm by micrometer, 24–89 µm small.</p></div>
+  <div><span class="t">Vendor spec</span><p>±0.08 mm on 1–30 mm features. Real error is tens of µm, as the spec says.</p></div>
+  <div><span class="t">Simulator</span><p>Simulated resin pins miss by −0.1 to +0.27 mm and holes by up to −0.35 mm: the real printer sits inside.</p></div>
+  <div><span class="t">Why not real</span><p>The sharing gain is 1.6 µm. Two readings of one pin differed by 65 µm. Only hidden truth can score it.</p></div>
 </div>
-<p class="foot">Every plate, measurement, bid and message is on a hash chain anyone can replay.</p>""",
-     "If real rounds are in, put the real point on screen here instead of the timeline."),
+<p class="foot">Registered before printing: two printers can't show the sharing gain on real parts. The test plate, a hand-measurement sheet and the scanner pipeline are built for real sites; the simulator says when the gain becomes measurable: many sites, each with little data.</p>""",
+     "Hold up the printed plate. Say it once: the real printer tells us the simulator is the right size; the simulator is the only place a 1.6 µm gain can be scored. Don't claim the model was fit on the real printer: three pieces aren't enough."),
 
     ("2:40–3:00 · Next", "Print anywhere, trust the part",
      f"""<div class="split">
   <div class="stack"><p class="lede">Any shop that can print a flat plate can join, learn faster, and keep its data.</p>
-  <p>Released today: the process-agnostic test plate, the flatbed scanner tool, and the hidden-truth multi-site printer simulator.</p>
+  <p>Released today: the process-agnostic test plate, its measurement tools, and the hidden-truth multi-site printer simulator, which tells you how many sites it takes before sharing pays.</p>
   <p class="meta mono">github.com/matte-realize/prebuilt</p></div>
-  <figure class="fig small">{plate_svg()}</figure>
+  <figure class="fig">{sites_svg()}<figcaption>Lower error than learning alone, by number of sites. Each starts with 4 test pieces and prints 2 a round; round 3, simulation.</figcaption></figure>
 </div>""",
-     "End on the line. Stop talking."),
+     "Point at the bars once: 2, 4, 8 sites. That's what the simulator is for. End on the line. Stop talking."),
 ]
 
 EXTRA_CSS = """
@@ -137,6 +160,10 @@ EXTRA_CSS = """
 .plate { max-width: 34cqw; }
 .timeline > div { font-size: 2cqw; } .t { font-size: 1.5cqw; }
 .hero .big { font-size: 8cqw; } .hero .cell p { font-size: 2cqw; }
+.sites-chart { width: 100%; max-width: 38cqw; height: auto; display: block; }
+.sites-chart .bar { fill: var(--net); } .sites-chart .axis { stroke: var(--line); stroke-width: 1.5; }
+.sites-chart .val { font: 700 26px var(--display); fill: var(--ink); }
+.sites-chart .lab { font: 600 15px var(--body); fill: var(--ink); } .sites-chart .sub { font: 12px var(--mono); fill: var(--muted); }
 
 .arch { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 2cqw; align-items: center; }
 .node { border: 2px solid var(--ink); border-radius: 8px; padding: 2cqw; display: grid; gap: .6cqw; text-align: center; }
@@ -177,6 +204,7 @@ EXTRA_CSS = """
 .demo .spike { font: 700 15px var(--body); fill: var(--net); }
 @media (max-width: 720px) {
   .slide h2 { font-size: 28px; } .slide .body { font-size: 15px; } .lede { font-size: 19px; } .foot { font-size: 13px; }
+  .sites-chart { max-width: 100%; }
   .arch, .demo { grid-template-columns: 1fr; } .node h3 { font-size: 20px; } .node p, .stays, .timeline > div { font-size: 14px; }
   .msg { font-size: 13px; padding: 6px 12px; } .arrow { font-size: 28px; } .wall-tag, .proc, .t { font-size: 11px; }
   .link { border-left: 0; border-right: 0; border-top: 3px dashed var(--amber); border-bottom: 3px dashed var(--amber); }
@@ -198,7 +226,7 @@ DEMO_JS = """
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let mode = 'honest', shown = 3, timer = null, run = 0;
   const SAY = {
-    honest: ['Each round both sites print and scan a plate. Only belief summaries cross.',
+    honest: ['Each round both sites print and measure a plate. Only belief summaries cross.',
       'Round 1: networked (orange) already beats learning alone (blue).',
       'Round 2: it matches pooling all the raw data (green), which never moved.',
       'Round 3: 12% lower error than alone, and still zero measurements crossed.'],
@@ -239,7 +267,7 @@ DEMO_JS = """
     $('trustTxt').textContent = t.toFixed(2);
     $('trustG').style.opacity = mode === 'liar' ? 1 : 0.3;
     $('nameB').textContent = mode === 'liar' ? 'PLA (lying)' : 'PLA';
-    const label = shown ? `round ${shown} plate scanned` : 'seed plate scanned';
+    const label = shown ? `round ${shown} plate measured` : 'seed plate measured';
     $('platesA').textContent = $('platesB').textContent = label;
     $('measA').textContent = $('measB').textContent = SEED + PER_ROUND * shown;
     $('crossed').textContent = `crossed: 0 measurements · ${2 * NUMBERS * shown} numbers`;

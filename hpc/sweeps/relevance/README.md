@@ -6,7 +6,7 @@ Exploratory analyses on the frozen config unless stated. Simulation only (`sim/r
     PYTHONPATH=. .venv/bin/python hpc/sweeps/relevance/regimes.py hpc/sweeps/relevance/results/regimes.jsonl      # ~8 min
     .venv/bin/python hpc/sweeps/relevance/analyze_worlds.py hpc/sweeps/relevance/results/worlds.jsonl.gz
     .venv/bin/python hpc/sweeps/relevance/analyze_regimes.py hpc/sweeps/relevance/results/regimes.jsonl.gz
-    PYTHONPATH=. .venv/bin/python hpc/sweeps/relevance/evidence.py    # writes viewer/evidence.json for the 3D demo
+    PYTHONPATH=. .venv/bin/python hpc/sweeps/relevance/evidence.py    # writes viewer/evidence.json for the 3D demo (sections 1, 2, 4–7)
 
 ## 1. Current setup (2 sites, 16-piece seed, 6 slots), 100 worlds, 8 rounds
 
@@ -38,7 +38,7 @@ Frozen config from `prereg/prereg.yaml` via `frozen.py` (4000 particles, 6 MH st
 
 Full table (rounds 1, 3, 5, plus the messages-cut comparison) from `analyze_regimes.py`. Neither more sites nor less data per site raises the gain much on its own; the combination does. Many sites that each know little is where sharing pays, and there it shows through scanner noise. Fit pairs are pooled over worlds and rounds; they are sparse (2–3 scored pairs per site per round).
 
-`trust_init` 0.3 instead of 1.0 (current setup, bad site): round-1 networked error 29.7 vs 38.8 µm, so it only partly limits the damage, and it costs a little with honest sites (round 1: 13.0 vs 12.6 µm). The consistency check in section 4 removes the damage instead. The bad site's beliefs are confident outliers (3 prior std off, 0.1 std wide), so a consistency check of incoming summaries against the receiver's own posterior would likely catch them in round 1. Not implemented: it changes the protocol and frozen config.
+`trust_init` 0.3 instead of 1.0 (current setup, bad site): round-1 networked error 29.7 vs 38.8 µm, so it only partly limits the damage, and it costs a little with honest sites (round 1: 13.0 vs 12.6 µm). The consistency check in section 4 removes the damage instead. The bad site's beliefs are confident outliers (3 prior std off, 0.1 std wide), so a consistency check of incoming summaries against the receiver's own posterior catches them in round 1 (sections 4 and 5). It is now a protocol option, `Config.consistency_check`, off in the frozen config.
 
 ## 3. A saboteur agent, 100 worlds, 5 rounds (frozen config)
 
@@ -78,5 +78,59 @@ After each broadcast, the receiver compares every incoming shared-parameter summ
 - The honest benefit survives an attack: with the check, the bad-site condition beats no notes by 1.25 µm at round 3 (68/100) and is level with all-honest notes (11.1 vs 11.0), because the bad notes are dropped rather than left at ~1% trust.
 - No cost with honest sites: nothing was dropped, so results are identical.
 - Caveats: this bad site is easy to catch (3 prior std off, 0.1 std wide). A subtle one that stays within the allowed spread passes and is left to trust. On real printers, model mismatch may raise honest Σz² toward the threshold (simulated 99th percentile 12.6 vs 16.3). Adopting it changes the protocol and the frozen config, so it is a secondary analysis for this weekend, not part of the registered experiment.
+
+## 5. Consistency check as a protocol option (frozen config + `consistency_check=True`, 60 worlds, 3 rounds)
+
+    PYTHONPATH=. .venv/bin/python hpc/sweeps/relevance/consistency_protocol.py 60 hpc/sweeps/relevance/results/consistency_protocol.jsonl   # ~11 min
+    .venv/bin/python hpc/sweeps/relevance/analyze_consistency.py hpc/sweeps/relevance/results/consistency_protocol.jsonl.gz
+
+Section 4's check, built into `arms/experiment.py` (`Config.consistency_check`, default off) instead of monkeypatched. Same statistic and threshold; the receiver's own summary is the local fit it already makes for its outgoing note (no refit), and every check is a row in `Results.checks` and an entry on the receiver's receipt chain. Off in the frozen/registered config: this is an added option evaluated in simulation.
+
+| Networked, true-size error (µm), median | Round 1 | Round 2 | Round 3 |
+|---|---|---|---|
+| No notes | 14.9 | 12.4 | 11.6 |
+| Honest notes | 12.6 | 11.2 | 10.8 |
+| Honest notes + check | 12.6 | 11.2 | 10.8 |
+| Bad site, no check | 38.8 | 12.3 | 11.4 |
+| Bad site + check | 13.2 | 12.2 | 10.6 |
+
+- Bad site's notes caught: 180 of 180 (lowest Σz² 63). Honest notes wrongly dropped: 0 of 540 (360 in honest runs, 180 from the honest site in bad-site runs; 99th percentile Σz² 12.8, threshold 16.3). The prototype's 300/300 and 0/900 hold up.
+- Resin, the site lied to, round 1: 64.0 µm without the check, 11.6 µm with it, 11.6 µm with no notes. Check vs no check under attack, round 1: 26.4 µm better, in 60/60 worlds.
+- Honest gain preserved: nothing was dropped in honest runs, so results are identical (together vs alone 10.0%, 44/60, p<0.001, with or without the check). Under attack with the check, notes still beat no notes at round 3 by 1.2 µm (10.7%, 42/60, p=0.003); without the check that benefit was lost (section 1).
+- Same caveats as section 4: this liar is easy to catch, and real-printer model mismatch may push honest Σz² toward the threshold.
+
+## 6. Negative control: printers that share no physics (frozen config, 60 worlds, 3 rounds)
+
+    PYTHONPATH=. .venv/bin/python hpc/sweeps/relevance/negative_control.py 60 hpc/sweeps/relevance/results/negative_control.jsonl   # ~6 min
+    .venv/bin/python hpc/sweeps/relevance/analyze_negative_control.py hpc/sweeps/relevance/results/negative_control.jsonl.gz
+
+`make_world(..., independent_shared=True)` draws each site's "shared" parameters independently from the prior, with the same rng draws otherwise, so each control world is paired with the normal world of the same seed. If the gain were built into the simulator or the scoring, it would show up here too.
+
+| Round 3, paired per world | Shared physics (normal) | Nothing shared (control) |
+|---|---|---|
+| Alone → together (µm) | 12.2 → 10.8 | 12.7 → 14.0 |
+| Together vs alone | +1.2 µm (10.0%), 44/60, p<0.001 | −1.7 µm (−13.0%, CI −21 to −4%), 19/60, p=0.006 |
+| Notes vs messages cut | +0.9 µm (7.7%), 39/60, p=0.03 | −1.8 µm (−13.7%), 13/60, p<0.001 |
+| Pooled raw data vs alone | +0.6 µm (5.8%), 34/60, p=0.37 | −2.7 µm (−24.3%), 14/60, p<0.001 |
+| With consistency check: notes dropped | 0 of 360 | 80 of 360 (16 of 60 worlds) |
+| With consistency check: together vs alone | 10.0%, 44/60 (identical) | −3.0%, 26/60, p=0.37 |
+
+- The gain is not built in: with nothing to share, sharing gains nothing.
+- It is not harmless, though. Without shared physics the notes cost 13% and pooling the raw data costs 24%: the model assumes the shared parameters agree across sites to within `between_site_sd` (0.25 prior std), and here they differ by ~1.4 prior std, so the hierarchy pulls each site toward a common value that isn't there. Sharing pays only when the physics really is shared, and the model has no way of finding out that it isn't, beyond trust.
+- The consistency check catches part of it: it drops the most contradictory notes (80 of 360) and the cost falls from −13% to −3% (not significant). Not a fix; a reason to keep the check on if real sites may differ more than the model allows.
+
+## 7. How many sites it takes (from `hpc/sweeps/coldstart/results/grid.jsonl`, no rerun)
+
+    PYTHONPATH=. .venv/bin/python hpc/sweeps/relevance/evidence.py    # writes sites_needed into viewer/evidence.json
+
+Warm-up 4 pieces, 2 per round, round 3; % = mean gain / mean isolated error, as in the coldstart README; wins are per world.
+
+| Sites | Worlds | Alone → together (µm) | Gain | Better in | p | Paired median gain |
+|---|---|---|---|---|---|---|
+| 2 | 60 | 26.2 → 23.4 | 10.6% | 39/60 | 0.03 | 9.3% |
+| 4 | 40 | 26.5 → 19.0 | 28.5% | 35/40 | <0.001 | 24.3% |
+| 8 | 20 | 26.9 → 17.6 | 34.7% | 20/20 | <0.001 | 36.3% |
+
+The deck's 11% / 29% / 35% (20 of 20 at eight sites) check out against the data.
 
 Related: `hpc/sweeps/phase_c/README.md` section 1 found the same seed-plate effect on measured MAE (seed 4: 22% at round 3; seed 56: no separation).

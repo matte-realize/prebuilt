@@ -12,3 +12,4 @@ eval/figures/out/
 .env
 hpc/sweeps/phase_c/results/tuning_*.jsonl
 hpc/sweeps/phase_d/results/*.jsonl
+console/runs/

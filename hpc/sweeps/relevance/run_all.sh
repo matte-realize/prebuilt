@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# All relevance sweeps on the frozen prereg config, then the demo evidence. ~45 min on 18 cores.
+# All relevance sweeps on the frozen prereg config, then the demo evidence. ~65 min on 18 cores.
 set -euo pipefail
 cd "$(dirname "$0")/../../.."
 export PYTHONPATH=.
@@ -10,4 +10,8 @@ echo "worlds done"
 echo "saboteur done"
 .venv/bin/python $R/regimes.py $R/results/regimes.jsonl
 echo "regimes done"
+.venv/bin/python $R/consistency_protocol.py 60 $R/results/consistency_protocol.jsonl
+echo "consistency check done"
+.venv/bin/python $R/negative_control.py 60 $R/results/negative_control.jsonl
+echo "negative control done"
 .venv/bin/python $R/evidence.py
