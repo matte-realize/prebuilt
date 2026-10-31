@@ -55,53 +55,55 @@ SLIDES = [
 </div>""",
      "Hold up a printed plate if you have one. One sentence on why pooling is off the table."),
 
-    ("0:25–0:50 · What we built", "Two sites, one boundary, only beliefs cross",
-     """<div class="boundary">
-  <div class="site"><h3>Resin printer · SLA</h3><ul><li>Prints test plates, scans them</li><li>Agents choose which pieces to print next</li><li>Every measurement stays here</li></ul></div>
-  <div class="wall"><span>what crosses</span>
-    <ul class="cross"><li>Mean and uncertainty of 3 process-agnostic parameters</li><li>Nothing else: checked against a schema and hash-chained on a receipt</li></ul>
-  </div>
-  <div class="site"><h3>PLA printer · FDM</h3><ul><li>Different machine, different physics</li><li>Same test plate, same agents</li><li>Every measurement stays here</li></ul></div>
+    ("0:25–0:50 · What we built", "Two printers, one boundary, only beliefs cross",
+     """<div class="arch">
+  <div class="node"><span class="proc">SLA</span><h3>Resin printer</h3><p>prints, scans, learns its own model</p></div>
+  <div class="link"><span class="msg">μ, σ of 3 shared parameters</span><span class="arrow" aria-hidden="true">⇄</span><span class="wall-tag">schema-checked · on a receipt</span></div>
+  <div class="node"><span class="proc">FDM</span><h3>PLA printer</h3><p>different machine, different physics</p></div>
 </div>
-<p class="foot">Each site fits a physics model of its own printer. Some error terms are shared across machines and even processes (small features shrink, edges drift), and that part is learned together. A third arm pools all raw data as the upper bound.</p>""",
-     "Point at the middle column: that's the whole interface. Three numbers and their uncertainty."),
+<div class="stays"><b>Stays home:</b> every scan, every measurement, every machine-specific parameter.</div>""",
+     "Point at the middle: that's the whole interface. Errors that every printer shares (small features shrink, edges drift) are learned together; everything else stays local."),
 
     ("0:50–1:40 · Demo", "Watch the network learn",
      """<div class="demo" id="demo">
-  <svg class="sites" viewBox="0 0 420 230" aria-label="Two sites exchanging belief summaries across a boundary">
-    <line x1="210" y1="14" x2="210" y2="216" class="wall-line"/>
-    <text x="210" y="226" class="tiny" text-anchor="middle">boundary</text>
-    <g id="siteA"><rect x="14" y="60" width="150" height="104" rx="6" class="box"/>
-      <text x="89" y="88" text-anchor="middle" class="lbl">Resin</text>
-      <text x="89" y="110" text-anchor="middle" class="tiny" id="platesA">seed plate</text>
-      <text x="89" y="146" text-anchor="middle" class="tiny">raw data stays</text></g>
-    <g id="siteB"><rect x="256" y="60" width="150" height="104" rx="6" class="box"/>
-      <text x="331" y="88" text-anchor="middle" class="lbl" id="nameB">PLA</text>
-      <text x="331" y="110" text-anchor="middle" class="tiny" id="platesB">seed plate</text>
-      <text x="331" y="146" text-anchor="middle" class="tiny">raw data stays</text></g>
-    <g id="pktAB" class="pkt"><rect x="-34" y="-11" width="68" height="22" rx="11"/><text y="4" text-anchor="middle">μ, σ ×3</text></g>
-    <g id="pktBA" class="pkt"><rect x="-34" y="-11" width="68" height="22" rx="11"/><text y="4" text-anchor="middle">μ, σ ×3</text></g>
-    <g id="trustG"><text x="210" y="40" text-anchor="middle" class="tiny">resin's trust in PLA</text>
-      <rect x="150" y="46" width="120" height="8" rx="4" class="track"/><rect x="150" y="46" width="120" height="8" rx="4" class="trust" id="trustBar"/>
-      <text x="278" y="54" class="tiny" id="trustTxt">1.00</text></g>
+  <svg class="sites" viewBox="0 0 440 300" aria-label="Two sites exchanging belief summaries across a boundary">
+    <g id="trustG"><text x="220" y="22" text-anchor="middle" class="tiny">resin's trust in PLA</text>
+      <rect x="150" y="32" width="140" height="10" rx="5" class="track"/><rect x="150" y="32" width="140" height="10" rx="5" class="trust" id="trustBar"/>
+      <text x="298" y="42" class="tiny" id="trustTxt">1.00</text></g>
+    <line x1="220" y1="60" x2="220" y2="246" class="wall-line"/>
+    <text x="220" y="262" class="tiny" text-anchor="middle">site boundary</text>
+    <rect x="12" y="74" width="168" height="150" rx="8" class="box"/>
+    <text x="96" y="104" text-anchor="middle" class="lbl">Resin</text>
+    <text x="96" y="134" text-anchor="middle" class="count" id="measA">24</text>
+    <text x="96" y="154" text-anchor="middle" class="tiny">measurements here</text>
+    <text x="96" y="204" text-anchor="middle" class="tiny" id="platesA">seed plate</text>
+    <rect x="260" y="74" width="168" height="150" rx="8" class="box"/>
+    <text x="344" y="104" text-anchor="middle" class="lbl" id="nameB">PLA</text>
+    <text x="344" y="134" text-anchor="middle" class="count" id="measB">24</text>
+    <text x="344" y="154" text-anchor="middle" class="tiny">measurements here</text>
+    <text x="344" y="204" text-anchor="middle" class="tiny" id="platesB">seed plate</text>
+    <g id="pktAB" class="pkt"><rect x="-44" y="-14" width="88" height="28" rx="14"/><text y="5" text-anchor="middle">μ, σ ×3</text></g>
+    <g id="pktBA" class="pkt"><rect x="-44" y="-14" width="88" height="28" rx="14"/><text y="5" text-anchor="middle">μ, σ ×3</text></g>
+    <text x="220" y="292" text-anchor="middle" class="crossed" id="crossed">crossed: 0 measurements · 0 numbers</text>
   </svg>
-  <svg class="chart" id="chart" viewBox="0 0 420 230" aria-label="Held-out error by round for isolated, networked and oracle"></svg>
+  <svg class="chart" id="chart" viewBox="0 0 480 300" aria-label="Held-out error by round for isolated, networked and oracle"></svg>
+  <p class="say" id="say">Two sites, each starting from one seed plate. Press Play.</p>
   <div class="ctl">
-    <button type="button" id="play">▶ Play 3 rounds</button>
-    <button type="button" id="liar" aria-pressed="false">Make PLA lie</button>
-    <span class="tiny" id="cap">Simulation, frozen config. Noise-free held-out error at the resin and PLA sites, µm.</span>
+    <button type="button" id="play">▶ Play (P)</button>
+    <button type="button" id="liar" aria-pressed="false">Make PLA lie (L)</button>
+    <span class="tiny" id="cap">Simulation with hidden truth, frozen config, 20 worlds. Model error on held-out pieces, µm.</span>
   </div>
 </div>""",
-     "Press Play: each round both sites print, then only the summaries cross; networked (orange) drops below isolated (blue) and lands on the oracle (green). Then press 'Make PLA lie': resin's error spikes in round 1, trust collapses to 0.01, and by round 3 it's back level with isolated. A liar costs one round."),
+     "In Present mode it plays by itself. Narrate the caption line. Then L: resin's error spikes in round 1, trust collapses to 0.01 once held-out pieces expose the lie, and by round 3 resin is back level with learning alone. A liar costs one round."),
 
     ("1:40–2:15 · Results", "As good as pooling the data, without pooling it",
-     """<div class="cols3">
-  <div class="cell"><span class="big">12%</span><p>lower model error than learning alone by round 3, in 75 of 100 simulated worlds. Pooling all raw data does no better (12%).</p></div>
-  <div class="cell"><span class="big">25%</span><p>when four sites each have little data: many sites that each know little is where sharing pays most.</p></div>
-  <div class="cell"><span class="big">0.01</span><p>trust left in a lying site after one round. The receipt audit passes in every run: nothing but the schema ever crossed.</p></div>
+     """<div class="cols3 hero">
+  <div class="cell"><span class="big">12%</span><p>lower error than learning alone, in 75 of 100 worlds. Pooling all the raw data: also 12%.</p></div>
+  <div class="cell"><span class="big">25%</span><p>with four sites that each know little. More sites with less data is where sharing pays.</p></div>
+  <div class="cell"><span class="big">1 round</span><p>is all a lying site gets. Then its trust is 0.01, and the audit shows nothing but beliefs ever crossed.</p></div>
 </div>
-<p class="foot">Simulation with hidden truth, frozen config, paired per world (hpc/sweeps/relevance). The gain comes from the shared beliefs, not the agent auction. In absolute terms it's 1.6 µm at two sites, small next to scanner noise, which is why the real-printer claim is a committed prediction (next).</p>""",
-     "Say the honest size once: at two sites it's a couple of microns; the case for this grows with the number of sites."),
+<p class="foot">Simulation with hidden truth, frozen config, paired per world. At two sites the gain is 1.6 µm, small next to scanner noise, so the real-printer claim is a committed prediction.</p>""",
+     "Say the honest size once: a couple of microns at two sites. The case grows with the number of data-poor sites."),
 
     ("2:15–2:40 · Science, not a demo", "We wrote the prediction down before printing",
      """<div class="timeline">
@@ -110,7 +112,7 @@ SLIDES = [
   <div><span class="t">Seed plates</span><p>Simulator calibrated to the real printers. Predicted range committed before round 1.</p></div>
   <div><span class="t">Real rounds</span><p>Does the real resin + PLA network land inside the prediction?</p></div>
 </div>
-<p class="foot">Every plate, measurement, bid and message is on a hash chain. Anyone can replay it and check that no raw data left a site.</p>""",
+<p class="foot">Every plate, measurement, bid and message is on a hash chain anyone can replay.</p>""",
      "If real rounds are in, put the real point on screen here instead of the timeline."),
 
     ("2:40–3:00 · Next", "Print anywhere, trust the part",
@@ -124,29 +126,63 @@ SLIDES = [
 ]
 
 EXTRA_CSS = """
-.big-q { font: 600 2.2cqw/1.25 var(--display); color: var(--amber); max-width: 40ch; }
-.fig figcaption { font: 1.15cqw var(--mono); color: var(--muted); margin-top: .8cqw; text-align: center; }
-.demo { display: grid; grid-template-columns: 1fr 1fr; gap: 2cqw; align-items: start; }
+/* Pitch: projected, so bigger type and content centred in the frame. */
+.slide { grid-template-rows: auto auto 1fr; }
+.slide h2 { font-size: 4.8cqw; }
+.slide .body { font-size: 2.1cqw; align-content: center; }
+.lede { font-size: 2.9cqw; }
+.foot { font-size: 1.6cqw; }
+.big-q { font: 600 2.6cqw/1.25 var(--display); color: var(--amber); max-width: 34ch; }
+.fig figcaption { font: 1.3cqw var(--mono); color: var(--muted); margin-top: .8cqw; text-align: center; }
+.plate { max-width: 34cqw; }
+.timeline > div { font-size: 2cqw; } .t { font-size: 1.5cqw; }
+.hero .big { font-size: 8cqw; } .hero .cell p { font-size: 2cqw; }
+
+.arch { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 2cqw; align-items: center; }
+.node { border: 2px solid var(--ink); border-radius: 8px; padding: 2cqw; display: grid; gap: .6cqw; text-align: center; }
+.node h3 { font: 700 3cqw var(--display); margin: 0; }
+.node p { font-size: 1.8cqw; color: var(--muted); max-width: none; }
+.proc { font: 600 1.4cqw var(--mono); letter-spacing: .1em; color: var(--muted); }
+.link { display: grid; justify-items: center; gap: .8cqw; border-left: 3px dashed var(--amber); border-right: 3px dashed var(--amber); padding: 1.5cqw 1cqw; }
+.msg { font: 600 1.9cqw var(--mono); background: var(--net); color: #fff; border-radius: 999px; padding: .7cqw 1.6cqw; text-align: center; }
+.arrow { font-size: 5cqw; line-height: 1; color: var(--net); }
+.wall-tag { font: 600 1.3cqw var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--amber); text-align: center; }
+.stays { font-size: 2cqw; border-top: 1px dashed var(--line); padding-top: 1.2cqw; }
+
+.slide:has(.demo) .body { grid-template-columns: 1fr; }   /* the template splits slides that hold a .chart */
+.demo { display: grid; grid-template-columns: 1fr 1.1fr; gap: 1.2cqw 2cqw; align-items: center; }
 .demo svg { width: 100%; height: auto; display: block; }
+.demo .chart { background: none; padding: 0; }   /* the template's .chart is a light card for a PNG */
+.demo .say { grid-column: 1 / -1; font: 600 2.2cqw/1.3 var(--display); margin: 0; min-height: 2.9cqw; max-width: none; }
 .demo .ctl { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 1cqw; align-items: center; }
 .demo button { font: 600 1.4cqw var(--body); color: var(--ink); background: var(--sheet); border: 1px solid var(--line);
-  border-radius: 6px; padding: .7cqw 1.4cqw; cursor: pointer; }
+  border-radius: 6px; padding: .6cqw 1.3cqw; cursor: pointer; }
 .demo button[aria-pressed="true"] { border-color: var(--amber); color: var(--amber); }
-.demo .tiny { font: 11px var(--mono); fill: var(--muted); color: var(--muted); }
+.demo .tiny { font: 13px var(--mono); fill: var(--muted); color: var(--muted); }
 .demo .ctl .tiny { font-size: 1.2cqw; }
-.demo .lbl { font: 600 17px var(--display); fill: var(--ink); }
-.demo .box { fill: var(--bg); stroke: var(--line); }
-.demo .wall-line { stroke: var(--amber); stroke-width: 3; stroke-dasharray: 6 5; }
-.demo .pkt rect { fill: var(--net); } .demo .pkt text { font: 600 11px var(--mono); fill: #fff; }
+.demo .lbl { font: 700 22px var(--display); fill: var(--ink); }
+.demo .count { font: 700 30px var(--display); fill: var(--ink); font-variant-numeric: tabular-nums; }
+.demo .crossed { font: 600 15px var(--mono); fill: var(--ora); }
+.demo .box { fill: var(--bg); stroke: var(--line); stroke-width: 1.5; }
+.demo .wall-line { stroke: var(--amber); stroke-width: 3; stroke-dasharray: 7 6; }
+.demo .pkt rect { fill: var(--net); } .demo .pkt text { font: 600 14px var(--mono); fill: #fff; }
 .demo .pkt { opacity: 0; } .demo .pkt.bad rect { fill: #c2342b; }
 .demo .track { fill: var(--line); } .demo .trust { fill: var(--ora); transition: width .6s ease; }
 .demo .trust.low { fill: #c2342b; }
-.demo .axis { stroke: var(--line); } .demo .grid { stroke: var(--line); stroke-dasharray: 2 4; }
-.demo .ln { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-.demo .ln.oracle { stroke-dasharray: 7 5; }
-.demo .tick { font: 11px var(--mono); fill: var(--muted); }
-.demo .end { font: 600 12px var(--body); }
-@media (max-width: 720px) { .demo { grid-template-columns: 1fr; } .demo button, .demo .ctl .tiny { font-size: 14px; } .big-q { font-size: 18px; } .fig figcaption { font-size: 11px; } }
+.demo .grid { stroke: var(--line); stroke-dasharray: 2 4; }
+.demo .ln { fill: none; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+.demo .ln.oracle { stroke-dasharray: 8 6; }
+.demo .tick { font: 13px var(--mono); fill: var(--muted); }
+.demo .end { font: 600 15px var(--body); }
+.demo .spike { font: 700 15px var(--body); fill: var(--net); }
+@media (max-width: 720px) {
+  .slide h2 { font-size: 28px; } .slide .body { font-size: 15px; } .lede { font-size: 19px; } .foot { font-size: 13px; }
+  .arch, .demo { grid-template-columns: 1fr; } .node h3 { font-size: 20px; } .node p, .stays, .timeline > div { font-size: 14px; }
+  .msg { font-size: 13px; padding: 6px 12px; } .arrow { font-size: 28px; } .wall-tag, .proc, .t { font-size: 11px; }
+  .link { border-left: 0; border-right: 0; border-top: 3px dashed var(--amber); border-bottom: 3px dashed var(--amber); }
+  .demo .say { font-size: 16px; } .demo button, .demo .ctl .tiny { font-size: 14px; }
+  .hero .big { font-size: 40px; } .hero .cell p { font-size: 14px; } .big-q { font-size: 18px; } .fig figcaption { font-size: 11px; }
+}
 """
 
 DEMO_JS = """
@@ -154,75 +190,102 @@ DEMO_JS = """
 (() => {
   const DATA = %%DATA%%;
   const COL = { isolated: 'var(--iso)', networked: 'var(--net)', oracle: 'var(--ora)' };
+  const PER_ROUND = 26, SEED = 24, NUMBERS = 6;   // pieces per round plate, seed plate; numbers per message
   const chart = document.getElementById('chart'), NS = 'http://www.w3.org/2000/svg';
+  const $ = id => document.getElementById(id);
   const el = (tag, attrs, text) => { const e = document.createElementNS(NS, tag);
     for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; };
-  let mode = 'honest', shown = 3, timer = null;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let mode = 'honest', shown = 3, timer = null, run = 0;
+  const SAY = {
+    honest: ['Each round both sites print and scan a plate. Only belief summaries cross.',
+      'Round 1: networked (orange) already beats learning alone (blue).',
+      'Round 2: it matches pooling all the raw data (green), which never moved.',
+      'Round 3: 12% lower error than alone, and still zero measurements crossed.'],
+    liar: ['PLA now sends confident, wrong beliefs. Resin trusts it by default.',
+      'Round 1: resin is misled, 82 µm. Its held-out pieces expose the lie.',
+      'Round 2: trust in PLA drops from 1.00 to 0.01. Resin recovers.',
+      'Round 3: back level with learning alone. A liar costs one round.'],
+  };
   function draw() {
-    const d = DATA[mode], X0 = 46, X1 = 330, Y0 = 200, Y1 = 22;
-    const vals = Object.values(d).flat(), hi = mode === 'liar' ? 90 : 18, lo = mode === 'liar' ? 0 : 10;
+    const d = DATA[mode], X0 = 54, X1 = 330, Y0 = 254, Y1 = 30;
+    const lo = 10, hi = mode === 'liar' ? 30 : 18, step = mode === 'liar' ? 5 : 2;
     const x = i => X0 + (X1 - X0) * i / 2, y = v => Y0 - (Y0 - Y1) * (Math.min(v, hi) - lo) / (hi - lo);
     chart.replaceChildren();
-    const step = mode === 'liar' ? 20 : 2;
     for (let v = lo; v <= hi; v += step) {
       chart.append(el('line', { x1: X0, x2: X1, y1: y(v), y2: y(v), class: 'grid' }));
-      chart.append(el('text', { x: X0 - 8, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v));
+      chart.append(el('text', { x: X0 - 10, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v));
     }
-    [1, 2, 3].forEach((r, i) => chart.append(el('text', { x: x(i), y: Y0 + 18, 'text-anchor': 'middle', class: 'tick' }, 'round ' + r)));
-    chart.append(el('text', { x: X0 - 36, y: 14, class: 'tick' }, mode === 'liar' ? 'µm, resin site' : 'µm, both sites'));
+    [1, 2, 3].forEach((r, i) => chart.append(el('text', { x: x(i), y: Y0 + 24, 'text-anchor': 'middle', class: 'tick' }, 'round ' + r)));
+    chart.append(el('text', { x: X0 - 44, y: 16, class: 'tick' }, mode === 'liar' ? 'µm, resin site' : 'µm, both sites'));
     const ends = [];
     for (const arm of ['isolated', 'oracle', 'networked']) {
-      const pts = d[arm].slice(0, shown).map((v, i) => `${x(i)},${y(v)}`).join(' ');
-      if (shown > 1) chart.append(el('polyline', { points: pts, class: 'ln ' + arm, stroke: COL[arm] }));
-      d[arm].slice(0, shown).forEach((v, i) => chart.append(el('circle', { cx: x(i), cy: y(v), r: 5, fill: COL[arm], stroke: 'var(--sheet)', 'stroke-width': 2 })));
-      if (shown) ends.push([arm, y(d[arm][shown - 1]), d[arm][shown - 1]]);
+      const v = d[arm].slice(0, shown);
+      if (v.length > 1) chart.append(el('polyline', { points: v.map((a, i) => `${x(i)},${y(a)}`).join(' '), class: 'ln ' + arm, stroke: COL[arm] }));
+      v.forEach((a, i) => {
+        chart.append(el('circle', { cx: x(i), cy: y(a), r: 6, fill: COL[arm], stroke: 'var(--sheet)', 'stroke-width': 2 }));
+        if (a > hi) chart.append(el('text', { x: x(i) + 12, y: y(a) + 5, class: 'spike' }, `↑ ${Math.round(a)} µm`));
+      });
+      if (shown) ends.push([arm, y(v[v.length - 1]), v[v.length - 1]]);
     }
     ends.sort((a, b) => a[1] - b[1]);
-    let last = -1e9;
-    for (const [arm, yy, v] of ends) {           // direct labels, pushed apart so they never overlap
-      const yl = Math.max(yy, last + 15); last = yl;
-      chart.append(el('text', { x: x(shown - 1) + 12, y: yl + 4, class: 'end', fill: 'var(--ink)' }, `${arm} ${v}`));
-    }
-    const t = mode === 'liar' && shown >= 1 ? (shown >= 2 ? 0.01 : 1.0) : 1.0;
-    const bar = document.getElementById('trustBar');
-    bar.setAttribute('width', 120 * t); bar.classList.toggle('low', t < 0.5);
-    document.getElementById('trustTxt').textContent = t.toFixed(2);
-    document.getElementById('trustG').style.opacity = mode === 'liar' ? 1 : 0.35;
-    document.getElementById('nameB').textContent = mode === 'liar' ? 'PLA (lying)' : 'PLA';
-    const label = shown ? `round ${shown} printed` : 'seed plate';
-    document.getElementById('platesA').textContent = label;
-    document.getElementById('platesB').textContent = label;
+    const ys = [];   // direct labels at the line ends: pushed apart, then lifted to stay above the axis
+    for (const [, yy] of ends) ys.push(ys.length ? Math.max(yy, ys[ys.length - 1] + 19) : yy);
+    const lift = Math.max(0, ys[ys.length - 1] - (Y0 - 4));
+    ends.forEach(([arm, , v], i) => chart.append(el('text', { x: x(shown - 1) + 14, y: ys[i] - lift + 5,
+      class: 'end', fill: 'var(--ink)' }, `${arm} ${v.toFixed(1)}`)));
+    const t = mode === 'liar' && shown >= 2 ? 0.01 : 1.0;
+    $('trustBar').setAttribute('width', 140 * t); $('trustBar').classList.toggle('low', t < 0.5);
+    $('trustTxt').textContent = t.toFixed(2);
+    $('trustG').style.opacity = mode === 'liar' ? 1 : 0.3;
+    $('nameB').textContent = mode === 'liar' ? 'PLA (lying)' : 'PLA';
+    const label = shown ? `round ${shown} plate scanned` : 'seed plate scanned';
+    $('platesA').textContent = $('platesB').textContent = label;
+    $('measA').textContent = $('measB').textContent = SEED + PER_ROUND * shown;
+    $('crossed').textContent = `crossed: 0 measurements · ${2 * NUMBERS * shown} numbers`;
+    $('say').textContent = SAY[mode][shown];
   }
   function packets(onDone) {
-    const a = document.getElementById('pktAB'), b = document.getElementById('pktBA');
+    const a = $('pktAB'), b = $('pktBA');
     b.classList.toggle('bad', mode === 'liar');
     if (reduce) return onDone();
-    const t0 = performance.now(), dur = 900;
+    const t0 = performance.now(), dur = 1100;
     (function frame(now) {
-      const k = Math.min(1, (now - t0) / dur);
-      a.setAttribute('transform', `translate(${100 + 220 * k},96)`); a.style.opacity = k < 1 ? 1 : 0;
-      b.setAttribute('transform', `translate(${320 - 220 * k},128)`); b.style.opacity = k < 1 ? 1 : 0;
+      const k = Math.min(1, (now - t0) / dur), e = k < .5 ? 2 * k * k : 1 - 2 * (1 - k) * (1 - k);
+      a.setAttribute('transform', `translate(${96 + 248 * e},178)`); a.style.opacity = k < 1 ? 1 : 0;
+      b.setAttribute('transform', `translate(${344 - 248 * e},120)`); b.style.opacity = k < 1 ? 1 : 0;
       k < 1 ? requestAnimationFrame(frame) : onDone();
     })(t0);
   }
   function play() {
-    clearTimeout(timer); shown = 0; draw();
-    const next = () => { if (shown >= 3) return; packets(() => { shown += 1; draw(); timer = setTimeout(next, 700); }); };
-    timer = setTimeout(next, 400);
+    const me = ++run; clearTimeout(timer); shown = 0; draw();
+    const next = () => { if (me !== run || shown >= 3) return;
+      packets(() => { if (me !== run) return; shown += 1; draw(); timer = setTimeout(next, 1600); }); };
+    timer = setTimeout(next, 1200);
   }
-  document.getElementById('play').addEventListener('click', play);
-  document.getElementById('liar').addEventListener('click', e => {
+  function toggleLiar() {
     mode = mode === 'liar' ? 'honest' : 'liar';
-    e.currentTarget.setAttribute('aria-pressed', String(mode === 'liar'));
-    e.currentTarget.textContent = mode === 'liar' ? 'Make PLA honest' : 'Make PLA lie';
-    document.getElementById('cap').textContent = mode === 'liar'
-      ? 'PLA broadcasts confident, wrong beliefs. Resin site only, 10 worlds, noise-free held-out error, µm.'
-      : 'Simulation, frozen config. Noise-free held-out error at the resin and PLA sites, µm.';
+    $('liar').setAttribute('aria-pressed', String(mode === 'liar'));
+    $('liar').textContent = mode === 'liar' ? 'Make PLA honest (L)' : 'Make PLA lie (L)';
+    $('cap').textContent = mode === 'liar'
+      ? 'PLA broadcasts confident, wrong beliefs. Resin site, 10 worlds, model error on held-out pieces, µm.'
+      : 'Simulation with hidden truth, frozen config, 20 worlds. Model error on held-out pieces, µm.';
     play();
+  }
+  $('play').addEventListener('click', play);
+  $('liar').addEventListener('click', toggleLiar);
+  $('demo').addEventListener('click', e => e.stopPropagation());   // clicks here don't advance slides
+  const s3 = $('demo').closest('.slide');
+  const onScreen = () => !document.body.classList.contains('present') || s3.classList.contains('on');
+  document.addEventListener('keydown', e => {
+    if (!onScreen() || e.metaKey || e.ctrlKey) return;
+    if (e.key === 'p' || e.key === 'P') play();
+    if (e.key === 'l' || e.key === 'L') toggleLiar();
   });
+  new MutationObserver(() => {   // Present mode: play when the demo slide comes up
+    if (document.body.classList.contains('present') && s3.classList.contains('on')) play();
+  }).observe(s3, { attributes: true, attributeFilter: ['class'] });
   draw();
-  document.getElementById('demo').addEventListener('click', e => e.stopPropagation());  // don't advance slides
 })();
 </script>
 """

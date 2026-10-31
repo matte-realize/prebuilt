@@ -1,6 +1,6 @@
 # 3-minute pitch: script, best points, Q&A
 
-Deck: `docs/slides/prebuilt-pitch.html` (6 slides, rebuild with `python docs/slides/make_pitch.py`). Present mode: double-click a slide, arrows to move, Esc to exit. The demo is slide 3 and never leaves the deck. The full 10-slide deck (`prebuilt-deck.html`) is backup for questions.
+Deck: `docs/slides/prebuilt-pitch.html` (6 slides, rebuild with `python docs/slides/make_pitch.py`). Present mode: double-click a slide, arrows to move, Esc to exit. The demo is slide 3 and never leaves the deck: in Present mode it plays by itself when the slide comes up (about 10 s). **P** replays it, **L** switches the lying site on or off. The caption line under the chart narrates each round, so you can read it as you go. The full 10-slide deck (`prebuilt-deck.html`) is backup for questions.
 
 ## Script (~380 words spoken, ~3:00)
 
@@ -8,7 +8,7 @@ Deck: `docs/slides/prebuilt-pitch.html` (6 slides, rebuild with `python docs/sli
 
 **2 · What we built (0:25–0:50).** "Two real printers, a resin printer and a PLA printer, each with its own team of agents. They print this test plate, scan it on an ordinary flatbed, and fit a physics model of their own machine. The only thing that crosses between sites is this: the mean and uncertainty of three parameters that every printer shares. Nothing else gets through. It's schema-checked and written on a hash chain."
 
-**3 · Demo (0:50–1:40).** Press *Play*. "Each round, both sites print and measure. Only the summaries cross. Blue is a site learning alone, green is pooling all the raw data, the upper bound. Orange is our network: it drops below learning alone and lands on the oracle, without the data ever moving." Press *Make PLA lie*. "Now the PLA site lies: confident, wrong beliefs. Resin gets hurt for one round, its trust in PLA collapses to one percent, and by round three it's back on its own feet. A liar costs one round."
+**3 · Demo (0:50–1:40).** It starts by itself. "Each round, both sites print and measure. Only the summaries cross. Blue is a site learning alone, green is pooling all the raw data, the upper bound. Orange is our network: it drops below learning alone and lands on the oracle, without the data ever moving." Press **L**. "Now the PLA site lies: confident, wrong beliefs. Resin gets hurt for one round, its trust in PLA collapses to one percent, and by round three it's back on its own feet. A liar costs one round."
 
 **4 · Results (1:40–2:15).** "Across a hundred simulated worlds with hidden truth: twelve percent lower error than learning alone, in three out of four worlds, and as good as pooling the data. With four sites that each know little, it's twenty-five percent. That's where this pays: many machines, each with only a little data."
 
