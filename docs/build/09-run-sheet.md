@@ -21,6 +21,14 @@ Load `plates/out/resin/resin-seed.stl` in PreForm and `plates/out/pla/pla-seed.s
 - Print flat, plate on the bed, pins up. No supports under the plate for PLA; resin per PreForm's default for a flat part.
 - Don't scale, rotate or move anything in the slicer. Piece identity comes from grid position and the fiducials.
 
+Optional test print (off the books: no receipts, no checkpoint): print the same STL, scan it into `scans/test/` with the usual names, then
+
+```
+py -m measure.testprint plates/out/resin/resin-seed.json scans/test
+```
+
+It lists every piece side by side (nominal, measured, prior prediction, prediction after fitting the 16 calibration pieces) and the held-out MAE before and after the fit. Add `--synthetic 0` to try it without a print.
+
 ## 3. Start the real run (seed plate)
 
 ```
