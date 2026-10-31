@@ -69,6 +69,8 @@ def main() -> None:
     if a.stage in ("particles", "oracle"):  # bad-site runs don't tell us anything about particles
         arms = {k: v for k, v in arms.items() if k.endswith("|honest")}
     plate = f"seed{a.seed_pieces or 56}_slots{a.slots}"
+    if (a.particles, a.mh_steps) != (2000, 3) and a.stage not in ("particles", "oracle"):
+        plate += f"_p{a.particles}_mh{a.mh_steps}"  # keep reruns at other sampler settings out of the 2000, 3 file
     run_sweep(f"tuning_{a.stage}_{plate}", arms, range(a.seed0, a.seed0 + a.seeds), a.workers)
 
 
