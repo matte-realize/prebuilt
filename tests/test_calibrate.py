@@ -57,9 +57,10 @@ def test_frozen_config_must_be_complete(tmp_path):
     with pytest.raises(SystemExit):
         calibrate.load_config(path)
     full = {k: getattr(calibrate.Config(), k) for k in calibrate.FROZEN}
-    path.write_text(json.dumps({**full, "bad_sites": ["pla"]}))
-    with pytest.raises(SystemExit):
-        calibrate.load_config(path)
+    for extra in ({"bad_sites": []}, {"share_messages": True}, {"seed": 1}):  # set per run, never frozen
+        path.write_text(json.dumps({**full, **extra}))
+        with pytest.raises(SystemExit):
+            calibrate.load_config(path)
     path.write_text(json.dumps(full))
     assert calibrate.load_config(path) == full
 

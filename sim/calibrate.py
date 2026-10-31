@@ -32,7 +32,7 @@ import pickle
 import shlex
 import subprocess
 import sys
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 from multiprocessing import get_context
 from pathlib import Path
 
@@ -290,11 +290,11 @@ def predict(fits: dict[str, SiteFit], cfg_kw: dict, seeds: range, workers: int) 
 
 
 def load_config(path: str | Path) -> dict:
+    """Exactly the FROZEN Config fields; anything else (seed, ablations) is set per run, never frozen."""
     kw = json.loads(Path(path).read_text())
-    missing = [k for k in FROZEN if k not in kw]
-    unknown = set(kw) - {f.name for f in fields(Config)}
-    if missing or unknown or "seed" in kw or kw.get("bad_sites"):
-        raise SystemExit(f"bad frozen config {path}: missing {missing}, unknown {sorted(unknown)} (seed and bad_sites not allowed)")
+    missing, extra = [k for k in FROZEN if k not in kw], sorted(set(kw) - set(FROZEN))
+    if missing or extra:
+        raise SystemExit(f"bad frozen config {path}: missing {missing}, not allowed {extra}")
     return kw
 
 
