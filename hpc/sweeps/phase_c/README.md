@@ -40,7 +40,7 @@ The oracle is meant to be the upper bound. Here it is usually *worse* than netwo
 
 Per-seed median gap-closed for 16 pieces, 6 slots is 0.79-0.88 in rounds 1-3. But the IQR is about [−0.2, 1.8], too wide to commit as a predicted range.
 
-The likely cause is too few particles for the oracle's joint posterior (about 18 dimensions vs about 9 for a single site), matching 07-status finding 4. This needs a `Config.oracle_particles` knob in `arms/experiment.py` (Matthew's code). Until the oracle beats networked, report iso − net in µm alongside gap-closed. Don't draft the range from these numbers.
+The main cause was Monte Carlo mixing, not particle count: the 18-dim oracle got the same 3 MH steps per resample as a 9-dim site. `Config.oracle_mh_steps` now scales them with dimension (07-status finding 4). A 0.3-0.4 µm residual from piece choice remains, so report iso − net in µm alongside gap-closed. Don't draft the range from these numbers; they predate the fix and `same_agents`.
 
 ## Confidence
 

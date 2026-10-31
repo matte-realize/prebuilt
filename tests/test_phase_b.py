@@ -6,11 +6,13 @@ import pytest
 
 from agents.auction import allocate, clear
 from agents.credibility import Roster, update_senders
-from arms.experiment import Config, run_experiment
+from arms.experiment import Config, _init, _print_all, oracle_mh_steps, run_experiment
 from contracts import Message
 from eval.audit import audit
+from model.posterior import ParticlePosterior
 from network.protocol import BoundaryViolation, deserialize, likelihood_factor, send, serialize
 from plates import heldout, spec
+from plates.layout import build_plate
 from plates.library import Candidate
 from plates.seed import SEED_PIECES, seed_plate
 from plates.stl import to_trimesh, plate_manifold
@@ -159,3 +161,62 @@ def test_bad_site_loses_trust():
 def test_cut_network_sends_nothing():
     res = run_experiment(make_world(SITES, 5), SITES, Config(rounds=1, n_particles=300, seed=5, share_messages=False))
     assert audit(list(res.chains.values())).crossings == 0
+
+
+# ---- oracle as a fair upper bound (07-status finding 4) ----------------------------
+
+def test_oracle_mh_steps_scale_with_dimension():
+    assert oracle_mh_steps(SITES, Config()) == 7                          # 18 dims vs 8: ceil(3 * 18 / 8)
+    assert oracle_mh_steps(SITES, Config(oracle_hierarchical=False)) == 5  # 12 dims
+    assert oracle_mh_steps({"resin": "resin"}, Config()) == 3              # one site: same as every arm
+    assert oracle_mh_steps(SITES, Config(oracle_mh_steps=3)) == 3
+
+
+def test_oracle_monte_carlo_error_no_worse_than_one_site():
+    """Same data, different particle seeds: the oracle's predictive means must be about as
+    stable as a single-site fit's, or Monte Carlo noise alone makes it lose to networked.
+    With the old fixed 3 MH steps the oracle's spread was about twice the single site's."""
+    printers = make_world(SITES, 0)
+    state = _init(printers, SITES, Config(seed=0), None)
+    sites, pieces = state["sites"], state["pieces"]
+    _print_all({s: seed_plate(s) for s in sites}, printers, sites, pieces)
+    pooled = [m for st in sites.values() for _, m in st.data["oracle"]]
+
+    def spread(make, site, data, multi):
+        preds = []
+        for k in range(6):
+            post = make(k)
+            post.update(data)
+            preds.append([post.predict(p, site if multi else None)[0] for p, m in sites[site].escrow if m.status == "ok"])
+        return float(np.mean(np.std(preds, axis=0, ddof=1)))
+
+    steps = oracle_mh_steps(SITES, Config())
+    for site in SITES:
+        own = [m for _, m in sites[site].data["oracle"]]
+        single = spread(lambda k: ParticlePosterior(site, pieces, n=1000, seed=k), site, own, False)
+        oracle = spread(lambda k: ParticlePosterior(SITES, pieces, n=1000, seed=k, between_site_sd=0.25, mh_steps=steps),
+                        site, pooled, True)
+        assert oracle < 1.2 * single, (site, oracle, single)
+
+
+def test_oracle_data_knob_pools_networked_measurements():
+    """oracle_data="networked" fits the oracle to exactly the networked arm's data."""
+    from arms.experiment import _fit_oracle
+    printers = make_world(SITES, 6, crn=True)
+    cfg = Config(rounds=1, n_particles=300, seed=6, oracle_data="networked")
+    state = _init(printers, SITES, cfg, None)
+    sites, pieces = state["sites"], state["pieces"]
+    _print_all({s: seed_plate(s) for s in sites}, printers, sites, pieces)
+    for st in sites.values():  # give the networked arm data no other arm has
+        st.data["networked"].append(st.data["oracle"][0])
+    post = _fit_oracle(sites, pieces, cfg, np.random.default_rng(0))
+    want = sorted(m.piece_id for st in sites.values() for _, m in st.data["networked"] if m.status == "ok")
+    assert sorted(m.piece_id for m in post._seen) == want
+
+
+def test_crn_gives_same_noise_to_same_candidates():
+    printer = make_world({"resin": "resin"}, 7, crn=True)["resin"]
+    c = Candidate("pin", 4.0)
+    plate = build_plate("resin-r1", "resin", [(c, "oracle"), (c, "networked")], 1)
+    resid = [m.measured_d - t for m, t in zip(printer.print_and_measure(plate), printer.truth(plate))]
+    assert resid[0] == pytest.approx(resid[1])

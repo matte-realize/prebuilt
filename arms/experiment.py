@@ -18,6 +18,7 @@ Held-out measurements go into an escrow that only scoring and credibility read.
 """
 from __future__ import annotations
 
+import math
 import os
 import pickle
 from dataclasses import asdict, dataclass, field
@@ -29,8 +30,8 @@ from agents.agents import AGENT_NAMES, DORMANT_NAMES, SPECS, propose
 from agents.credibility import Roster, delta_lpd, update_senders
 from agents.selection import greedy_batch
 from contracts import Measurement, Message, Piece, Printer
-from model.physics import SHARED, PieceArrays
-from model.posterior import ParticlePosterior
+from model.physics import PARAMS, SHARED, PieceArrays
+from model.posterior import Layout, ParticlePosterior
 from network import protocol
 from plates import heldout
 from plates.layout import build_plate_indexed, plate_to_dict
@@ -39,6 +40,7 @@ from receipts.chain import ReceiptChain, canonical, sha256
 
 ARMS = ("isolated", "networked", "oracle")
 SHARED_STD = {s.name: s.prior_std for s in SHARED}
+MH_STEPS = 3  # ParticlePosterior's default, used by every single-site fit
 Data = list[tuple[Piece, Measurement]]
 
 
@@ -61,13 +63,23 @@ class Config:
     # confident but slightly different beliefs don't fight.
     between_site_sd: float = 0.25
     oracle_hierarchical: bool = True   # oracle pools raw data under the same between-site spread
-    # The oracle's joint posterior has about twice the dimensions of one site's,
-    # so it needs more particles to stay an upper bound. None = n_particles.
+    # Particles for the oracle's joint posterior (about twice one site's dimensions).
+    # None = n_particles. Mixing (oracle_mh_steps) mattered more than count here.
     oracle_particles: int | None = None
     # True: isolated and oracle also choose pieces by the agent auction (uniform
     # credibility), so the arms differ only in the data each model sees.
     # False: the walkthrough's single max-information agent for both.
     same_agents: bool = True
+    # Metropolis moves per resample for the oracle. Random-walk MH mixes about 1/dim as
+    # fast per step, so with the same 3 steps a single site gets, the 18-dim hierarchical
+    # oracle carries roughly twice the Monte Carlo error in its predictions and loses to
+    # networked on identical data (07-status finding 4). None = MH_STEPS scaled by the
+    # oracle's dimension over the largest single site's; 3 = the old behavior.
+    oracle_mh_steps: int | None = None
+    # Diagnostics (docs/build/07-status.md finding 4); defaults are the real design.
+    # oracle_data: which arm's measurements the oracle posterior pools ("oracle", or
+    #   "networked" = exactly the networked arm's data, so only inference differs).
+    oracle_data: str = "oracle"
     # Ablations
     share_messages: bool = True      # False = cut the network
     bad_sites: tuple[str, ...] = ()  # sites that broadcast corrupted beliefs
@@ -222,11 +234,22 @@ def _fit(st: SiteState, pieces, data: Data, cfg: Config, rng, messages: dict[str
     return post
 
 
+def oracle_mh_steps(processes: dict[str, str], cfg: Config) -> int:
+    """MH steps that give the oracle the same mixing per resample as a single-site fit."""
+    if cfg.oracle_mh_steps is not None:
+        return cfg.oracle_mh_steps
+    bsd = cfg.between_site_sd if cfg.oracle_hierarchical else None
+    dim = len(Layout(processes, bsd).specs)
+    return math.ceil(MH_STEPS * dim / max(len(PARAMS[p]) for p in processes.values()))
+
+
 def _fit_oracle(sites: dict[str, SiteState], pieces, cfg: Config, rng, keep=lambda p: True) -> ParticlePosterior:
-    post = ParticlePosterior({s: st.process for s, st in sites.items()}, pieces,
+    processes = {s: st.process for s, st in sites.items()}
+    post = ParticlePosterior(processes, pieces,
                              n=cfg.oracle_particles or cfg.n_particles, seed=_rng_seed(rng),
+                             mh_steps=oracle_mh_steps(processes, cfg),
                              between_site_sd=cfg.between_site_sd if cfg.oracle_hierarchical else None)
-    post.update([m for st in sites.values() for p, m in st.data["oracle"] if keep(p)])
+    post.update([m for st in sites.values() for p, m in st.data[cfg.oracle_data] if keep(p)])
     return post
 
 
