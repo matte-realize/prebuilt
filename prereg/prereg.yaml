@@ -93,7 +93,11 @@ measurement:
   caliper_checks_per_plate: 10
   caliper_offset_min_pairs: 3
 
-fit_classes_mm:                # clearance = hole_d - pin_d at the same nominal diameter
+fit_classes_mm:                # clearance = hole_d - pin_d
+  # fit_class_acc (eval/fit.py): every held-out pin x hole pair at a site in a round whose nominal
+  # clearance lies within one slip-band width of the class boundaries; correct when the class of
+  # the predicted clearance matches the class of the measured clearance. Reported, not primary:
+  # the held-out design gives only ~4-15 such pairs per site per round.
   resin: {press_below: null, slip: [null, null], loose_above: null}
   pla:   {press_below: null, slip: [null, null], loose_above: null}
 

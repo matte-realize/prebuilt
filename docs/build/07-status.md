@@ -65,10 +65,13 @@ Both are on by default (`Config.challenge`, `Config.dormant`), since spec 8.1 de
 - **Spawn** (`arms/experiment.py` `_unmet_needs`, `_spawn`, spec 6.7). One dormant template exists: `position`, which proposes by information gain on `pos_gx`/`pos_gy`, with candidates scored at a plate corner. After credit, each site correlates its networked posterior's standardized training residuals with squared distance from the plate center. The physics model has linear plate gradients only, so this checks for the sim's unmodeled radial term. If |z| ≥ `Config.unmet_z` (2.0), the site logs an unmet need and broadcasts it in the new `Message.unmet_needs` field: template, question, and z only, validated by `network/protocol.py`. A site wakes the template with uniform credibility (1/(n+1)) once its own plus incoming entries reach `Config.spawn_threshold` (2), so a question raised at one site can wake the agent at the other. Retired agents don't respawn. In 5 seeds at 16 seed pieces and 6 slots, position woke at both sites in round 2 in 4 of 5 seeds.
 - **Open:** no orientation template (`Piece` has no orientation). Challenge outcomes aren't broadcast (the spec allows it but doesn't require it). The position agent targets the modeled linear gradient, not the radial term that wakes it.
 
+## Fit-class accuracy (built Oct 31)
+
+`eval/fit.py`; the definition is in `prereg.yaml` under `fit_classes_mm`. `run.py` adds `fit_acc`, `fit_pairs` (and `fit_acc_truth` in simulation) to every score row once the prereg thresholds are filled. In a sim check with placeholder thresholds (press < 0.05, slip 0.05–0.3, loose > 0.3 mm; 4 seeds), accuracy is 0.94–0.98 for every arm on 4–15 pairs per site per round. It can't separate the arms, so report it and don't headline it.
+
 ## Not built yet (M)
 
 - Hypothesis agent.
-- Fit-class accuracy: waits on the prereg thresholds.
 - Scanner on real scans: still to check with the paper target, then a test print. Synthetic stress test, 400 dpi, full plate, 3 scans each (RMS / max error, µm):
 
   | defect | holes | pins |

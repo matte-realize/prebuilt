@@ -15,7 +15,7 @@ import numpy as np
 from arms.experiment import Config, run_experiment
 from plates.seed import SEED_PIECES
 from eval.audit import audit
-from eval.metrics import oracle_gap_closed, summarize
+from eval.metrics import oracle_gap_closed, summarize, with_fit
 
 SITES = {"resin": "resin", "pla": "pla"}
 
@@ -55,13 +55,13 @@ def main() -> None:
                     help="per-piece held-out dLPD bound in nats for credit ('none' = unclipped)")
     ap.add_argument("--chains", default=None, help="directory for receipt chains (default: in memory)")
     ap.add_argument("--out", default=None, help="write results JSON here")
-    ap.add_argument("--prereg", default="prereg/prereg.yaml", help="real only: pre-registration file")
+    ap.add_argument("--prereg", default="prereg/prereg.yaml", help="pre-registration file (real: config; both: fit classes)")
     ap.add_argument("--scans", default="scans", help="real only: directory the scanner saves into")
     args = ap.parse_args()
 
     if args.source == "real":
         from measure.real import RealPrinter
-        from prereg.check import check_heldout, config_from, load, missing
+        from prereg.check import check_heldout, config_from, fit_thresholds, load, missing
         prereg, sha = load(args.prereg)
         check_heldout(prereg)
         gaps = missing(prereg, "seed")
@@ -78,6 +78,7 @@ def main() -> None:
         check_resume(f"{chains}/state.pkl", cfg)
         res = run_experiment({s: RealPrinter(s, f"{args.scans}/{s}") for s in SITES}, SITES, cfg,
                              chain_dir=chains, checkpoint=f"{chains}/state.pkl")
+        res.scores = with_fit(res.scores, res.predictions, fit_thresholds(prereg), SITES)
         print(summarize(res.scores))
         rep = audit(list(res.chains.values()))
         print(f"privacy audit {'PASS' if rep.passed else 'FAIL'} ({rep.crossings} crossings)")
@@ -86,8 +87,10 @@ def main() -> None:
                 json.dump(res.scores, f, indent=1)
         return
 
+    from prereg.check import fit_thresholds, load
     from sim.reference import make_world
 
+    thresholds = fit_thresholds(load(args.prereg)[0])  # fit-class accuracy once the prereg has them
     gaps = defaultdict(list)
     all_rows = []
     for k in range(args.seeds):
@@ -98,6 +101,7 @@ def main() -> None:
                      challenge=not args.no_challenge, **({"dormant": ()} if args.no_spawn else {}))
         chain_dir = f"{args.chains}/seed{seed}" if args.chains else None
         res = run_experiment(make_world(SITES, seed), SITES, cfg, chain_dir)
+        res.scores = with_fit(res.scores, res.predictions, thresholds, SITES)
         rep = audit(list(res.chains.values()))
         if args.seeds == 1:
             print(summarize(res.scores))

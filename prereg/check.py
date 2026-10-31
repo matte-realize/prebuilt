@@ -70,6 +70,12 @@ def config_from(prereg: dict, sha256: str, **overrides):
     return Config(**cfg, prereg_sha256=sha256)
 
 
+def fit_thresholds(prereg: dict) -> dict | None:
+    """process -> fit-class thresholds, or None until every threshold is filled in."""
+    fc = prereg.get("fit_classes_mm") or {}
+    return None if any(p.startswith("fit_classes_mm") for p in missing(prereg)) or not fc else fc
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--stage", choices=["seed", "round1"], default="seed")
