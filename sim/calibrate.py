@@ -4,12 +4,14 @@
         --seeds 200 --out hpc/phase_d/out
     python -m sim.calibrate --synthetic 7 --config ...   # self-check: seed data from a known sim world
 
-Step 1 fits each site's hidden truth for `sim.reference.SimPrinter` to that
-site's seed-plate pieces only (held-out pieces on the seed plate are left out):
-the physics parameters including `sigma_meas`, the unmodeled radial term, and
-the failure model (50% failure diameter per kind and the logistic width).
-Diameters and failures have separate likelihoods, so each gets its own
-adaptive Metropolis run over several chains.
+Step 1 fits each site's hidden truth for `sim.reference.SimPrinter` to the
+seed-plate pieces only (held-out pieces on the seed plate are left out): the
+physics parameters including `sigma_meas`, the unmodeled radial term, and the
+failure model (50% failure diameter per kind and the logistic width).
+Diameters are fit jointly across sites, with the shared parameters tied by the
+same small between-site spread `make_world` draws them with, so a prediction
+world has one shared truth like the real one. Failures are fit per site.
+Both use adaptive Metropolis over several chains.
 
 Step 2 runs the full experiment with the frozen collective config many times.
 Every seed draws a fresh world from the calibration posterior, so the predicted
@@ -52,6 +54,7 @@ ROOT = Path(__file__).resolve().parent.parent
 Data = list[tuple[Piece, Measurement]]
 
 RADIAL_STD = 0.02      # mm, prior on the radial term (make_world's radial_std)
+SHARED_JITTER = 0.2    # site-to-site spread of the shared parameters, fraction of prior std (make_world's shared_jitter)
 FAIL_D_STD = 0.4       # mm, prior around FAIL_D
 LOG_WIDTH_STD = 0.5    # prior on log(fail_width) around log(FAIL_WIDTH)
 FAIL_NAMES = ["fail_d_pin", "fail_d_hole", "fail_width"]
@@ -151,9 +154,7 @@ class SiteFit:
     n_failed: int
 
     def summary(self) -> dict[str, dict[str, float]]:
-        cols = dict(zip(self.names + FAIL_NAMES, np.hstack([self.draws, self.fail_draws]).T))
-        return {k: {"mean": float(v.mean()), "sd": float(v.std()), "q05": float(np.quantile(v, 0.05)),
-                    "q95": float(np.quantile(v, 0.95)), "rhat": self.rhat[k]} for k, v in cols.items()}
+        return _summary(self.names + FAIL_NAMES, np.hstack([self.draws, self.fail_draws]), self.rhat)
 
     def printer(self, k: int, seed: int) -> SimPrinter:
         theta, radial = self.draws[k, :-1], float(self.draws[k, -1])
@@ -162,23 +163,72 @@ class SiteFit:
                           fail_d={"pin": float(fp), "hole": float(fh)}, fail_width=float(fw))
 
 
-def _diameter_logp(process: str, data: Data):
+@dataclass
+class Calibration:
+    """Joint fit of every site. Row k of each site's draws comes from the same joint sample."""
+    sites: dict[str, SiteFit]
+    shared: np.ndarray        # [K, len(SHARED)] world-level shared parameters
+    shared_rhat: dict[str, float]
+
+    def __len__(self) -> int:
+        return len(self.shared)
+
+    def world(self, k: int, rng: np.random.Generator) -> dict[str, SimPrinter]:
+        return {s: f.printer(k, int(rng.integers(2**32))) for s, f in self.sites.items()}
+
+    def summary(self) -> dict:
+        return {"shared_world": _summary([sp.name for sp in physics.SHARED], self.shared, self.shared_rhat),
+                **{s: f.summary() for s, f in self.sites.items()}}
+
+
+def _summary(names: list[str], draws: np.ndarray, rh: dict[str, float]) -> dict[str, dict[str, float]]:
+    return {k: {"mean": float(v.mean()), "sd": float(v.std()), "q05": float(np.quantile(v, 0.05)),
+                "q95": float(np.quantile(v, 0.95)), "rhat": rh[k]} for k, v in zip(names, draws.T)}
+
+
+def _site_loglik(process: str, data: Data):
+    """Gaussian log likelihood of a site's ok diameters given theta [N, P] and radial [N]."""
     ok = [(p, m) for p, m in data if m.status == "ok"]
     x = PieceArrays.from_pieces([p for p, _ in ok])
     y = np.array([m.measured_d for _, m in ok])
     r2 = (x.u**2 + x.v**2) / 2
 
+    def loglik(theta: np.ndarray, radial: np.ndarray) -> np.ndarray:
+        mu = physics.predict_d(process, x, theta) + radial[:, None] * r2
+        sig = physics.sigma(process, theta)[:, None]
+        return (-0.5 * ((y - mu) / sig) ** 2 - np.log(sig)).sum(axis=1)
+
+    return loglik, len(ok)
+
+
+def _joint_logp(blocks: list[tuple[str, slice, object]], jitter: float):
+    """Hierarchical posterior over every site's theta + radial, plus world-level shared parameters g.
+
+    Mirrors make_world: g ~ shared prior; each site's shared parameters ~ N(g, (jitter * prior_std)^2)
+    within bounds; site-only parameters and radial get their own priors.
+    """
+    shared_std = np.array([sp.prior_std for sp in physics.SHARED])
+    shared_lo = np.array([sp.lo for sp in physics.SHARED])
+    shared_hi = np.array([sp.hi for sp in physics.SHARED])
+    n_shared = len(physics.SHARED)
+
     def logp(z: np.ndarray) -> np.ndarray:
-        theta, radial = z[:, :-1], z[:, -1]
-        lp = physics.log_prior(process, theta) - 0.5 * (radial / RADIAL_STD) ** 2
-        good = np.isfinite(lp)
-        if good.any():
-            mu = physics.predict_d(process, x, theta[good]) + radial[good, None] * r2
-            sig = physics.sigma(process, theta[good])[:, None]
-            lp[good] += (-0.5 * ((y - mu) / sig) ** 2 - np.log(sig)).sum(axis=1)
+        g = z[:, -n_shared:]
+        lp = physics.log_prior(physics.SHARED, g)
+        for process, sl, loglik in blocks:
+            theta, radial = z[:, sl][:, :-1], z[:, sl][:, -1]
+            site_cols = [j for j, sp in enumerate(physics.PARAMS[process]) if sp.tag == "site"]
+            shared_cols = [physics.index(process)[sp.name] for sp in physics.SHARED]
+            sh = theta[:, shared_cols]
+            lp = lp + physics.log_prior([physics.PARAMS[process][j] for j in site_cols], theta[:, site_cols])
+            lp = lp - 0.5 * (((sh - g) / (jitter * shared_std)) ** 2).sum(axis=1) - 0.5 * (radial / RADIAL_STD) ** 2
+            lp = np.where(((sh >= shared_lo) & (sh <= shared_hi)).all(axis=1), lp, -np.inf)
+            good = np.isfinite(lp)
+            if good.any():
+                lp[good] += loglik(theta[good], radial[good])
         return lp
 
-    return logp, len(ok)
+    return logp
 
 
 def _failure_logp(process: str, data: Data):
@@ -205,25 +255,39 @@ def _run_chains(logp, x0, scale, steps, n_draws, rng):
     return flat[rng.choice(len(flat), n_draws, replace=len(flat) < n_draws)], rhat(chains)
 
 
-def fit_site(site: str, process: str, data: Data, n_draws: int = 2000, steps: int = 40000, chains: int = 8,
-             seed: int = 0) -> SiteFit:
-    rng = np.random.default_rng(seed)
-    specs = physics.PARAMS[process]
-    names = [s.name for s in specs] + ["radial"]
-
-    logp, n_ok = _diameter_logp(process, data)
-    x0 = np.hstack([physics.sample_prior(process, chains, rng), rng.normal(0, RADIAL_STD, (chains, 1))])
-    scale = np.array([s.prior_std for s in specs] + [RADIAL_STD]) * 0.1
-    draws, rh = _run_chains(logp, x0, scale, steps, n_draws, rng)
-
-    flogp = _failure_logp(process, data)
+def _fit_failures(process: str, data: Data, n_draws: int, steps: int, chains: int, rng):
     f0 = np.column_stack([rng.normal(FAIL_D[process]["pin"], 0.1, chains), rng.normal(FAIL_D[process]["hole"], 0.1, chains),
                           rng.normal(math.log(FAIL_WIDTH), 0.1, chains)])
-    fdraws, frh = _run_chains(flogp, f0, np.array([0.1, 0.1, 0.1]), steps // 4, n_draws, rng)
+    fdraws, frh = _run_chains(_failure_logp(process, data), f0, np.array([0.1, 0.1, 0.1]), steps, n_draws, rng)
     fdraws[:, 2] = np.exp(fdraws[:, 2])
+    return fdraws, frh
 
-    return SiteFit(site, process, names, draws, fdraws, dict(zip(names + FAIL_NAMES, map(float, np.r_[rh, frh]))),
-                   n_ok, len(data) - n_ok)
+
+def fit(data: dict[str, Data], n_draws: int = 2000, steps: int = 60000, chains: int = 8, seed: int = 0,
+        jitter: float = SHARED_JITTER) -> Calibration:
+    """Fit every site's hidden truth jointly; failures are fit per site (separate likelihood)."""
+    rng = np.random.default_rng(seed)
+    blocks, x0, scale, col, n_ok = [], [], [], 0, {}
+    for site, d in data.items():
+        process = SITES[site]
+        specs = physics.PARAMS[process]
+        loglik, n_ok[site] = _site_loglik(process, d)
+        blocks.append((process, slice(col, col + len(specs) + 1), loglik))
+        col += len(specs) + 1
+        x0.append(np.hstack([physics.sample_prior(process, chains, rng), rng.normal(0, RADIAL_STD, (chains, 1))]))
+        scale += [sp.prior_std * 0.1 for sp in specs] + [RADIAL_STD * 0.1]
+    x0.append(physics.sample_prior(physics.SHARED, chains, rng))
+    scale += [sp.prior_std * 0.1 for sp in physics.SHARED]
+
+    draws, rh = _run_chains(_joint_logp(blocks, jitter), np.hstack(x0), np.array(scale), steps, n_draws, rng)
+    sites = {}
+    for (site, d), (process, sl, _) in zip(data.items(), blocks):
+        names = physics.names(process) + ["radial"]
+        fdraws, frh = _fit_failures(process, d, n_draws, steps // 4, chains, rng)
+        sites[site] = SiteFit(site, process, names, draws[:, sl], fdraws,
+                              dict(zip(names + FAIL_NAMES, map(float, np.r_[rh[sl], frh]))), n_ok[site], len(d) - n_ok[site])
+    shared_names = [sp.name for sp in physics.SHARED]
+    return Calibration(sites, draws[:, -len(shared_names):], dict(zip(shared_names, map(float, rh[-len(shared_names):]))))
 
 
 def residuals(fit: SiteFit, data: Data) -> dict[str, np.ndarray]:
@@ -272,10 +336,10 @@ def plot_residuals(fit: SiteFit, data: Data, path: Path) -> None:
 
 # ---- prediction ----------------------------------------------------------------
 
-def _run_one(job: tuple[int, dict, dict[str, SiteFit]]) -> dict:
-    seed, cfg_kw, fits = job
+def _run_one(job: tuple[int, dict, Calibration]) -> dict:
+    seed, cfg_kw, calib = job
     rng = np.random.default_rng([seed, 0xD])
-    world = {s: f.printer(int(rng.integers(len(f.draws))), int(rng.integers(2**32))) for s, f in fits.items()}
+    world = calib.world(int(rng.integers(len(calib))), rng)
     res = run_experiment(world, SITES, Config(**cfg_kw, seed=seed))
     # a site with no ok held-out pieces scores mae_truth None; NaN drops it from this seed's numbers
     scores = [{**row, "mae_truth": math.nan if row["mae_truth"] is None else row["mae_truth"]} for row in res.scores]
@@ -296,8 +360,8 @@ def _interval(v: list[float]) -> dict[str, float | None]:
     return {"median": q[2], "q05": q[0], "q25": q[1], "q75": q[3], "q95": q[4], "n": len(a)}
 
 
-def predict(fits: dict[str, SiteFit], cfg_kw: dict, seeds: range, workers: int) -> dict:
-    jobs = [(s, cfg_kw, fits) for s in seeds]
+def predict(calib: Calibration, cfg_kw: dict, seeds: range, workers: int) -> dict:
+    jobs = [(s, cfg_kw, calib) for s in seeds]
     with get_context("spawn").Pool(workers) as pool:  # fork is unsafe once Warp has started threads
         rows = pool.map(_run_one, jobs, chunksize=1)
     rounds = sorted(rows[0]["gap"])
@@ -338,7 +402,9 @@ def main() -> None:
     ap.add_argument("--seeds", type=int, default=200)
     ap.add_argument("--seed0", type=int, default=50000, help="first experiment seed (away from run.py and Phase C)")
     ap.add_argument("--draws", type=int, default=2000)
-    ap.add_argument("--steps", type=int, default=40000)
+    ap.add_argument("--steps", type=int, default=60000)
+    ap.add_argument("--shared-jitter", type=float, default=SHARED_JITTER,
+                    help="assumed site-to-site spread of the shared parameters, fraction of prior std")
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 1))
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
@@ -355,9 +421,10 @@ def main() -> None:
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
 
-    fits, calib = {}, {}
-    for i, (site, d) in enumerate(sorted(data.items())):
-        fits[site] = fit_site(site, SITES[site], d, a.draws, a.steps, seed=i)
+    fitted = fit(dict(sorted(data.items())), a.draws, a.steps, jitter=a.shared_jitter)
+    fits = fitted.sites
+    calib = {"shared_world": {"params": fitted.summary()["shared_world"]}}
+    for site, d in sorted(data.items()):
         calib[site] = {"n_ok": fits[site].n_ok, "n_failed": fits[site].n_failed, "params": fits[site].summary()}
         if truth:
             t = truth[site]
@@ -369,7 +436,7 @@ def main() -> None:
               f"max R-hat {max(fits[site].rhat.values()):.3f}", flush=True)
     (out / "calibration.json").write_text(json.dumps(calib, indent=1))
 
-    pred = predict(fits, cfg_kw, range(a.seed0, a.seed0 + a.seeds), a.workers)
+    pred = predict(fitted, cfg_kw, range(a.seed0, a.seed0 + a.seeds), a.workers)
     record = {**provenance(), "config": cfg_kw, "source": {"state": a.state, "scans": a.scans, "synthetic": a.synthetic},
               "seeds": [a.seed0, a.seed0 + a.seeds], **pred}
     (out / "prediction.json").write_text(json.dumps(record, indent=1))
@@ -382,7 +449,8 @@ def main() -> None:
     lines += ["", "## Calibration (mean ± sd, R-hat)", ""]
     for site, c in calib.items():
         cells = ", ".join(f"{k} {v['mean']:.4g} ± {v['sd']:.2g} ({v['rhat']:.2f})" for k, v in c["params"].items())
-        lines.append(f"- **{site}** ({c['n_ok']} ok, {c['n_failed']} failed): {cells}")
+        counts = f" ({c['n_ok']} ok, {c['n_failed']} failed)" if "n_ok" in c else ""
+        lines.append(f"- **{site}**{counts}: {cells}")
     (out / "summary.md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
 
