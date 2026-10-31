@@ -18,7 +18,7 @@ Not fitted: the Warp sim's orientation term. One seed plate per site can't separ
 
 ## Frozen config
 
-`frozen_config.json` holds the `arms.experiment.Config` fields frozen after the Phase C tuning sweep: `rounds`, `n_particles`, `slots_per_arm`, `seed_pieces`, `eta`, `cred_floor`, `discount`, `trust_init`, `between_site_sd`. `sim.calibrate` refuses to run without all of them.
+`frozen_config.json` holds the `arms.experiment.Config` fields frozen after the Phase C tuning sweep: `rounds`, `n_particles`, `slots_per_arm`, `seed_pieces`, `eta`, `cred_floor`, `discount`, `trust_init`, `between_site_sd`. `sim.calibrate` and `run.py --source real` refuse to run without all of them, so the real run and the prediction use the same settings. With `--config`, `run.py` ignores `--rounds`, `--particles`, `--slots` and `--seed-pieces`.
 
 TODO: fill in from the tuning sweep (`hpc/sweeps/phase_c/results/tuning_*`).
 

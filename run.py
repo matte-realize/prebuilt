@@ -19,6 +19,7 @@ SITES = {"resin": "resin", "pla": "pla"}
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--source", choices=["sim", "real"], required=True)
+    ap.add_argument("--config", default=None, help="frozen collective config JSON (hpc/phase_d/frozen_config.json); required for --source real, overrides --rounds/--particles/--slots/--seed-pieces")
     ap.add_argument("--rounds", type=int, default=3)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--seeds", type=int, default=1, help="sim only: number of seeds")
@@ -31,10 +32,16 @@ def main() -> None:
     ap.add_argument("--out", default=None, help="write results JSON here")
     ap.add_argument("--scans", default="scans", help="real only: directory the scanner saves into")
     args = ap.parse_args()
+    frozen = {}
+    if args.config:
+        from sim.calibrate import load_config
+        frozen = load_config(args.config)
+    elif args.source == "real":
+        ap.error("--source real needs --config, so the real run uses the frozen config the predicted range was computed with")
 
     if args.source == "real":
         from measure.real import RealPrinter
-        cfg = Config(rounds=args.rounds, n_particles=args.particles, seed=args.seed)
+        cfg = Config(**frozen, seed=args.seed)
         chains = args.chains or "receipts/real"
         res = run_experiment({s: RealPrinter(s, f"{args.scans}/{s}") for s in SITES}, SITES, cfg,
                              chain_dir=chains, checkpoint=f"{chains}/state.pkl")
@@ -52,9 +59,8 @@ def main() -> None:
     all_rows = []
     for k in range(args.seeds):
         seed = args.seed + k
-        cfg = Config(rounds=args.rounds, n_particles=args.particles, seed=seed,
-                     bad_sites=tuple(args.bad_site), share_messages=not args.no_messages,
-                     seed_pieces=args.seed_pieces, slots_per_arm=args.slots)
+        knobs = frozen or dict(rounds=args.rounds, n_particles=args.particles, seed_pieces=args.seed_pieces, slots_per_arm=args.slots)
+        cfg = Config(**knobs, seed=seed, bad_sites=tuple(args.bad_site), share_messages=not args.no_messages)
         chain_dir = f"{args.chains}/seed{seed}" if args.chains else None
         res = run_experiment(make_world(SITES, seed), SITES, cfg, chain_dir)
         rep = audit(list(res.chains.values()))
