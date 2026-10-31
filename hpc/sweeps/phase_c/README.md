@@ -163,9 +163,9 @@ Paired difference against the prereg config, last round (SE):
 | discount 0.4 | 0 | 0 | 0 | −0.01 (0.02) | −0.17 (0.26) |
 | discount 0.0 | 0 | −0.016 (0.012) | +1% | −0.12 (0.07) | −0.14 (0.49) |
 
-- **eta 5** stays. eta 10 detects the bad sender slightly better but costs honest trust (6 SE) and doubles the honest links under 0.5; the networking benefit doesn't move. eta 2 lets the bad site make the honest model 60% worse (mean).
+- **eta 5** stays. eta 10 detects the bad sender slightly better but costs honest trust (6 SE) and doubles the honest links under 0.5; the networking benefit doesn't move. eta 2 lets the bad site make the honest site's networked model 61% worse than its isolated one (mean net/iso 1.61, against 1.19 at eta 5).
 - **trust_init 1.0** stays: 0.75 lowers honest trust by 0.11 with no gain in protection. **cred_floor** doesn't bind at eta 5 (identical rows), so 0.05 stays.
-- **discount 0.2** stays. 0.1 is the closest rival, +0.28 µm (1.7 SE), inside the 2 SE bar. At 2000/3, discount 0 halved the benefit; at 4000/6 discount 0-0.4 are all within 1 SE, so discount barely matters now.
+- **discount 0.2** stays. 0.1 is the closest rival, +0.28 µm (1.7 SE), inside the 2 SE bar. At 2000/3, discount 0 halved the benefit; at 4000/6 discount 0 and 0.4 are within 1 SE of 0.2 and 0.1 is at 1.7 SE, so discount barely matters now.
 - Under attack the honest site's median networked/isolated is 1.03-1.05 at eta 5, against 0.97 at 2000/3. Every config with eta ≥ 5 sits at 1.0-1.08, so this is the sampler, not the eta choice: mild, not a failure.
 - iso − net at the prereg config, paired against the same seeds at 2000/3: −1.00 µm (0.48) on the trust seeds, −0.78 (0.40) on the knobs seeds. The same shrinkage the particles stage found.
 
