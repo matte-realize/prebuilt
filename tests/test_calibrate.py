@@ -71,7 +71,7 @@ def test_predict_returns_interval_per_round(synthetic):
     fits = synthetic[2]
     cfg = calibrate.Config(rounds=1, n_particles=300, slots_per_arm=4, seed_pieces=8)
     pred = calibrate.predict(fits, cfg, range(2), workers=2)
-    for key in ("gap", "gap_truth", "iso_minus_net_um"):
+    for key in ("iso_minus_net_um", "iso_minus_net_truth_um", "gap", "gap_truth"):
         assert set(pred[key]) == {1}
         assert {"median", "q05", "q95"} <= set(pred[key][1])
 
@@ -86,7 +86,7 @@ def test_prediction_survives_a_site_failing_every_heldout_piece(synthetic):
     fits = copy.deepcopy(synthetic[2])
     fits.sites["pla"].fail_draws[:, :2] = 50.0  # every piece fails at pla
     row = calibrate.run_seed(0, fits, calibrate.Config(rounds=1, n_particles=300, slots_per_arm=4, seed_pieces=8))
-    assert math.isfinite(row["iso_minus_net_um"][1])  # resin alone
+    assert math.isfinite(row["iso_minus_net_truth_um"][1])  # resin alone
 
 
 def test_more_draws_than_kept_samples():

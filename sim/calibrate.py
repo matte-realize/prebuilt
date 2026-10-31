@@ -373,13 +373,19 @@ def run_seed(seed: int, calib: Calibration, cfg: Config) -> dict:
     res = run_experiment(world, SITES, replace(cfg, seed=seed))
     # a site with no ok held-out pieces scores mae_truth None; NaN drops it from this seed's numbers
     scores = [{**row, "mae_truth": math.nan if row["mae_truth"] is None else row["mae_truth"]} for row in res.scores]
-    by = {}
-    for row in scores:
-        by.setdefault(row["round"], {}).setdefault(row["arm"], []).append(row["mae_truth"])
+
+    def iso_minus_net(metric: str) -> dict[int, float]:
+        by = {}
+        for row in scores:
+            by.setdefault(row["round"], {}).setdefault(row["arm"], []).append(row[metric])
+        return {r: 1000 * (np.nanmean(a["isolated"]) - np.nanmean(a["networked"])) for r, a in by.items()}
+
+    # iso - net on measured MAE is the primary H1 metric (07-status); gap closed is reported as a reference
     return {"seed": seed,
+            "iso_minus_net_um": iso_minus_net("mae"),
+            "iso_minus_net_truth_um": iso_minus_net("mae_truth"),
             "gap": oracle_gap_closed(scores, "mae"),
-            "gap_truth": oracle_gap_closed(scores, "mae_truth"),
-            "iso_minus_net_um": {r: 1000 * (np.nanmean(a["isolated"]) - np.nanmean(a["networked"])) for r, a in by.items()}}
+            "gap_truth": oracle_gap_closed(scores, "mae_truth")}
 
 
 def _interval(v: list[float]) -> dict[str, float | None]:
@@ -396,7 +402,7 @@ def predict(calib: Calibration, cfg: Config, seeds: range, workers: int) -> dict
         rows = pool.map(_run_worker, seeds, chunksize=1)
     rounds = sorted(rows[0]["gap"])
     return {key: {r: _interval([row[key][r] for row in rows]) for r in rounds}
-            for key in ("gap", "gap_truth", "iso_minus_net_um")}
+            for key in ("iso_minus_net_um", "iso_minus_net_truth_um", "gap", "gap_truth")}
 
 
 def load_config(path: str | Path, draft: bool = False) -> tuple[Config, str, list[str]]:
@@ -486,10 +492,11 @@ def main() -> None:
 
     lines = [f"# Phase D prediction{' (DRAFT: null prereg fields at defaults: ' + ', '.join(gaps) + ')' if gaps else ''}\n",
              f"    {record['command']}\n", f"git {record['git_hash']}{' (dirty)' if record['git_dirty'] else ''}, prereg sha256 {prereg_sha}\n",
-             "| round | oracle gap closed, measured MAE: median [5%, 95%] | same, noise-free MAE | isolated − networked, noise-free (µm) |",
-             "|---|---|---|---|"]
+             "Median [5%, 95%] over seeds. Isolated − networked on measured MAE is the primary metric (what real rounds produce).\n",
+             "| round | isolated − networked, measured MAE (µm) | same, noise-free MAE (µm) | oracle gap closed, measured MAE | same, noise-free MAE |",
+             "|---|---|---|---|---|"]
     for r in sorted(pred["gap"]):
-        lines.append(f"| {r} | {_fmt(pred['gap'][r])} | {_fmt(pred['gap_truth'][r])} | {_fmt(pred['iso_minus_net_um'][r])} |")
+        lines.append(f"| {r} | " + " | ".join(_fmt(pred[k][r]) for k in ("iso_minus_net_um", "iso_minus_net_truth_um", "gap", "gap_truth")) + " |")
     lines += ["", "## Calibration (mean ± sd, R-hat)", ""]
     for site, c in calib.items():
         cells = ", ".join(f"{k} {v['mean']:.4g} ± {v['sd']:.2g} ({v['rhat']:.2f})" for k, v in c["params"].items())
