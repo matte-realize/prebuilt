@@ -118,7 +118,7 @@ The trust and knobs stages ran at 2000, 3. A check of those choices at 4000, 6 i
 
 ### Oracle: oracle_particles = n_particles; no count makes the oracle an upper bound
 
-Full table: [`results/tuning_oracle_seed16_slots6.md`](results/tuning_oracle_seed16_slots6.md). 100 seeds (2000-2099), honest runs, at 4000 particles, 6 MH steps (oracle 12). The target was the smallest `oracle_particles` at which the oracle beats networked in at least 90% of seeds. None does:
+Full table: [`results/tuning_oracle_seed16_slots6.md`](results/tuning_oracle_seed16_slots6.md). 100 seeds (2000-2099), honest runs, at 4000 particles, 6 MH steps (oracle 14). The target was the smallest `oracle_particles` at which the oracle beats networked in at least 90% of seeds. None does:
 
 | oracle_particles | oracle < networked, rounds 1 / 2 / 3 | oracle mae_truth round 3, µm |
 |---|---|---|
@@ -147,7 +147,7 @@ Consequences: per-seed oracle gap closed sits near 1 with a wide spread (IQR rou
 Values for the `config` section of `prereg/prereg.yaml`. Main (1dbf284) already holds eta, cred_floor, trust_init and discount as below; the changes are `n_particles`, `oracle_particles` and a new `mh_steps` line.
 
     n_particles: 4000            # was 2000; 6 MH steps / 4000 particles removes sampler error that inflated iso - net
-    mh_steps: 6                  # new line; Config default is 3. oracle_mh_steps scales with it (12)
+    mh_steps: 6                  # new line; Config default is 3. oracle_mh_steps scales with it (14)
     oracle_particles: 4000       # = n_particles; 2000-32000 all tie with networked (oracle stage)
     eta: 5
     cred_floor: 0.05

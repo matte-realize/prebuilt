@@ -111,7 +111,7 @@ config:
   slots_per_arm: 6
   n_particles: 4000            # particles stage (hpc/sweeps/phase_c/README.md): 4000 particles, 6 MH steps
   mh_steps: 6                  # oracle_mh_steps scales from it: ceil(6 * 18 / 8) = 14 (deviation oracle_mh_steps)
-  oracle_particles: 4000       # = n_particles; oracle stage of the tuning sweep not run yet
+  oracle_particles: 4000       # = n_particles; oracle stage: 2000-32000 all tie with networked
   same_agents: true
   oracle_hierarchical: true
   between_site_sd: 0.25        # fraction of each shared parameter's prior std; not tuned on real data
@@ -120,7 +120,8 @@ config:
   dormant: []
   unmet_z: 2.0
   # Frozen from T's Phase C tuning sweep, M signs off. eta = 20 is known too high (finding 6).
-  # The trust and knobs stages ran at 2000 particles, 3 MH steps; their recheck at 4000, 6 is pending.
+  # Trust stage ran at 2000 particles, 3 MH steps and was rechecked at 4000, 6 (eta 5 holds).
+  # The knobs stage (discount, between_site_sd) ran at 2000, 3 only; its recheck at 4000, 6 is pending.
   eta: 5
   cred_floor: 0.05
   trust_init: 1.0
