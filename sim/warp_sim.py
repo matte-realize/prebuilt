@@ -83,9 +83,18 @@ class SiteBatch:
     orient_amp: np.ndarray    # [S] mm
     orient_phase: np.ndarray  # [S] rad, anisotropy axis
     salt: np.ndarray          # [S] uint64, mixes with plate.seed to place each plate on the bed
+    fail_d: np.ndarray | None = None      # [S, len(KINDS)] mm, 50% failure diameter; None = FAIL_D by process
+    fail_width: np.ndarray | None = None  # [S] mm, logistic width; None = FAIL_WIDTH
 
     def __len__(self) -> int:
         return len(self.process)
+
+    def failure(self) -> tuple[np.ndarray, np.ndarray]:
+        """Per-site (fail_d [S, len(KINDS)], fail_width [S]), filling in the defaults."""
+        fail_d = self.fail_d if self.fail_d is not None else np.array(
+            [[FAIL_D[PROCESSES[p]][k] for k in KINDS] for p in self.process], float).reshape(len(self), len(KINDS))
+        fail_width = self.fail_width if self.fail_width is not None else np.full(len(self), FAIL_WIDTH)
+        return fail_d, fail_width
 
     def theta_of(self, i: int) -> np.ndarray:
         """Site i's parameters in PARAMS[process] order."""
@@ -172,9 +181,9 @@ def _print_kernel(
     radial: wp.array(dtype=wp.float64),      # [S]
     orient_amp: wp.array(dtype=wp.float64),  # [S]
     orient_phase: wp.array(dtype=wp.float64),  # [S]
-    fail_d: wp.array2d(dtype=wp.float64),    # [process, kind] 50% failure diameter
+    fail_d: wp.array2d(dtype=wp.float64),    # [S, kind] 50% failure diameter
+    fail_width: wp.array(dtype=wp.float64),  # [S]
     exposure: wp.float64,
-    fail_width: wp.float64,
     job_key: wp.array(dtype=wp.uint64),      # [B] noise key of each job, from its site's own stream
     sample: wp.int32,                        # 0: truth only, no failure or noise draws
     truth: wp.array(dtype=wp.float64),       # [M] out: noise-free, with unmodeled effects
@@ -219,7 +228,7 @@ def _print_kernel(
     n = 3 * local[i]
     r = _unit(_draw(key, n))
     z = wp.sqrt(-two * wp.log(_unit(_draw(key, n + 1)))) * wp.cos(TWO_PI * _unit(_draw(key, n + 2)))
-    p_fail = one / (one + wp.exp((di - fail_d[process[s], kind[i]]) / fail_width))
+    p_fail = one / (one + wp.exp((di - fail_d[s, kind[i]]) / fail_width[s]))
     if r < p_fail:
         measured[i] = wp.float64(wp.nan)
     else:
@@ -258,7 +267,9 @@ class WarpSim:
         self._radial = put(sites.radial, wp.float64)
         self._amp = put(sites.orient_amp, wp.float64)
         self._phase = put(sites.orient_phase, wp.float64)
-        self._fail_d = put([[FAIL_D[p][k] for k in KINDS] for p in PROCESSES], wp.float64)
+        fail_d, fail_width = sites.failure()
+        self._fail_d = put(fail_d, wp.float64)
+        self._fail_width = put(fail_width, wp.float64)
 
     def _put(self, a, dtype) -> wp.array:
         return wp.array(np.ascontiguousarray(a), dtype=dtype, device=self.device)
@@ -281,8 +292,8 @@ class WarpSim:
         wp.launch(_print_kernel, dim=n, device=self.device, inputs=[
             put(job, wp.int32), put(_rank(job), wp.int32), put(d, wp.float64), put(is_hole, wp.int32),
             put(u, wp.float64), put(v, wp.float64), put(job_site, wp.int32), put(rot, wp.float64),
-            self._process, self._theta, self._radial, self._amp, self._phase, self._fail_d,
-            wp.float64(physics.RESIN_EXPOSURE), wp.float64(FAIL_WIDTH),
+            self._process, self._theta, self._radial, self._amp, self._phase, self._fail_d, self._fail_width,
+            wp.float64(physics.RESIN_EXPOSURE),
             put(keys, wp.uint64), int(sample),
         ], outputs=[truth, measured])
         return truth.numpy(), measured.numpy() if sample else None
@@ -342,7 +353,7 @@ class WarpPrinter:
 
 def from_reference(printers: dict[str, reference.SimPrinter], seed: int, orient_std: float = ORIENT_STD,
                    device: str | None = None) -> dict[str, WarpPrinter]:
-    """Same hidden theta and radial as the given SimPrinters, plus the orientation effect."""
+    """Same hidden theta, radial and failure model as the given SimPrinters, plus the orientation effect."""
     rng = np.random.default_rng(np.random.SeedSequence(seed).spawn(1)[0])  # never a stream reference.make_world uses
     ps = list(printers.values())
     sites = SiteBatch(
@@ -350,6 +361,8 @@ def from_reference(printers: dict[str, reference.SimPrinter], seed: int, orient_
         np.concatenate([to_cols(p.process, p.theta[None, :]) for p in ps]) if ps else np.zeros((0, len(COLS))),
         np.array([p.radial for p in ps], float),
         *_draw_orientation(len(ps), rng, orient_std),
+        fail_d=np.array([[(p.fail_d or FAIL_D[p.process])[k] for k in KINDS] for p in ps], float).reshape(len(ps), len(KINDS)),
+        fail_width=np.array([p.fail_width for p in ps], float),
     )
     sim = WarpSim(sites, seed=int(rng.integers(2**63)), device=device)
     return {name: WarpPrinter(name, sim, i) for i, name in enumerate(printers)}

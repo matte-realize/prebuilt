@@ -5,7 +5,10 @@
 import argparse
 import json
 import math
+import os
+import pickle
 from collections import defaultdict
+from dataclasses import asdict
 
 import numpy as np
 
@@ -15,6 +18,23 @@ from eval.audit import audit
 from eval.metrics import oracle_gap_closed, summarize
 
 SITES = {"resin": "resin", "pla": "pla"}
+
+
+def check_resume(checkpoint: str, cfg: Config) -> None:
+    """Refuse to resume a real run under different settings than it started with.
+
+    Only `rounds` (the seed plate runs alone until the range is committed) and the
+    prereg hash (committing the range changes it) may differ.
+    """
+    if not os.path.exists(checkpoint):
+        return
+    with open(checkpoint, "rb") as f:
+        started = pickle.load(f)["res"].config
+    now = json.loads(json.dumps(asdict(cfg)))  # tuples -> lists, as recorded
+    diff = {k: (started.get(k), v) for k, v in now.items()
+            if k not in ("rounds", "prereg_sha256") and json.loads(json.dumps(started.get(k))) != v}
+    if diff:
+        raise SystemExit(f"{checkpoint} was started with different settings (started, now): {diff}")
 
 
 def main() -> None:
@@ -55,6 +75,7 @@ def main() -> None:
                   "Commit the range, then rerun to resume at round 1.")
         print(f"prereg sha256 {sha}")
         chains = args.chains or "receipts/real"
+        check_resume(f"{chains}/state.pkl", cfg)
         res = run_experiment({s: RealPrinter(s, f"{args.scans}/{s}") for s in SITES}, SITES, cfg,
                              chain_dir=chains, checkpoint=f"{chains}/state.pkl")
         print(summarize(res.scores))
