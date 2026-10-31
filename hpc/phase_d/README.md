@@ -30,3 +30,20 @@ It refuses to run while any field a seed-plate run needs is null (the tuning val
 Pending the real seed plates. Take the round-3 `isolated − networked, measured MAE` 5% and 95% values from `out/summary.md` (the row `predicted_range.round` names) into `predicted_range.range`. Record `prediction.json`'s command, git hash and prereg sha256 alongside. Then commit `prereg.yaml` and record that commit hash.
 
 Only numbers from this script at the committed prereg config count. Drafts made at 2000 particles and 3 MH steps (the old `Config` defaults, the Tier D demo, the first deck) overstate the sharing benefit, about 2.2 µm against 1.2-1.7 µm at 4000/6, and must not be reused.
+
+## Tier B on the day
+
+Tier B (`fallback_tiers.B`): one printer fails its seed plate twice, so that site is simulated on the world `make_world` draws at the config seed, and the other site stays real. The checkpoint records `sim_sites`. Phase D reads it from there: it calibrates only the real site, and every prediction world uses the simulated site's actual world (fresh print noise per seed) instead of a fit to its simulated seed data. `calibration.json` lists the simulated site under `simulated` with its true parameters. `summary.md` marks it as not calibrated.
+
+A run started with both sites real can't be switched over: resume refuses a different `--sim-site`. Restart instead. The real site's seed scans are reused. For example, if pla failed:
+
+    mv receipts/real receipts/real-tierA-attempt        # keep the attempt's chains, don't delete them
+    py run.py --source real --sim-site pla              # approve resin-seed, press Enter: the saved scans are read again
+    py -m sim.calibrate --state receipts/real/state.pkl --seeds 200 --out hpc/phase_d/out
+
+Use the same commands for resin, with `--sim-site resin`. From scan files instead of the checkpoint, pass the site explicitly: `--scans scans --sim-site pla`. A `--sim-site` that differs from the checkpoint's, or a prereg `config.seed` that differs from the run's, stops Phase D.
+
+Then commit the range as above, check that `py -m prereg.check --stage round1` says ready, and resume with the same flag. Resume refuses a missing or different `--sim-site`.
+
+    py run.py --source real --sim-site pla
+    py -m eval.audit receipts/real/resin.jsonl receipts/real/pla.jsonl
