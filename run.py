@@ -23,6 +23,7 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--seeds", type=int, default=1, help="sim only: number of seeds")
     ap.add_argument("--particles", type=int, default=2000)
+    ap.add_argument("--oracle-particles", type=int, default=None, help="oracle arm particles (default: --particles)")
     ap.add_argument("--bad-site", action="append", default=[], help="sim only: site that broadcasts bad beliefs")
     ap.add_argument("--no-messages", action="store_true", help="ablation: cut the network")
     ap.add_argument("--seed-pieces", type=int, default=None, help="sim sweep: thin the seed plate to this many pieces")
@@ -34,7 +35,8 @@ def main() -> None:
 
     if args.source == "real":
         from measure.real import RealPrinter
-        cfg = Config(rounds=args.rounds, n_particles=args.particles, seed=args.seed)
+        cfg = Config(rounds=args.rounds, n_particles=args.particles, seed=args.seed,
+                     oracle_particles=args.oracle_particles)
         chains = args.chains or "receipts/real"
         res = run_experiment({s: RealPrinter(s, f"{args.scans}/{s}") for s in SITES}, SITES, cfg,
                              chain_dir=chains, checkpoint=f"{chains}/state.pkl")
@@ -52,7 +54,7 @@ def main() -> None:
     all_rows = []
     for k in range(args.seeds):
         seed = args.seed + k
-        cfg = Config(rounds=args.rounds, n_particles=args.particles, seed=seed,
+        cfg = Config(rounds=args.rounds, n_particles=args.particles, seed=seed, oracle_particles=args.oracle_particles,
                      bad_sites=tuple(args.bad_site), share_messages=not args.no_messages,
                      seed_pieces=args.seed_pieces, slots_per_arm=args.slots)
         chain_dir = f"{args.chains}/seed{seed}" if args.chains else None

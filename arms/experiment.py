@@ -56,6 +56,9 @@ class Config:
     # confident but slightly different beliefs don't fight.
     between_site_sd: float = 0.25
     oracle_hierarchical: bool = True   # oracle pools raw data under the same between-site spread
+    # The oracle's joint posterior has about twice the dimensions of one site's,
+    # so it needs more particles to stay an upper bound. None = n_particles.
+    oracle_particles: int | None = None
     # Ablations
     share_messages: bool = True      # False = cut the network
     bad_sites: tuple[str, ...] = ()  # sites that broadcast corrupted beliefs
@@ -207,7 +210,8 @@ def _fit(st: SiteState, pieces, data: Data, cfg: Config, rng, messages: dict[str
 
 
 def _fit_oracle(sites: dict[str, SiteState], pieces, cfg: Config, rng) -> ParticlePosterior:
-    post = ParticlePosterior({s: st.process for s, st in sites.items()}, pieces, n=cfg.n_particles, seed=_rng_seed(rng),
+    post = ParticlePosterior({s: st.process for s, st in sites.items()}, pieces,
+                             n=cfg.oracle_particles or cfg.n_particles, seed=_rng_seed(rng),
                              between_site_sd=cfg.between_site_sd if cfg.oracle_hierarchical else None)
     post.update([m for st in sites.values() for _, m in st.data["oracle"]])
     return post
