@@ -93,3 +93,11 @@ def test_more_draws_than_kept_samples():
     data, _ = calibrate.seed_data_synthetic(3)
     fit = calibrate.fit_site("pla", "pla", data["pla"], n_draws=2000, steps=1000)
     assert fit.draws.shape[0] == fit.fail_draws.shape[0] == 2000
+
+
+def test_seed_data_must_match_the_frozen_seed_plate():
+    data, _ = calibrate.seed_data_synthetic(3, keep=16)
+    assert {len(d) for d in data.values()} == {16}
+    calibrate.check_seed_size(data, 16)
+    with pytest.raises(SystemExit):
+        calibrate.check_seed_size(data, None)  # full plate is 56

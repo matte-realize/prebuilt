@@ -39,6 +39,7 @@ from pathlib import Path
 import numpy as np
 
 from arms.experiment import Config, run_experiment
+from arms.experiment import _seed_plate as thinned_seed_plate  # the experiment's own thinning
 from contracts import Measurement, Piece
 from eval.metrics import oracle_gap_closed
 from model import physics
@@ -79,15 +80,26 @@ def seed_data_from_scans(scan_dir: str | Path) -> dict[str, Data]:
     return out
 
 
-def seed_data_synthetic(seed: int) -> tuple[dict[str, Data], dict[str, SimPrinter]]:
-    """Seed-plate pieces from a known sim world, to check that calibration recovers it."""
+def seed_data_synthetic(seed: int, keep: int | None = None) -> tuple[dict[str, Data], dict[str, SimPrinter]]:
+    """Seed-plate pieces from a known sim world, to check that calibration recovers it.
+
+    `keep` thins the seed plate the way the experiment does (Config.seed_pieces).
+    """
     world = make_world(SITES, seed)
     out = {}
     for site, printer in world.items():
-        plate = seed_plate(site)
+        plate = thinned_seed_plate(site, keep)
         ms = {m.piece_id: m for m in printer.print_and_measure(plate)}
         out[site] = [(p, ms[p.piece_id]) for p in plate.pieces if p.arm == "seed"]
     return out, world
+
+
+def check_seed_size(data: dict[str, Data], keep: int | None) -> None:
+    """The seed data must be the seed plate the frozen config prints, or the calibration fits a different setup."""
+    want = {s: sum(p.arm == "seed" for p in thinned_seed_plate(s, keep).pieces) for s in data}
+    got = {s: len(d) for s, d in data.items()}
+    if got != want:
+        raise SystemExit(f"seed pieces per site {got} don't match the frozen config's seed_pieces={keep} ({want})")
 
 
 # ---- sampler -------------------------------------------------------------------
@@ -338,7 +350,8 @@ def main() -> None:
     elif a.scans:
         data = seed_data_from_scans(a.scans)
     else:
-        data, truth = seed_data_synthetic(a.synthetic)
+        data, truth = seed_data_synthetic(a.synthetic, cfg_kw["seed_pieces"])
+    check_seed_size(data, cfg_kw["seed_pieces"])
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
 
