@@ -48,8 +48,9 @@ class Config:
     rounds: int = 3
     n_particles: int = 2000
     slots_per_arm: int = 6           # Phase C: keeps the arms separable (max (64 - 8 held-out) // 3 = 18)
-    # Tuned and frozen in Phase C; these defaults are placeholders until then.
-    eta: float = 20.0
+    # Frozen in prereg/prereg.yaml from Phase C (real runs read the prereg; these defaults
+    # match it so simulation runs use the same config).
+    eta: float = 5.0
     cred_floor: float = 0.05
     discount: float = 0.2
     trust_init: float = 1.0
