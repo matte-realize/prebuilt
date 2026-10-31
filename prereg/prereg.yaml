@@ -97,8 +97,9 @@ config:
   rounds: 3
   seed_pieces: 16
   slots_per_arm: 6
-  n_particles: 2000
-  oracle_particles: 2000       # = n_particles; oracle stage of the tuning sweep not run yet
+  n_particles: 4000            # particles stage: 4000 particles, 6 MH steps (feat/phase-c-tuning 46c4e69)
+  mh_steps: 6                  # oracle_mh_steps scales from it (12)
+  oracle_particles: 4000       # = n_particles; oracle stage of the tuning sweep not run yet
   same_agents: true
   oracle_hierarchical: true
   between_site_sd: 0.25        # fraction of each shared parameter's prior std; not tuned on real data
