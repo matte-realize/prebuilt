@@ -24,6 +24,28 @@ claims:
     trust.
 
 arms: [isolated, networked, oracle]
+
+# Which claims apply if printing falls short (spec section 14, walkthrough section 8). Committed
+# before any print, so moving down a tier is the plan, not a change of claim. The tier is
+# decided by what printed, recorded in the results, and never chosen after seeing scores.
+fallback_tiers:
+  A:
+    when: "both printers complete the seed plate and round 1 or more"
+    claims: ["network_vs_oracle: simulation", "sim_to_real_range: real, on the rounds completed", "robustness_sim"]
+  B:
+    when: "one printer completes the seed plate and round 1 or more"
+    claims: ["network_vs_oracle: simulation",
+             "sim_to_real_range: the real site, other site simulated (run.py --source real --sim-site <site>)",
+             "robustness_sim"]
+  C:
+    when: "only seed plates succeed"
+    claims: ["network_vs_oracle: simulation, simulator calibrated to the real seed data", "robustness_sim"]
+    report: "calibration residuals; the predicted range stays committed as a claim to test later"
+  D:
+    when: "no usable prints"
+    claims: ["network_vs_oracle: simulation", "robustness_sim"]
+    report: "pure simulation, stated as such; the predicted range is computed on the uncalibrated simulator"
+
 sites: {resin: resin, pla: pla}
 
 # Deviations from the build walkthrough, each found in simulation before any real print.

@@ -98,6 +98,7 @@ class Config:
     unmet_z: float = 2.0             # |z| of a residual trend that goes in the unmet-needs log
     seed: int = 0
     prereg_sha256: str | None = None  # real runs: hash of prereg/prereg.yaml, written to the chains
+    sim_sites: tuple[str, ...] = ()   # real runs, fallback tier B: sites printed by a simulator, not a printer
 
 
 @dataclass

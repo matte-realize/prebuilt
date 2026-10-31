@@ -44,3 +44,17 @@ def test_failed_plate_is_reprinted_once_then_dropped(tmp_path):
                                       if i % 4 else Measurement(p.piece_id, plate.plate_id, plate.site, 1.0, "ok", "scanner")
                                       for i, p in enumerate(plate.pieces)]
     assert sum(m.status == "ok" for m in ok.print_and_measure(plate)) == 6   # 75% failed is under 80%: kept
+
+
+def test_tier_b_one_real_site_one_simulated(tmp_path):
+    from measure.real import RealPrinter
+    from run import real_printers
+    from sim.reference import SimPrinter
+
+    cfg = Config(rounds=1, n_particles=300, sim_sites=("pla",))
+    printers = real_printers(cfg, str(tmp_path / "scans"), 0.5)
+    assert isinstance(printers["resin"], RealPrinter) and isinstance(printers["pla"], SimPrinter)
+    printers["resin"] = rehearsal_printers({"resin": "resin"}, tmp_path)["resin"]  # operator stand-in
+    res = run_experiment(printers, SITES, cfg, chain_dir=str(tmp_path / "receipts"))
+    assert {r["site"] for r in res.scores} == set(SITES) and audit(list(res.chains.values())).passed
+    assert res.config["sim_sites"] == ("pla",) or res.config["sim_sites"] == ["pla"]
