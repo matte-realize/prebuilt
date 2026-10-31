@@ -25,6 +25,8 @@ def main() -> None:
     ap.add_argument("--particles", type=int, default=2000)
     ap.add_argument("--bad-site", action="append", default=[], help="sim only: site that broadcasts bad beliefs")
     ap.add_argument("--no-messages", action="store_true", help="ablation: cut the network")
+    ap.add_argument("--seed-pieces", type=int, default=None, help="sim sweep: thin the seed plate to this many pieces")
+    ap.add_argument("--slots", type=int, default=18, help="slots per arm per plate")
     ap.add_argument("--chains", default=None, help="directory for receipt chains (default: in memory)")
     ap.add_argument("--out", default=None, help="write results JSON here")
     ap.add_argument("--scans", default="scans", help="real only: directory the scanner saves into")
@@ -51,7 +53,8 @@ def main() -> None:
     for k in range(args.seeds):
         seed = args.seed + k
         cfg = Config(rounds=args.rounds, n_particles=args.particles, seed=seed,
-                     bad_sites=tuple(args.bad_site), share_messages=not args.no_messages)
+                     bad_sites=tuple(args.bad_site), share_messages=not args.no_messages,
+                     seed_pieces=args.seed_pieces, slots_per_arm=args.slots)
         chain_dir = f"{args.chains}/seed{seed}" if args.chains else None
         res = run_experiment(make_world(SITES, seed), SITES, cfg, chain_dir)
         rep = audit(list(res.chains.values()))
