@@ -22,7 +22,7 @@ Two layers:
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 
 import numpy as np
 import warp as wp
@@ -96,9 +96,20 @@ class SiteBatch:
         fail_width = self.fail_width if self.fail_width is not None else np.full(len(self), FAIL_WIDTH)
         return fail_d, fail_width
 
+    def __getitem__(self, idx) -> SiteBatch:
+        """The sites at `idx` (an index array or slice) as a SiteBatch, failure defaults filled in."""
+        cols = {f.name: getattr(self, f.name) for f in fields(self)}
+        cols["fail_d"], cols["fail_width"] = self.failure()
+        return SiteBatch(**{k: v[idx] for k, v in cols.items()})
+
     def theta_of(self, i: int) -> np.ndarray:
         """Site i's parameters in PARAMS[process] order."""
         return from_cols(PROCESSES[self.process[i]], self.theta[i : i + 1])[0]
+
+    @classmethod
+    def concat(cls, batches: list[SiteBatch]) -> SiteBatch:
+        parts = [b[:] for b in batches]  # [:] fills in the failure defaults
+        return cls(*(np.concatenate([getattr(b, f.name) for b in parts]) for f in fields(cls)))
 
 
 def _draw_orientation(n: int, rng: np.random.Generator, orient_std: float):
@@ -251,15 +262,18 @@ class WarpSim:
     """S sites resident on one device; prints any batch of plates in one launch.
 
     Like SimPrinter, each site has its own noise stream: a site's draws depend
-    only on its salt, `seed` and how many plates it has printed, never on
+    only on its salt, its seed and how many plates it has printed, never on
     other sites or on how prints are batched. Truth-only calls draw nothing.
+    `seed` is one seed for every site or one per site (see `merge`).
     """
 
-    def __init__(self, sites: SiteBatch, seed: int = 0, device: str | None = None):
+    def __init__(self, sites: SiteBatch, seed: int | np.ndarray = 0, device: str | None = None):
         wp.init()
         self.sites = sites
         self.device = wp.get_device(device)
-        self._key = _mix(np.uint64(int(seed) & (2**64 - 1)))
+        self.seed = np.array([int(x) & (2**64 - 1) for x in np.broadcast_to(np.asarray(seed, dtype=object), len(sites))],
+                             dtype=np.uint64)
+        self._key = _mix(self.seed)
         self._prints = np.zeros(len(sites), dtype=np.uint64)  # plates printed per site
         put = self._put
         self._process = put(sites.process, wp.int32)
@@ -278,7 +292,7 @@ class WarpSim:
         """Next noise key from each job's site stream; a site printing k plates here takes k in turn."""
         count = self._prints[job_site] + _rank(job_site).astype(np.uint64)
         self._prints += np.bincount(job_site, minlength=len(self._prints)).astype(np.uint64)
-        return _mix(_mix(self.sites.salt[job_site] ^ self._key) + count)
+        return _mix(_mix(self.sites.salt[job_site] ^ self._key[job_site]) + count)
 
     def _launch(self, job_site, job, d, is_hole, u, v, rot, sample: bool):
         """Returns (truth, measured); measured is None when sample is False."""
@@ -344,11 +358,16 @@ class WarpPrinter:
 
     def print_and_measure(self, plate: Plate) -> list[Measurement]:
         res = self.sim.print_plates([self.index], [plate])
-        return [
-            Measurement(p.piece_id, plate.plate_id, plate.site, float(y), "ok", "sim") if ok
-            else Measurement(p.piece_id, plate.plate_id, plate.site, None, "failed", "sim")
-            for p, y, ok in zip(plate.pieces, res.measured, res.ok)
-        ]
+        return measurements(plate, res.measured)
+
+
+def measurements(plate: Plate, measured: np.ndarray) -> list[Measurement]:
+    """One plate's printed diameters (NaN where failed) as Measurements."""
+    return [
+        Measurement(p.piece_id, plate.plate_id, plate.site, None, "failed", "sim") if np.isnan(y)
+        else Measurement(p.piece_id, plate.plate_id, plate.site, float(y), "ok", "sim")
+        for p, y in zip(plate.pieces, measured)
+    ]
 
 
 def from_reference(printers: dict[str, reference.SimPrinter], seed: int, orient_std: float = ORIENT_STD,
@@ -373,6 +392,23 @@ def make_world(sites: dict[str, str], seed: int, shared_jitter: float = 0.2, rad
     """Drop-in for `sim.reference.make_world`: identical theta and radial for the same seed."""
     world = reference.make_world(sites, seed, shared_jitter, radial_std)
     return from_reference(world, seed=seed, orient_std=orient_std, device=device)
+
+
+def merge(worlds: list[dict[str, WarpPrinter]], device: str | None = None) -> list[dict[str, WarpPrinter]]:
+    """Rebind several worlds' printers to one WarpSim, so they can all print in one launch.
+
+    Each site keeps its hidden truth, salt, seed and print count, so every
+    world prints exactly what it would have printed on its own.
+    """
+    printers = [p for w in worlds for p in w.values()]
+    sim = WarpSim(SiteBatch.concat([p.sim.sites[[p.index]] for p in printers]),
+                  seed=np.array([p.sim.seed[p.index] for p in printers]), device=device)
+    sim._prints = np.array([p.sim._prints[p.index] for p in printers], dtype=np.uint64)
+    out, i = [], 0
+    for w in worlds:
+        out.append({name: WarpPrinter(name, sim, i + k) for k, name in enumerate(w)})
+        i += len(w)
+    return out
 
 
 def bench(n_sites: int = 4096, n_ref: int = 64, seed: int = 0) -> None:
