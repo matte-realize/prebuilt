@@ -1,4 +1,6 @@
+import copy
 import json
+import math
 
 import numpy as np
 import pytest
@@ -72,3 +74,16 @@ def test_predict_returns_interval_per_round(synthetic):
     for key in ("gap", "gap_truth", "iso_minus_net_um"):
         assert set(pred[key]) == {1}
         assert {"median", "q05", "q95"} <= set(pred[key][1])
+
+
+def test_interval_with_no_defined_values():
+    assert calibrate._interval([math.nan, math.nan])["n"] == 0
+    assert "n=0" in calibrate._fmt(calibrate._interval([]))
+
+
+@pytest.mark.filterwarnings("ignore:Mean of empty slice", "ignore:invalid value encountered")  # arms/ scores an empty held-out set
+def test_prediction_survives_a_site_failing_every_heldout_piece(synthetic):
+    fits = copy.deepcopy(synthetic[2])
+    fits["pla"].fail_draws[:, :2] = 50.0  # every piece fails at pla
+    row = calibrate._run_one((0, dict(rounds=1, n_particles=300, slots_per_arm=4, seed_pieces=8), fits))
+    assert math.isfinite(row["iso_minus_net_um"][1])  # resin alone

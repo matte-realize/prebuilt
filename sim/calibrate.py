@@ -265,17 +265,21 @@ def _run_one(job: tuple[int, dict, dict[str, SiteFit]]) -> dict:
     rng = np.random.default_rng([seed, 0xD])
     world = {s: f.printer(int(rng.integers(len(f.draws))), int(rng.integers(2**32))) for s, f in fits.items()}
     res = run_experiment(world, SITES, Config(**cfg_kw, seed=seed))
+    # a site with no ok held-out pieces scores mae_truth None; NaN drops it from this seed's numbers
+    scores = [{**row, "mae_truth": math.nan if row["mae_truth"] is None else row["mae_truth"]} for row in res.scores]
     by = {}
-    for row in res.scores:
+    for row in scores:
         by.setdefault(row["round"], {}).setdefault(row["arm"], []).append(row["mae_truth"])
     return {"seed": seed,
-            "gap": oracle_gap_closed(res.scores, "mae"),
-            "gap_truth": oracle_gap_closed(res.scores, "mae_truth"),
-            "iso_minus_net_um": {r: 1000 * (np.mean(a["isolated"]) - np.mean(a["networked"])) for r, a in by.items()}}
+            "gap": oracle_gap_closed(scores, "mae"),
+            "gap_truth": oracle_gap_closed(scores, "mae_truth"),
+            "iso_minus_net_um": {r: 1000 * (np.nanmean(a["isolated"]) - np.nanmean(a["networked"])) for r, a in by.items()}}
 
 
-def _interval(v: list[float]) -> dict[str, float]:
+def _interval(v: list[float]) -> dict[str, float | None]:
     a = np.array([x for x in v if not math.isnan(x)])
+    if not len(a):
+        return {"median": None, "q05": None, "q25": None, "q75": None, "q95": None, "n": 0}
     q = np.quantile(a, [0.05, 0.25, 0.5, 0.75, 0.95])
     return {"median": q[2], "q05": q[0], "q25": q[1], "q75": q[3], "q95": q[4], "n": len(a)}
 
@@ -307,6 +311,8 @@ def provenance() -> dict:
 # ---- CLI -----------------------------------------------------------------------
 
 def _fmt(i: dict) -> str:
+    if not i["n"]:
+        return "undefined in every seed (n=0)"
     return f"{i['median']:.2f} [{i['q05']:.2f}, {i['q95']:.2f}] (IQR {i['q25']:.2f}-{i['q75']:.2f}, n={i['n']})"
 
 
