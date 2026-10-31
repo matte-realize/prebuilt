@@ -150,3 +150,47 @@ def test_orientation_draws_do_not_repeat_next_world():
         amp = warp_sim.make_world(SITES, seed, orient_std=1.0)["resin"].sim.sites.orient_amp
         nxt = np.random.default_rng(seed + 1).standard_normal(8)
         assert not np.isclose(amp[:, None], nxt[None, :]).any()
+
+
+def test_empty_plate_does_not_shift_other_sites():
+    def site_a(empty_first):
+        w = warp_sim.make_world({"a": "resin", "b": "pla"}, 4)
+        if empty_first:
+            w["b"].sim.print_plates([w["b"].index], [Plate("empty", "b", [], 1)])
+        return w["a"].sim.print_plates([w["a"].index], [seed_plate("resin")]).measured
+
+    np.testing.assert_array_equal(site_a(True), site_a(False))
+
+
+def test_print_arrays_noise_does_not_depend_on_layout():
+    x = physics.PieceArrays.from_pieces(seed_plate("resin").pieces)
+    m = len(x.d)
+
+    def run(order):
+        sim = warp_sim.make_world({"a": "resin", "b": "pla"}, 4)["a"].sim
+        job = np.repeat([0, 1], m)[order]
+        geo = [np.tile(a, 2)[order] for a in (x.d, x.is_hole, x.u, x.v)]
+        res = sim.print_arrays(np.array([0, 1]), job, *geo, np.zeros(2))
+        out = np.empty(2 * m)
+        out[order] = res.measured
+        return out
+
+    interleaved = np.arange(2 * m).reshape(2, m).T.ravel()
+    np.testing.assert_array_equal(run(np.arange(2 * m)), run(interleaved))
+
+
+def test_pieces_in_one_launch_never_share_noise():
+    n = 4096  # the bench's batch size; 32-bit RNG states collided hundreds of times here
+    sites = warp_sim.draw_sites(["resin"] * n, 0, orient_std=0.0)
+    sim = warp_sim.WarpSim(sites, seed=0)
+    x = physics.PieceArrays.from_pieces(seed_plate("resin").pieces)
+    m = len(x.d)
+    res = sim.print_arrays(np.arange(n), np.repeat(np.arange(n), m), np.full(n * m, 3.0),  # 3 mm: nothing fails
+                           np.tile(x.is_hole, n), np.tile(x.u, n), np.tile(x.v, n), np.zeros(n))
+    sigma = physics.sigma("resin", warp_sim.from_cols("resin", sites.theta))[res.job]
+    z = np.sort((res.measured - res.truth) / sigma)
+    assert np.all(np.diff(z) > 1e-12)  # chance of a false alarm ~0.02
+
+
+def test_negative_seed():
+    warp_sim.WarpSim(warp_sim.draw_sites(["resin"], 0), seed=-1).print_plates([0], [small_plate("resin")])
