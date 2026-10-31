@@ -1,6 +1,7 @@
 import json
 from dataclasses import asdict
 
+import numpy as np
 import pytest
 
 from agents.auction import allocate, clear
@@ -11,7 +12,7 @@ from eval.audit import audit
 from network.protocol import BoundaryViolation, deserialize, likelihood_factor, send, serialize
 from plates import heldout, spec
 from plates.library import Candidate
-from plates.seed import seed_plate
+from plates.seed import SEED_PIECES, seed_plate
 from plates.stl import to_trimesh, plate_manifold
 from receipts.chain import ReceiptChain
 from sim.reference import make_world
@@ -53,6 +54,24 @@ def test_agent_update_survives_huge_dlpd():
     from agents.credibility import update_agents
     out = update_agents(c, {"a": 1e4, "b": -1e4}, eta=20)
     assert abs(sum(out.values()) - 1) < 1e-9 and out["a"] > 0.999
+
+
+def test_lpd_clip_bounds_one_outlier():
+    from agents.credibility import delta_lpd
+    full, minus = [1.0] * 8, [1.0] * 7 + [41.0]  # one piece swings 40 nats
+    assert delta_lpd(full, minus, None) == -5.0
+    assert delta_lpd(full, minus, 2.0) == -0.25  # at most clip / n_pieces
+    # The outlier alone can no longer zero an honest sender's trust at eta = 20.
+    assert update_senders({"s": 1.0}, {"s": delta_lpd(full, minus, 2.0)}, eta=20)["s"] > 1e-3
+    assert delta_lpd([], [], 2.0) == 0.0
+
+
+def test_lpd_clip_none_is_unclipped_mean_difference():
+    from agents.credibility import delta_lpd
+    rng = np.random.default_rng(0)
+    full, minus = list(rng.normal(0, 20, 9)), list(rng.normal(0, 20, 9))
+    assert delta_lpd(full, minus, None) == float(np.mean(full)) - float(np.mean(minus))  # the old expression, bit for bit
+    assert delta_lpd(full, minus, 1e9) == pytest.approx(delta_lpd(full, minus, None))
 
 
 # ---- boundary -------------------------------------------------------------------
@@ -103,8 +122,10 @@ def test_audit_catches_tampered_crossing():
 # ---- plates ---------------------------------------------------------------------
 
 def test_seed_plate_layout_and_mesh():
+    assert len(seed_plate("resin", keep=None).pieces) == spec.GRID[0] * spec.GRID[1]
     p = seed_plate("resin")
-    assert len(p.pieces) == spec.GRID[0] * spec.GRID[1]
+    seed = [x for x in p.pieces if x.arm == "seed"]
+    assert len(seed) == SEED_PIECES and {x.kind for x in seed} == {"pin", "hole"}
     held = {x.slot for x in p.pieces if x.arm == "heldout"}
     assert held == set(heldout.HELDOUT_SLOTS)
     assert to_trimesh(plate_manifold(p)).is_watertight

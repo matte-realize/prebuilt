@@ -1,24 +1,115 @@
-# Pre-registration. Fill in at kickoff, commit, and record the commit hash.
-# null = not yet decided. Do not print until every field except
-# predicted_range_oracle_gap_closed is filled in.
-# Source: docs/build/05-prereg-and-slides.md
+# Pre-registration. Source template: docs/build/05-prereg-and-slides.md.
+#
+# null = not yet decided. `python -m prereg.check` lists what's missing and prints
+# this file's sha256. `run.py --source real` refuses to start until every field is
+# filled (predicted_range may stay null for the seed plate only), builds its
+# Config from the `config` section below, and writes the sha256 onto both receipt
+# chains. Commit the filled file, record the commit hash, and don't edit after.
 
-claims: [network_vs_oracle, sim_to_real_range, robustness_sim]
+claims:
+  network_vs_oracle: >-
+    At equal print budgets, the networked collective closes most of the gap
+    between isolated sites and the pooled-data oracle on held-out error, with no
+    raw data crossing a site boundary.
+  sim_to_real_range: >-
+    The oracle-gap-closed measured on the real two-site setup falls inside
+    predicted_range, committed from simulation after seed calibration and
+    before round 1. This is the real-printer claim. Phase C (07-status finding 3)
+    shows measurement noise (~0.03 mm) hides a ~0.003 mm model-error difference
+    on 8 held-out pieces per plate, so we do not claim to detect network_vs_oracle
+    on real data alone.
+  robustness_sim: >-
+    In simulation, a site broadcasting corrupted beliefs loses trust and the
+    networked arm stays at least as good as isolated, while honest senders keep
+    trust.
+
 arms: [isolated, networked, oracle]
+sites: {resin: resin, pla: pla}
 
-fit_classes_mm:          # clearance = hole_d - pin_d
+# Deviations from the build walkthrough, each found in simulation before any real print.
+deviations:
+  - id: seed_plate_16
+    walkthrough: seed plate with the full calibration grid (56 pieces)
+    registered: 16 calibration pieces (8 pins + 8 holes over 1.5-7.0 mm, no duplicates) + 8 held-out
+    why: >-
+      With 56 seed pieces each site learns the shared parameters alone and
+      isolated vs networked never separate (hpc/sweeps/phase_c/README.md,
+      40 seeds). The "duplicates on every plate" rule is waived for the seed
+      plate only; round plates still carry duplicates when agents choose them.
+  - id: same_agents
+    walkthrough: isolated and oracle each use one max-information agent; networked uses the auction
+    registered: all three arms choose by the same agent auction (uniform credibility for isolated and oracle)
+    why: >-
+      With different selection rules, isolated minus networked measured the
+      agents' piece choices as well as sharing, and the oracle scored worse than
+      networked (07-status finding 4). With the same agents, networked lands
+      between isolated and oracle and the gap measures sharing only.
+  - id: hierarchical_oracle
+    walkthrough: oracle pools raw data from both sites
+    registered: >-
+      oracle pools raw data under the same between-site spread of the shared
+      parameters that the network assumes (between_site_sd)
+    why: an oracle that forces identical shared parameters across sites is mis-specified, not an upper bound
+  - id: caliper_offset
+    walkthrough: caliper spot checks validate the scanner
+    registered: >-
+      ~10 caliper checks per plate, split evenly between pins and holes; the
+      per-kind median scanner-minus-caliper offset is subtracted from that
+      plate's scanner diameters when a kind has 3 or more checks
+    why: >-
+      synthetic stress tests show front-lit pin scans read ~50 um small from
+      cast shadows, nearly constant across pieces (07-status, scanner)
+  - id: challenge_and_spawn_on
+    walkthrough: not scheduled for the weekend build
+    registered: networked arm runs the challenge round and can wake the dormant `position` agent
+    why: spec 8.1 defines the networked arm as the full Section 6 system
+
+# Experiment config. Keys are arms.experiment.Config fields.
+config:
+  rounds: 3
+  seed_pieces: 16
+  slots_per_arm: 6
+  n_particles: 2000
+  oracle_particles: null       # T: from the particles stage of the tuning sweep
+  same_agents: true
+  oracle_hierarchical: true
+  between_site_sd: 0.25        # fraction of each shared parameter's prior std; not tuned on real data
+  lpd_clip: 2.0                # nats per held-out piece in credit (07-status finding 7)
+  challenge: true
+  dormant: [position]
+  unmet_z: 2.0
+  # Frozen from T's Phase C tuning sweep, M signs off. eta = 20 is known too high (finding 6).
+  eta: null
+  cred_floor: null
+  trust_init: null
+  discount: null
+  challenge_eig: null
+  spawn_threshold: null
+  seed: 0
+
+measurement:
+  scanner_dpi_min: 400
+  scan_format: png             # lossless
+  caliper_checks_per_plate: 10
+  caliper_offset_min_pairs: 3
+
+fit_classes_mm:                # clearance = hole_d - pin_d at the same nominal diameter
   resin: {press_below: null, slip: [null, null], loose_above: null}
   pla:   {press_below: null, slip: [null, null], loose_above: null}
 
-failed_plate_fraction: null
-eta: null                # frozen after Phase C
-credibility_floor: null
-heldout_slots: {}        # plate_id -> list of [row, col]
+failed_plate_fraction: null    # a plate with more than this fraction of failed pieces is reprinted, not scored
+
+heldout:
+  manifest: prereg/heldout.json
+  manifest_sha256: 28f2565c2820046cb3ecd5cc14fc986f04eb2814f1714e1a8836df50e4e3a5d5
+  slots: [[0, 3], [1, 6], [2, 1], [3, 4], [4, 7], [5, 2], [6, 5], [7, 0]]   # same slots on every plate
 
 metrics: [heldout_MAE, heldout_LPD, fit_class_acc, interval_coverage_90, oracle_gap_closed]
+primary_metric: oracle_gap_closed   # on held-out MAE, per round, pooled over both sites
 
 predicted_range_oracle_gap_closed: [null, null]   # committed after Phase D, before round 1
 
 failure_rules: >-
-  failed pieces are printability outcomes; held-out failures reported,
-  scored on survivors
+  Failed pieces are printability outcomes. Held-out failures are reported and
+  scored on survivors. A failed plate (failed_plate_fraction) is reprinted once;
+  if it fails again the round is scored without it and that is reported.

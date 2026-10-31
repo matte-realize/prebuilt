@@ -4,11 +4,25 @@ Agents:  c_a <- c_a * exp(eta * dLPD_a), normalized over active agents.
 Senders: same update, but clipped to [0, 1] rather than normalized. The value
 is the tempering weight on that sender's messages, so a site with a single
 peer can still lose trust in it.
+
+dLPD is the mean over held-out pieces of the per-piece LPD difference, each
+clipped to [-clip, clip] nats so one badly predicted piece can't dominate.
 """
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+
+import numpy as np
+
+
+def delta_lpd(full: list[float], minus: list[float], clip: float | None) -> float:
+    """Held-out dLPD of `full` over `minus` (per-piece LPDs on the same pieces). clip=None: unclipped."""
+    if not full:
+        return 0.0
+    if clip is None:
+        return float(np.mean(full)) - float(np.mean(minus))
+    return float(np.mean(np.clip(np.subtract(full, minus), -clip, clip)))
 
 
 def update_agents(cred: dict[str, float], dlpd: dict[str, float], eta: float) -> dict[str, float]:
@@ -26,7 +40,8 @@ def update_senders(trust: dict[str, float], dlpd: dict[str, float], eta: float) 
 
 @dataclass
 class Roster:
-    """Active agents and their credibility. An agent below `floor` for two rounds in a row retires."""
+    """Active agents and their credibility. An agent below `floor` for two rounds in a row retires;
+    a dormant agent `wake`s with uniform credibility (docs/spec/03-architecture.md 6.7)."""
     cred: dict[str, float]
     floor: float
     strikes: dict[str, int] = field(default_factory=dict)
@@ -51,3 +66,10 @@ class Roster:
             total = sum(self.cred.values())
             self.cred = {a: c / total for a, c in self.cred.items()}
         return newly
+
+    def wake(self, agent: str) -> None:
+        """A dormant agent joins with uniform credibility: 1/(n+1), the others scaled to share the rest."""
+        n = len(self.cred)
+        self.cred = {a: c * n / (n + 1) for a, c in self.cred.items()}
+        self.cred[agent] = 1.0 / (n + 1)
+        self.strikes[agent] = 0

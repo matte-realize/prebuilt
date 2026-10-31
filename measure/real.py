@@ -16,7 +16,7 @@ from pathlib import Path
 import cv2
 
 from contracts import Measurement, Plate
-from measure.manual import agreement, load_caliper_csv, sample_for_caliper
+from measure.manual import agreement, apply_offsets, load_caliper_csv, sample_for_caliper, scanner_offsets
 from measure.scanner import measure_scan
 from plates.layout import save_plate
 from plates.stl import write_stl
@@ -63,6 +63,11 @@ class RealPrinter:
             ms += got
         cal = f"{base}-caliper.csv"
         if os.path.exists(cal):
-            print(f"  scanner vs caliper: {agreement(ms, load_caliper_csv(cal, plate))}")
+            checks = load_caliper_csv(cal, plate)
+            print(f"  scanner vs caliper: {agreement(ms, checks)}")
+            offsets = scanner_offsets(ms, checks, plate)
+            if offsets:
+                ms = apply_offsets(ms, offsets, plate)
+                print(f"  corrected scanner bias per kind (mm): {offsets}; after: {agreement(ms, checks)}")
         Path(f"{base}-measurements.json").write_text(json.dumps([asdict(m) for m in ms], indent=1))
         return ms

@@ -6,3 +6,4 @@ receipts/*.jsonl
 *.egg-info/
 scans/
 receipts/real/
+.claude/worktrees/

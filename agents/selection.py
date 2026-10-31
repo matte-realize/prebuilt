@@ -14,14 +14,21 @@ from model.posterior import ParticlePosterior
 from plates.library import Candidate, candidates, print_cost
 
 
-def candidate_arrays(cands: tuple[Candidate, ...]) -> PieceArrays:
+def candidate_arrays(cands: tuple[Candidate, ...], at: tuple[float, float] = (0.0, 0.0)) -> PieceArrays:
+    """Candidates as if placed at normalized plate position `at` = (u, v); default the center."""
     n = len(cands)
     return PieceArrays(
         d=np.array([c.nominal_d for c in cands]),
         is_hole=np.array([c.kind == "hole" for c in cands]),
-        u=np.zeros(n),
-        v=np.zeros(n),
+        u=np.full(n, at[0]),
+        v=np.full(n, at[1]),
     )
+
+
+def candidate_eig(post: ParticlePosterior, cands: list[Candidate], site: str | None = None) -> np.ndarray:
+    """Expected information gain of each candidate under `post`, scored at the plate center, [C]."""
+    mu, s = post.predictive_components(candidate_arrays(tuple(cands)), site)
+    return eig(mu, s, np.exp(post.logw))
 
 
 def cost_discount(cands: tuple[Candidate, ...], discount: float) -> np.ndarray:
@@ -53,18 +60,22 @@ def greedy_batch(
     post: ParticlePosterior,
     k: int,
     score: str = "eig",
-    focus: list[str] | None = None,
+    focus: list[str | int] | None = None,   # parameter names or theta columns
     discount: float = 0.0,
     site: str | None = None,
     exclude: set[str] | None = None,
+    at: tuple[float, float] = (0.0, 0.0),
 ) -> list[tuple[Candidate, float]]:
-    """Top-k candidates with believer updates between picks. Returns (candidate, score) pairs."""
+    """Top-k candidates with believer updates between picks. Returns (candidate, score) pairs.
+
+    `at` is the plate position candidates are scored at (placement itself stays random).
+    """
     cands = candidates()
-    x = candidate_arrays(cands)
+    x = candidate_arrays(cands, at)
     mu, s = post.predictive_components(x, site)
     mult = cost_discount(cands, discount)
     logw = post.logw.copy()
-    focus_cols = [post.names.index(f) for f in (focus or [])]
+    focus_cols = [f if isinstance(f, int) else post.names.index(f) for f in (focus or [])]
     blocked = np.array([c.key in (exclude or set()) for c in cands])
     out = []
     for _ in range(k):

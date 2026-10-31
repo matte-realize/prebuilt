@@ -14,7 +14,7 @@ from sim.reference import make_world
 @pytest.mark.parametrize("mode", ["holes", "pins"])
 @pytest.mark.parametrize("mirror,angle", [(True, 2.0), (False, -4.0)])
 def test_scanner_recovers_known_diameters(mode, mirror, angle):
-    plate = seed_plate("pla")
+    plate = seed_plate("pla", keep=None)  # full plate: every slot exercised
     rng = np.random.default_rng(0)
     true = {p.piece_id: p.nominal_d + rng.normal(0, 0.1) for p in plate.pieces}
     img = render_scan(plate, true, mode, dpi=400, mirror=mirror, angle_deg=angle, blur_px=1.5, noise=0.02)
@@ -60,3 +60,20 @@ def test_real_path_end_to_end_with_resume(tmp_path):
     assert rep.passed and rep.crossings == 4
     kinds = [e["kind"] for e in res.chains["resin"].entries()]
     assert kinds.count("approval") == 3 and kinds.count("plate") == 3
+
+
+def test_caliper_offsets_remove_pin_shadow_bias():
+    from measure.manual import apply_offsets, sample_for_caliper, scanner_offsets
+    from contracts import Measurement
+    plate = seed_plate("pla", keep=None)
+    rng = np.random.default_rng(1)
+    true = {p.piece_id: p.nominal_d + rng.normal(0, 0.1) for p in plate.pieces}
+    ms, _ = measure_scan(render_scan(plate, true, "pins", dpi=400, blur_px=1.5, noise=0.02, shadow_mm=0.3), plate, "pins")
+    pins = {p.slot: p for p in plate.pieces if p.kind == "pin"}
+    slots = [s for s in sample_for_caliper(plate, k=20, seed=3) if s in pins][:6]
+    checks = [Measurement(pins[s].piece_id, plate.plate_id, plate.site, true[pins[s].piece_id] + rng.normal(0, 0.01), "ok", "caliper")
+              for s in slots]
+    err = lambda xs: np.array([m.measured_d - true[m.piece_id] for m in xs if m.status == "ok"])
+    assert abs(err(ms).mean()) > 0.03                       # shadows bias pins
+    fixed = apply_offsets(ms, scanner_offsets(ms, checks, plate), plate)
+    assert abs(err(fixed).mean()) < 0.015 and np.abs(err(fixed)).max() < 0.05

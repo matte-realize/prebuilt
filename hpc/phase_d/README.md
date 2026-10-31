@@ -2,8 +2,7 @@
 
 Calibrate the simulator to the real seed plates only, then rerun the experiment with the frozen collective config to get the predicted oracle-gap-closed range for `prereg.yaml`.
 
-    .venv/bin/python -m sim.calibrate --state receipts/real/state.pkl \
-        --config hpc/phase_d/frozen_config.json --seeds 200 --out hpc/phase_d/out
+    .venv/bin/python -m sim.calibrate --state receipts/real/state.pkl --seeds 200 --out hpc/phase_d/out
 
 Check the failed seed pieces listed in `out/summary.md`. Any that are scanner misses rather than print failures go back in with `--exclude-failed <piece_id> ...`; a seed plate where every piece failed stops the run. `--scans scans` reads `scans/<site>/<site>-seed-measurements.json` instead of the checkpoint. `--synthetic SEED` runs the same pipeline on a known sim world as a self-check.
 
@@ -16,11 +15,11 @@ Reported per round: oracle gap closed on measured MAE (what round 1-3 on real pr
 
 Not fitted: the Warp sim's orientation term. One seed plate per site can't separate it from noise, and the Phase C sweeps ran on the reference sim.
 
-## Frozen config
+## Config
 
-`frozen_config.json` holds the `arms.experiment.Config` fields frozen after the Phase C tuning sweep: `rounds`, `n_particles`, `slots_per_arm`, `seed_pieces`, `eta`, `cred_floor`, `discount`, `trust_init`, `between_site_sd`. `sim.calibrate` and `run.py --source real` refuse to run without all of them, so the real run and the prediction use the same settings. With `--config`, `run.py` ignores `--rounds`, `--particles`, `--slots` and `--seed-pieces`.
+The prediction takes its config from the `config` section of `prereg/prereg.yaml`, the same place `run.py --source real` does, and records the prereg's sha256. It refuses to run while any field a seed-plate run needs is null (the tuning values from Phase C). `--draft` runs anyway with those fields at `Config` defaults and marks the output DRAFT, for checking the pipeline only.
 
-TODO: fill in from the tuning sweep (`hpc/sweeps/phase_c/results/tuning_*`).
+`run.py --source real` refuses to resume a checkpoint started with different settings; only `rounds` and the prereg hash may change, since committing the range changes both.
 
 ## Proposed `predicted_range_oracle_gap_closed`
 

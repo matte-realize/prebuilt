@@ -4,12 +4,14 @@ import math
 
 import numpy as np
 import pytest
+import yaml
 
 from contracts import Measurement, Plate
 from model import physics
 from model.physics import PieceArrays
 from plates.seed import seed_plate
 from sim import calibrate
+from prereg.check import PREREG
 from sim.reference import SimPrinter
 
 
@@ -35,7 +37,7 @@ def test_calibration_recovers_known_world(synthetic):
 
 
 def test_failure_fit_moves_toward_observed_failures():
-    plate = seed_plate("pla")
+    plate = seed_plate("pla", None)
     printer = SimPrinter("pla", "pla", physics.sample_prior("pla", 1, np.random.default_rng(0))[0], 0.0,
                          np.random.default_rng(1), fail_d={"pin": 2.5, "hole": 2.5})
     ms = {m.piece_id: m for m in printer.print_and_measure(plate)}
@@ -47,26 +49,27 @@ def test_failure_fit_moves_toward_observed_failures():
 def test_draws_become_printers(synthetic):
     p = synthetic[2].sites["resin"].printer(0, seed=3)
     assert p.fail_d.keys() == {"pin", "hole"} and p.fail_width > 0
-    assert len(p.print_and_measure(seed_plate("resin"))) == 64
+    assert len(p.print_and_measure(seed_plate("resin", None))) == 64
 
 
-def test_frozen_config_must_be_complete(tmp_path):
-    path = tmp_path / "cfg.json"
-    path.write_text(json.dumps({"eta": 5}))
-    with pytest.raises(SystemExit):
+def test_config_comes_from_the_prereg(tmp_path):
+    prereg = yaml.safe_load(PREREG.read_text())
+    prereg["config"]["eta"] = None
+    path = tmp_path / "prereg.yaml"
+    path.write_text(yaml.safe_dump(prereg))
+    with pytest.raises(SystemExit, match="config.eta"):
         calibrate.load_config(path)
-    full = {k: getattr(calibrate.Config(), k) for k in calibrate.FROZEN}
-    for extra in ({"bad_sites": []}, {"share_messages": True}, {"seed": 1}):  # set per run, never frozen
-        path.write_text(json.dumps({**full, **extra}))
-        with pytest.raises(SystemExit):
-            calibrate.load_config(path)
-    path.write_text(json.dumps(full))
-    assert calibrate.load_config(path) == full
+    cfg, sha, gaps = calibrate.load_config(path, draft=True)
+    assert "config.eta" in gaps and cfg.prereg_sha256 == sha
+    prereg["config"]["bad_sites"] = ["pla"]
+    path.write_text(yaml.safe_dump(prereg))
+    with pytest.raises(SystemExit, match="ablation"):
+        calibrate.load_config(path, draft=True)
 
 
 def test_predict_returns_interval_per_round(synthetic):
     fits = synthetic[2]
-    cfg = dict(rounds=1, n_particles=300, slots_per_arm=4, seed_pieces=8)
+    cfg = calibrate.Config(rounds=1, n_particles=300, slots_per_arm=4, seed_pieces=8)
     pred = calibrate.predict(fits, cfg, range(2), workers=2)
     for key in ("gap", "gap_truth", "iso_minus_net_um"):
         assert set(pred[key]) == {1}
@@ -82,7 +85,7 @@ def test_interval_with_no_defined_values():
 def test_prediction_survives_a_site_failing_every_heldout_piece(synthetic):
     fits = copy.deepcopy(synthetic[2])
     fits.sites["pla"].fail_draws[:, :2] = 50.0  # every piece fails at pla
-    row = calibrate.run_seed(0, fits, dict(rounds=1, n_particles=300, slots_per_arm=4, seed_pieces=8))
+    row = calibrate.run_seed(0, fits, calibrate.Config(rounds=1, n_particles=300, slots_per_arm=4, seed_pieces=8))
     assert math.isfinite(row["iso_minus_net_um"][1])  # resin alone
 
 

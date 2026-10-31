@@ -1,8 +1,10 @@
 """Phase D: calibrate the simulator to real seed data, then predict oracle-gap-closed.
 
-    python -m sim.calibrate --state receipts/real/state.pkl --config hpc/phase_d/frozen_config.json \\
-        --seeds 200 --out hpc/phase_d/out
-    python -m sim.calibrate --synthetic 7 --config ...   # self-check: seed data from a known sim world
+    python -m sim.calibrate --state receipts/real/state.pkl --seeds 200 --out hpc/phase_d/out
+    python -m sim.calibrate --synthetic 7 --draft --out ...   # self-check: seed data from a known sim world
+
+The collective config comes from the `config` section of prereg/prereg.yaml
+(prereg.check.config_from), the same place real runs take it from.
 
 Step 1 fits each site's hidden truth for `sim.reference.SimPrinter` to the
 seed-plate pieces only (held-out pieces on the seed plate are left out): the
@@ -13,7 +15,7 @@ same small between-site spread `make_world` draws them with, so a prediction
 world has one shared truth like the real one. Failures are fit per site.
 Both use adaptive Metropolis over several chains.
 
-Step 2 runs the full experiment with the frozen collective config many times.
+Step 2 runs the full experiment with the pre-registered config many times.
 Every seed draws a fresh world from the calibration posterior, so the predicted
 range carries the calibration uncertainty, not just the point estimate.
 
@@ -34,14 +36,13 @@ import pickle
 import shlex
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, replace
 from multiprocessing import get_context
 from pathlib import Path
 
 import numpy as np
 
 from arms.experiment import Config, run_experiment
-from arms.experiment import _seed_plate as thinned_seed_plate  # the experiment's own thinning
 from contracts import Measurement, Piece
 from eval.metrics import oracle_gap_closed
 from model import physics
@@ -58,9 +59,6 @@ SHARED_JITTER = 0.2    # site-to-site spread of the shared parameters, fraction 
 FAIL_D_STD = 0.4       # mm, prior around FAIL_D
 LOG_WIDTH_STD = 0.5    # prior on log(fail_width) around log(FAIL_WIDTH)
 FAIL_NAMES = ["fail_d_pin", "fail_d_hole", "fail_width"]
-# Config fields that must be frozen before a prediction; everything else keeps its default.
-FROZEN = ("rounds", "n_particles", "slots_per_arm", "seed_pieces", "eta", "cred_floor", "discount",
-          "trust_init", "between_site_sd")
 
 
 # ---- seed data -----------------------------------------------------------------
@@ -76,7 +74,7 @@ def seed_data_from_scans(scan_dir: str | Path) -> dict[str, Data]:
     """Seed-plate pieces from `scans/<site>/<site>-seed-measurements.json` (measure/real.py)."""
     out = {}
     for site in SITES:
-        plate = seed_plate(site)
+        plate = seed_plate(site, None)  # every id the seed plate can have; the scan file holds the printed ones
         rows = json.loads((Path(scan_dir) / site / f"{plate.plate_id}-measurements.json").read_text())
         by_id = {r["piece_id"]: Measurement(**r) for r in rows}
         out[site] = [(p, by_id[p.piece_id]) for p in plate.pieces if p.arm == "seed" and p.piece_id in by_id]
@@ -91,15 +89,15 @@ def seed_data_synthetic(seed: int, keep: int | None = None) -> tuple[dict[str, D
     world = make_world(SITES, seed)
     out = {}
     for site, printer in world.items():
-        plate = thinned_seed_plate(site, keep)
+        plate = seed_plate(site, keep)
         ms = {m.piece_id: m for m in printer.print_and_measure(plate)}
         out[site] = [(p, ms[p.piece_id]) for p in plate.pieces if p.arm == "seed"]
     return out, world
 
 
 def check_seed_size(data: dict[str, Data], keep: int | None) -> None:
-    """The seed data must be the seed plate the frozen config prints, or the calibration fits a different setup."""
-    want = {s: sum(p.arm == "seed" for p in thinned_seed_plate(s, keep).pieces) for s in data}
+    """The seed data must be the seed plate the pre-registered config prints, or the calibration fits a different setup."""
+    want = {s: sum(p.arm == "seed" for p in seed_plate(s, keep).pieces) for s in data}
     got = {s: len(d) for s, d in data.items()}
     if got != want:
         raise SystemExit(f"seed pieces per site {got} don't match the frozen config's seed_pieces={keep} ({want})")
@@ -357,22 +355,22 @@ def plot_residuals(fit: SiteFit, data: Data, path: Path) -> None:
 
 # ---- prediction ----------------------------------------------------------------
 
-_WORKER: tuple[Calibration, dict] | None = None  # set once per pool worker, so draws aren't re-sent per seed
+_WORKER: tuple[Calibration, Config] | None = None  # set once per pool worker, so draws aren't re-sent per seed
 
 
-def _init_worker(calib: Calibration, cfg_kw: dict) -> None:
+def _init_worker(calib: Calibration, cfg: Config) -> None:
     global _WORKER
-    _WORKER = calib, cfg_kw
+    _WORKER = calib, cfg
 
 
 def _run_worker(seed: int) -> dict:
     return run_seed(seed, *_WORKER)
 
 
-def run_seed(seed: int, calib: Calibration, cfg_kw: dict) -> dict:
+def run_seed(seed: int, calib: Calibration, cfg: Config) -> dict:
     rng = np.random.default_rng([seed, 0xD])
     world = calib.world(int(rng.integers(len(calib))), rng)
-    res = run_experiment(world, SITES, Config(**cfg_kw, seed=seed))
+    res = run_experiment(world, SITES, replace(cfg, seed=seed))
     # a site with no ok held-out pieces scores mae_truth None; NaN drops it from this seed's numbers
     scores = [{**row, "mae_truth": math.nan if row["mae_truth"] is None else row["mae_truth"]} for row in res.scores]
     by = {}
@@ -392,22 +390,30 @@ def _interval(v: list[float]) -> dict[str, float | None]:
     return {"median": q[2], "q05": q[0], "q25": q[1], "q75": q[3], "q95": q[4], "n": len(a)}
 
 
-def predict(calib: Calibration, cfg_kw: dict, seeds: range, workers: int) -> dict:
+def predict(calib: Calibration, cfg: Config, seeds: range, workers: int) -> dict:
     # spawn: fork is unsafe once Warp has started threads
-    with get_context("spawn").Pool(workers, initializer=_init_worker, initargs=(calib, cfg_kw)) as pool:
+    with get_context("spawn").Pool(workers, initializer=_init_worker, initargs=(calib, cfg)) as pool:
         rows = pool.map(_run_worker, seeds, chunksize=1)
     rounds = sorted(rows[0]["gap"])
     return {key: {r: _interval([row[key][r] for row in rows]) for r in rounds}
             for key in ("gap", "gap_truth", "iso_minus_net_um")}
 
 
-def load_config(path: str | Path) -> dict:
-    """Exactly the FROZEN Config fields; anything else (seed, ablations) is set per run, never frozen."""
-    kw = json.loads(Path(path).read_text())
-    missing, extra = [k for k in FROZEN if k not in kw], sorted(set(kw) - set(FROZEN))
-    if missing or extra:
-        raise SystemExit(f"bad frozen config {path}: missing {missing}, not allowed {extra}")
-    return kw
+def load_config(path: str | Path, draft: bool = False) -> tuple[Config, str, list[str]]:
+    """Config from the prereg's `config` section, its sha256, and the fields still null.
+
+    The prediction needs every field a seed-plate run needs. `draft` runs anyway, with
+    Config defaults for the null fields, for checking the pipeline before tuning is frozen.
+    """
+    from prereg.check import config_from, load, missing
+    prereg, sha = load(path)
+    gaps = missing(prereg, "seed")
+    if gaps and not draft:
+        raise SystemExit(f"{path} incomplete, fill in before predicting (or pass --draft):\n  " + "\n  ".join(gaps))
+    cfg = config_from(prereg, sha)
+    if cfg.bad_sites or not cfg.share_messages:
+        raise SystemExit(f"{path} config has an ablation on (bad_sites / share_messages)")
+    return cfg, sha, gaps
 
 
 def provenance() -> dict:
@@ -430,7 +436,8 @@ def main() -> None:
     src.add_argument("--state", help="real-run checkpoint, receipts/real/state.pkl")
     src.add_argument("--scans", help="scan directory holding <site>/<site>-seed-measurements.json")
     src.add_argument("--synthetic", type=int, metavar="SEED", help="self-check on a known sim world")
-    ap.add_argument("--config", required=True, help="frozen collective config, JSON of Config fields")
+    ap.add_argument("--prereg", default=str(ROOT / "prereg" / "prereg.yaml"), help="config comes from its `config` section")
+    ap.add_argument("--draft", action="store_true", help="run with null prereg fields at Config defaults; output marked DRAFT")
     ap.add_argument("--seeds", type=int, default=200)
     ap.add_argument("--seed0", type=int, default=50000, help="first experiment seed (away from run.py and Phase C)")
     ap.add_argument("--draws", type=int, default=2000)
@@ -443,15 +450,15 @@ def main() -> None:
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
 
-    cfg_kw = load_config(a.config)
+    cfg, prereg_sha, gaps = load_config(a.prereg, a.draft)
     truth = None
     if a.state:
         data = seed_data_from_state(a.state)
     elif a.scans:
         data = seed_data_from_scans(a.scans)
     else:
-        data, truth = seed_data_synthetic(a.synthetic, cfg_kw["seed_pieces"])
-    check_seed_size(data, cfg_kw["seed_pieces"])
+        data, truth = seed_data_synthetic(a.synthetic, cfg.seed_pieces)
+    check_seed_size(data, cfg.seed_pieces)
     data = screen_failures(data, a.exclude_failed)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -472,12 +479,13 @@ def main() -> None:
               f"max R-hat {max(fits[site].rhat.values()):.3f}", flush=True)
     (out / "calibration.json").write_text(json.dumps(calib, indent=1))
 
-    pred = predict(fitted, cfg_kw, range(a.seed0, a.seed0 + a.seeds), a.workers)
-    record = {**provenance(), "config": cfg_kw, "source": {"state": a.state, "scans": a.scans, "synthetic": a.synthetic},
+    pred = predict(fitted, cfg, range(a.seed0, a.seed0 + a.seeds), a.workers)
+    record = {**provenance(), "prereg_sha256": prereg_sha, "draft_null_fields": gaps, "config": asdict(cfg), "source": {"state": a.state, "scans": a.scans, "synthetic": a.synthetic},
               "seeds": [a.seed0, a.seed0 + a.seeds], **pred}
     (out / "prediction.json").write_text(json.dumps(record, indent=1))
 
-    lines = [f"# Phase D prediction\n", f"    {record['command']}\n", f"git {record['git_hash']}{' (dirty)' if record['git_dirty'] else ''}\n",
+    lines = [f"# Phase D prediction{' (DRAFT: null prereg fields at defaults: ' + ', '.join(gaps) + ')' if gaps else ''}\n",
+             f"    {record['command']}\n", f"git {record['git_hash']}{' (dirty)' if record['git_dirty'] else ''}, prereg sha256 {prereg_sha}\n",
              "| round | oracle gap closed, measured MAE: median [5%, 95%] | same, noise-free MAE | isolated − networked, noise-free (µm) |",
              "|---|---|---|---|"]
     for r in sorted(pred["gap"]):

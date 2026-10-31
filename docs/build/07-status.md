@@ -1,12 +1,14 @@
 # Build: Status and Phase C Findings
 
-As of Fri Oct 30, late evening. M's Phase A and B tasks are built and tested (`.venv/bin/python -m pytest -q`, 34 tests).
+As of Sat Oct 31. T's Phase C sweep results: `hpc/sweeps/phase_c/README.md` (recommends 16 seed pieces, 6 slots per arm). M's Phase A and B tasks are built and tested (`.venv/bin/python -m pytest -q`, 34 tests).
 
 ## What runs
 
+- `python -m prereg.check` checks `prereg/prereg.yaml`: the held-out manifest hash, and that every key under `config` is a real `Config` field. It lists blank fields and prints the file's sha256. `run.py --source real` builds its config from the prereg (CLI tuning flags apply to simulation only) and refuses to start with blanks. Without a predicted range it runs the seed plate only. It writes the prereg sha256 onto both receipt chains before each run of rounds.
 - `python -m plates.seed` writes seed plates (JSON + watertight STL) for both sites and `prereg/heldout.json`.
 - `python run.py --source sim --seeds 20` runs the full three-arm, two-site experiment on the NumPy reference simulator (`sim/reference.py`) and runs the privacy audit for every seed. About 3 s per seed at 1000 particles.
-- `python run.py --source real --config hpc/phase_d/frozen_config.json` drives the real printers with the frozen config (it refuses to start without one). It writes plate files, asks for human approval, waits for `scans/<site>/<plate>-holes.png` and `-pins.png`, measures them, and checkpoints after every round (`receipts/real/state.pkl`). Rerun the same command to resume.
+- `python run.py --source real` drives the real printers. It writes plate files, asks for human approval, waits for `scans/<site>/<plate>-holes.png` and `-pins.png`, measures them, and checkpoints after every round (`receipts/real/state.pkl`). Rerun the same command to resume.
+- `python -m measure.rehearsal --rounds 2 --out /tmp/reh` rehearses the real loop without printers: `RealPrinter`, plate files, approval prompts, scan files, scanner, receipts, checkpoint and resume, with a simulated printer rendering the scans. Scanner vs. printed truth on synthetic scans: about 5 µm RMS, under 30 µm max, no false or missed failures.
 - `python -m measure.target plates/out/resin/resin-seed.json target.pdf` writes a 1:1 paper target for checking the scanner before any plate prints.
 - `python -m eval.audit receipts/real/resin.jsonl receipts/real/pla.jsonl` replays the receipt chains for the privacy check.
 
@@ -15,16 +17,47 @@ As of Fri Oct 30, late evening. M's Phase A and B tasks are built and tested (`.
 Run sweeps with `run.py --source sim --seeds 20 --out results.json`. In simulation, rows include `mae_truth`: error against the noise-free diameters, recorded for evaluation only and never shown to agents.
 
 1. **With the full seed plate, the arms can't separate.** Over 20 seeds × 2 sites, isolated, networked and oracle all sit at MAE ≈ 0.031 mm, within ±0.0005 mm of each other. Even against the noise-free truth they're within ±0.0006 mm (≈ 0.008 mm). The 56-piece seed plate already teaches each site everything the 3 shared parameters can offer.
-2. **With less data per site, sharing helps.** With 8 seed pieces and 6 slots per arm (`--seed-pieces 8 --slots 6`), error against the noise-free truth at round 2 is isolated 0.0163, networked 0.0133, oracle 0.0140 mm. That's an 18% reduction for networked, about 3 standard errors. **Decision needed before Saturday 9 AM:** shrink the seed plate (the STLs in `plates/out/` have 56 seed pieces), or show the effect as learning curves over the first pieces printed.
+2. **With less data per site, sharing helps.** With 8 seed pieces and 6 slots per arm (`--seed-pieces 8 --slots 6`), error against the noise-free truth at round 2 is isolated 0.0163, networked 0.0133, oracle 0.0140 mm. That's an 18% reduction for networked, about 3 standard errors. **Decided: shrink.** Following T's sweep, the seed plate now has 16 calibration pieces (`plates.seed.SEED_PIECES`; 8 pins + 8 holes spread over 1.5–7.0 mm, no duplicates) plus the 8 held-out, and `Config` defaults to 6 slots per arm. The STLs and paper target in `plates/out/` are regenerated. `seed_pieces=None` still gives the full 56 for sweeps.
 3. **Real held-out data probably can't resolve the effect.** Measured MAE is dominated by measurement noise (σ ≈ 0.03–0.04 mm). A 0.003 mm difference in model error doesn't show up in measured MAE, even with 40 held-out pieces per site (measured differences are +0.0005 ± 0.0008 mm). So the real-printer claim should be sim-to-real (claim 2), not detecting H1 on real data alone. Say so in the prereg.
-4. **The oracle is now hierarchical** (`Config.oracle_hierarchical`, default on). It pools all raw data under the same between-site spread the network assumes, so it's an upper bound under matching assumptions. With 1000 particles in about 18 dimensions, it sometimes does slightly worse than networked; give the oracle more particles in sweeps.
+4. **Why the oracle lost to networked, and the fix.** The walkthrough gives isolated and oracle one max-information agent each, but networked gets the five-agent auction. So isolated minus networked measured the agents' piece choices as well as sharing. Evidence, 20 seeds, 16 seed pieces, 6 slots, 1000 particles, round 2 (µm):
+   - Walkthrough arms: iso − net 1.75 ± 0.92, oracle − net +2.19 ± 0.59 (oracle worse).
+   - Messages cut (`share_messages=False`): iso − net is still 1.33 ± 0.70. That part is the auction, not the network.
+   - **`Config.same_agents=True` (now the default):** isolated and oracle also choose by the agent auction, at uniform credibility. iso − net 1.96 ± 0.74, oracle − net −0.26 ± 0.74. Networked now lands between isolated and oracle, and the difference measures sharing only.
+
+   Not the cause: oracle particle count (`Config.oracle_particles`: +0.6, +1.1, +1.3 µm oracle − net at 1000, 4000, 8000 particles), four times the MH steps, or the flat oracle. The oracle stays hierarchical (`Config.oracle_hierarchical`). **This deviates from the walkthrough's arm definitions; say so in the prereg.** T: rerun the seed-plate and tuning sweeps with the new default before drafting the predicted range. 20 seeds are too noisy to commit numbers from.
 5. **Between-site spread is a setting.** `Config.between_site_sd` (default 0.25 of prior std) widens every incoming message. Without it, near-noise-free sites with tight but different beliefs made the networked arm much worse (MAE 0.10 vs 0.001 mm) until trust collapsed. Pre-register it; don't tune it on real data.
 6. **η = 20 is too high.** Honest senders lose trust from noise in the leave-one-out difference: in one bad-site run the honest sender dropped to 0.25. Sweep η, `trust_init` and `cred_floor` together, scoring both "bad site loses trust" and "honest site keeps it".
-7. **Held-out LPD can swing by tens of nats** when the model is wrong. Credibility math is overflow-safe now, but one round can dominate credit. Consider clipping per-piece LPD.
+7. **Held-out LPD can swing by tens of nats** when the model is wrong. **Decided: clip per piece.** Credit now averages per-piece LPD differences, each clipped to ±`Config.lpd_clip` nats (default 2.0; `--lpd-clip`, `None` reproduces the old numbers bit for bit), for both agent dLPD and sender leave-one-out dLPD (`agents.credibility.delta_lpd`). Why 2 nats: with measurement noise σ (0.03–0.04 mm), moving one prediction from error e₀ to e₁ is worth (e₀² − e₁²)/2σ², so turning a 2σ miss (about the 95th percentile of honest residuals) into a hit is worth 2 nats. Swings bigger than that come from pieces both fits miss badly, where the difference is shift × residual and amplifies noise. One piece now moves a round's dLPD by at most 2/n_heldout nats. Sim check (10 seeds, 16 seed pieces, 6 slots, η = 20, round 3): all honest, the clip never binds (max per-round |dLPD| 0.30 sender, 0.51 agent) and every number is unchanged. With pla bad, max |dLPD| drops from 16 to 1.5 (sender) and 64 to 1.9 (agent). pla still loses trust in all 10 seeds (min trust about 1e-13 instead of 1e-141), MAE against truth is the same within noise (networked 13.01 → 12.84 µm, isolated 15.54 → 15.60), and retirements go 45 → 43. The clip does **not** fix finding 6: honest senders still drop below 0.5 in 3–4 of 10 seeds, and those dLPDs are small (≤ 0.3 nats) times η = 20. That is η's job. `tuning.py --stage clip` sweeps the clip if needed.
+
+## Replies to T (08-warp-posterior.md)
+
+- **`model/posterior.py` refactor (d5df0dd):** reviewed and approved. It's behavior-preserving, and it's already on main.
+- **NumPy `predict` at 17 ms per piece:** doesn't reproduce. On your benchmark's workload (60 training pieces, 200 held-out) on an idle M-series Mac it's 0.23 ms per piece at 20k particles and 0.04 ms at 2k. The 17 ms was most likely contention from the other job on the shared machine (BLAS threads). Rerun the NumPy column with `OMP_NUM_THREADS=1` on an idle node.
+
+## Challenge round and spawn (built Oct 31)
+
+Both are on by default (`Config.challenge`, `Config.dormant`), since spec 8.1 defines the networked arm as the full Section 6 system. `run.py --no-challenge --no-spawn` turns them off; with both off, results match the earlier code. They change results, so T's Phase C numbers predate them.
+
+**Decided (M):** keep both on. The config isn't frozen yet, and freezing it with the full system beats bolting features on after the prereg. T: run the tuning sweep with them on, and add `challenge_eig` (and `spawn_threshold`) to the `knobs` stage. `Message.unmet_needs` is a change to the shared contract (`contracts.py`): it's optional with an empty default, and older receipt chains still pass the audit. T, please confirm it works for the Warp side. No real-round checkpoints exist yet, so the new state fields don't break any resume.
+
+- **Challenge** (`agents/challenge.py`, spec 6.5 step 3). After proposing, each agent may flag one proposal another agent would win a slot with. It flags "redundant with mine" if the same piece is among its own winning proposals, or "already predictable from my evidence" if its own posterior's expected information gain on the piece is below `Config.challenge_eig` (0.05 nats, a placeholder to freeze with η). Flaggers go in order of credibility. A flagged piece moves to the end of its owner's list, so it prints only if the owner has slots to spare. In credit, the flagger gets ± (leave-one-piece-out held-out dLPD of the test piece − the round's average dLPD per piece), added to its own dLPD. The test piece is the flagged piece if it printed (the flagger gains if it's below average) or else the piece that replaced it (the flagger gains if that one is above average). Every flag and its credit goes on the receipt chain (`challenge`, `challenge_credit`) and into `Results.challenges`.
+- **Spawn** (`arms/experiment.py` `_unmet_needs`, `_spawn`, spec 6.7). One dormant template exists: `position`, which proposes by information gain on `pos_gx`/`pos_gy`, with candidates scored at a plate corner. After credit, each site correlates its networked posterior's standardized training residuals with squared distance from the plate center. The physics model has linear plate gradients only, so this checks for the sim's unmodeled radial term. If |z| ≥ `Config.unmet_z` (2.0), the site logs an unmet need and broadcasts it in the new `Message.unmet_needs` field: template, question, and z only, validated by `network/protocol.py`. A site wakes the template with uniform credibility (1/(n+1)) once its own plus incoming entries reach `Config.spawn_threshold` (2), so a question raised at one site can wake the agent at the other. Retired agents don't respawn. In 5 seeds at 16 seed pieces and 6 slots, position woke at both sites in round 2 in 4 of 5 seeds.
+- **Open:** no orientation template (`Piece` has no orientation). Challenge outcomes aren't broadcast (the spec allows it but doesn't require it). The position agent targets the modeled linear gradient, not the radial term that wakes it.
 
 ## Not built yet (M)
 
-- Challenge round, spawn/retire of dormant agents (retire on the credibility floor is built), hypothesis agent.
+- Hypothesis agent.
 - Fit-class accuracy: waits on the prereg thresholds.
-- Scanner on real scans: synthetic error is under 25 µm at 400 dpi. Real lighting, shadows and pin-top edges will be worse; check with the paper target, then a test print.
+- Scanner on real scans: still to check with the paper target, then a test print. Synthetic stress test, 400 dpi, full plate, 3 scans each (RMS / max error, µm):
+
+  | defect | holes | pins |
+  |---|---|---|
+  | clean | 1.9 / 8.7 | 4.7 / 15 |
+  | lighting gradient 30% / 60% | 4.2 / 13, 5.6 / 21 | 13 / 39, 22 / 80 |
+  | pin shadow 0.3 mm | n/a | **51 / 65** (bias −50, spread 8) |
+  | 150 dust specks | 5.8 / 22 | 9.1 / 57 |
+  | blur 3 px | **15 / 76** | 14 / 34 |
+  | JPEG q80, 300 dpi, noise 0.05 | under 7 / 16 | under 15 / 36 |
+
+  Fixes: a lighting gradient used to break fiducial detection on pin scans, so it now falls back to local thresholds. Shadows bias pins by a near-constant amount, so when `{plate}-caliper.csv` exists, `RealPrinter` subtracts the per-kind median scanner − caliper offset (`measure.manual.scanner_offsets`), and the caliper sample is now split evenly between pins and holes. **On the day:** always do the ~10 caliper checks per plate. Scan at 400 dpi or more, lossless (PNG), and in focus. Blur is the one defect the offset doesn't remove.
 - Slice-check the seed STLs in PreForm and the PLA slicer.

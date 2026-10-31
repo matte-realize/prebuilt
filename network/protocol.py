@@ -2,6 +2,8 @@
 
 The boundary is enforced here: `serialize` and `deserialize` both validate
 against a closed schema and raise `BoundaryViolation` on anything else.
+Unmet-needs entries (spec 6.3) carry a dormant-agent template, a short
+question, and one anonymized residual summary (a z-score); nothing else.
 Every crossing is written to both sites' receipt chains, and every
 rejection to the sender's chain, so the privacy claim can be checked by
 replaying receipts (`eval/audit.py`).
@@ -14,6 +16,7 @@ from dataclasses import asdict, fields
 
 import numpy as np
 
+from agents.agents import DORMANT_NAMES
 from contracts import Message
 from model import physics
 from receipts.chain import ReceiptChain, canonical
@@ -21,6 +24,8 @@ from receipts.chain import ReceiptChain, canonical
 FIELDS = {f.name for f in fields(Message)}
 SHARED_PARAMS = {s.name for s in physics.SHARED}   # process-agnostic only
 MAX_HYPOTHESES, MAX_HYPOTHESIS_LEN, MAX_CRED_KEYS = 20, 1000, 64
+OPTIONAL = {"unmet_needs"}                          # absent in chains written before it existed
+UNMET_KEYS, MAX_UNMET, MAX_QUESTION_LEN = {"template", "question", "z"}, 10, 200
 
 
 class BoundaryViolation(Exception):
@@ -33,7 +38,7 @@ def _finite(x) -> bool:
 
 def validate(d: dict) -> Message:
     """Check a message dict against the closed schema. Returns the typed Message."""
-    if not isinstance(d, dict) or set(d) != FIELDS:
+    if not isinstance(d, dict) or not (FIELDS - OPTIONAL <= set(d) <= FIELDS):
         raise BoundaryViolation(f"fields must be exactly {sorted(FIELDS)}, got {sorted(d) if isinstance(d, dict) else type(d)}")
     if not isinstance(d["sender_site"], str) or not d["sender_site"]:
         raise BoundaryViolation("sender_site must be a non-empty string")
@@ -61,12 +66,26 @@ def validate(d: dict) -> Message:
     if not all(isinstance(h, str) and len(h) <= MAX_HYPOTHESIS_LEN for h in hyp):
         raise BoundaryViolation("hypotheses must be short strings")
 
+    unmet = d.get("unmet_needs", [])
+    if not isinstance(unmet, list) or len(unmet) > MAX_UNMET:
+        raise BoundaryViolation("unmet_needs must be a short list")
+    for u in unmet:
+        if not isinstance(u, dict) or set(u) != UNMET_KEYS:
+            raise BoundaryViolation(f"unmet_needs entries must have exactly {sorted(UNMET_KEYS)}")
+        if u["template"] not in DORMANT_NAMES:
+            raise BoundaryViolation(f"unmet_needs template {u['template']!r} is not a dormant agent")
+        if not isinstance(u["question"], str) or len(u["question"]) > MAX_QUESTION_LEN:
+            raise BoundaryViolation("unmet_needs question must be a short string")
+        if not _finite(u["z"]):
+            raise BoundaryViolation("unmet_needs z must be a finite number")
+
     return Message(
         sender_site=d["sender_site"],
         round=d["round"],
         shared_params={k: (float(v[0]), float(v[1])) for k, v in sp.items()},
         credibility={k: float(v) for k, v in cred.items()},
         hypotheses=list(hyp),
+        unmet_needs=[{"template": u["template"], "question": u["question"], "z": float(u["z"])} for u in unmet],
     )
 
 
