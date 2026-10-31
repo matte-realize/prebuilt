@@ -14,6 +14,7 @@ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
     os.environ.setdefault(_v, "1")
 
 import argparse
+import gzip
 import json
 import sys
 import time
@@ -71,7 +72,9 @@ def run_sweep(name: str, arms: dict[str, dict], seeds: range, workers: int) -> P
 
 
 def load(name: str) -> list[dict]:
-    with open(OUT / f"{name}.jsonl") as f:
+    """Reads results/<name>.jsonl, or the committed results/<name>.jsonl.gz."""
+    path = OUT / f"{name}.jsonl"
+    with (open(path) if path.exists() else gzip.open(f"{path}.gz", "rt")) as f:
         return [json.loads(line) for line in f if line.strip()]
 
 
