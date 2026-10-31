@@ -1,11 +1,12 @@
 """Build the Prebuilt viewer: one self-contained HTML page for a run.
 
-    python -m viewer.export --source sim --rounds 3 --seed 0 --open
+    python -m viewer.export --source sim --rounds 3 --seed 0 --open            # 3D demo
+    python -m viewer.export --source sim --rounds 3 --report --open            # scrolling report
     python -m viewer.export --source sim --rounds 3 --bad-site pla --open
     python -m viewer.export --checkpoint receipts/real/state.pkl --open     # a real (or rehearsal) run
 
 Reads only what a run already keeps (the checkpoint state: results, site data,
-receipt chains). Writes viewer/out/index.html, which needs no server or network.
+receipt chains). Writes viewer/out/index.html. No server needed; the 3D demo loads three.js from a CDN.
 """
 from __future__ import annotations
 
@@ -42,6 +43,32 @@ def run_sim(args) -> dict:
         ckpt = f"{d}/state.pkl"
         run_experiment(make_world(SITES, args.seed), SITES, cfg, checkpoint=ckpt)
         return load(ckpt)
+
+
+def _condition_run(job) -> tuple:
+    seed, cond, rounds, liar = job
+    from sim.reference import make_world
+    cfg = Config(rounds=rounds, seed=seed, share_messages=cond != "alone", bad_sites=(liar,) if cond == "liar" else ())
+    res = run_experiment(make_world(SITES, seed), SITES, cfg)
+    mae = lambda arm: sum(r["mae"] for r in res.scores if r["round"] == rounds and r["arm"] == arm) / len(SITES)
+    return cond, seed, mae("isolated"), mae("networked")
+
+
+def condition_summary(seeds: int, rounds: int, liar: str) -> dict:
+    """Final-round error, together vs. alone, for each demo condition over many simulated worlds."""
+    import statistics
+    from concurrent.futures import ProcessPoolExecutor
+    jobs = [(s, c, rounds, liar) for s in range(seeds) for c in ("normal", "alone", "liar")]
+    with ProcessPoolExecutor() as ex:
+        rows = list(ex.map(_condition_run, jobs))
+    out = {"seeds": seeds, "rounds": rounds}
+    for c in ("normal", "alone", "liar"):
+        pct = [(iso - net) / iso * 100 for cc, _, iso, net in rows if cc == c]
+        out[c] = {"median_pct_closer": statistics.median(pct), "wins": sum(p > 0 for p in pct), "pct_by_seed": pct}
+    team = {(c, s): net for c, s, _, net in rows}
+    paired = [(team["alone", s] - team["normal", s]) / team["alone", s] * 100 for s in range(seeds)]
+    out["notes_vs_none"] = {"median_pct_better": statistics.median(paired), "wins": sum(p > 0 for p in paired)}
+    return out
 
 
 def load(path: str) -> dict:
@@ -122,10 +149,16 @@ def bundle(state: dict, label: str) -> dict:
     })
 
 
-def render(data: dict) -> str:
-    html = (HERE / "template.html").read_text()
+def render(data: dict, fragment: bool = False, page: str = "demo.html") -> str:
+    html = (HERE / page).read_text()
     blob = json.dumps(data, separators=(",", ":")).replace("</", "<\\/")
-    return html.replace("/*__DATA__*/null", blob)
+    html = html.replace("/*__DATA__*/null", blob)
+    if fragment:  # for hosts that supply their own document skeleton (claude.ai artifacts)
+        for tag in ("<!doctype html>", '<html lang="en">', "<head>", "</head>", "<body>", "</body>", "</html>",
+                    '<meta charset="utf-8">',
+                    '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'):
+            html = html.replace(tag, "", 1)
+    return html
 
 
 def main() -> None:
@@ -145,17 +178,37 @@ def main() -> None:
     ap.add_argument("--slots", type=int, default=keep)
     ap.add_argument("--out", default=str(HERE / "out" / "index.html"))
     ap.add_argument("--open", action="store_true", help="open the page in the browser")
+    ap.add_argument("--report", action="store_true", help="the scrolling report instead of the 3D demo")
+    ap.add_argument("--single", action="store_true", help="3D demo: skip the extra 'no sharing' and 'one site lies' runs")
+    ap.add_argument("--summary-seeds", type=int, default=0, help="3D demo: worlds per condition in the summary (0 = none)")
+    ap.add_argument("--liar", default="pla", choices=list(SITES), help="3D demo: the site that lies in the 'one site lies' run")
+    ap.add_argument("--fragment", action="store_true", help="omit <html>/<head>/<body>, for hosts that add their own")
     args = ap.parse_args()
 
     if args.checkpoint:
         state, label = load(args.checkpoint), f"checkpoint {args.checkpoint}"
+        data = bundle(state, label)
     else:
-        state = run_sim(args)
         label = f"simulation, seed {args.seed}" + (f", bad site {', '.join(args.bad_site)}" if args.bad_site else "") \
             + (", network cut" if args.no_messages else "")
+        data = bundle(run_sim(args), label)
+    if not args.report and not args.checkpoint and not args.single:
+        # The 3D demo lets viewers flip conditions, so it carries two more real runs on the same world:
+        # the network cut, and one site broadcasting bad beliefs.
+        print("running the 'no sharing' and 'one site lies' conditions for the demo switches...")
+        alone = bundle(run_sim(argparse.Namespace(**{**vars(args), "no_messages": True, "bad_site": []})), label + ", network cut")
+        liar = bundle(run_sim(argparse.Namespace(**{**vars(args), "no_messages": False, "bad_site": [args.liar]})), label + f", bad site {args.liar}")
+        data = {"scenarios": {"normal": data, "alone": alone, "liar": liar}, "liar": args.liar, "seed": args.seed}
+        if args.summary_seeds:
+            print(f"running each condition on {args.summary_seeds} simulated worlds for the summary...")
+            data["summary"] = condition_summary(args.summary_seeds, args.rounds, args.liar)
+    ev = HERE / "evidence.json"  # hpc/sweeps/relevance/evidence.py: the many-world results the demo may cite
+    if not args.report and ev.exists():
+        data = data if "scenarios" in data else {"scenarios": {"normal": data}}
+        data["evidence"] = json.loads(ev.read_text())
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(render(bundle(state, label)))
+    out.write_text(render(data, args.fragment, "template.html" if args.report else "demo.html"))
     print(f"wrote {out}")
     if args.open:
         subprocess.run(["open" if sys.platform == "darwin" else "xdg-open", str(out)], check=False)

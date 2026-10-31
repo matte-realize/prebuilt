@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prebuilt Live Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+/* Layout: a full-window 3D lab the viewer drives. Thin caption top-left, experiment switches top-right, one big "print the next round" control at the bottom. Single dark "lab at night" look by choice. */
+:root {
+  --night: #0b1016; --glass: rgba(14, 21, 30, .8); --line: rgba(160, 185, 210, .16); --ink: #e7eef5; --muted: #93a3b5; --faint: #5f6f82;
+  --alone: #8d9bad; --net: #5b8cff; --pool: #e3a443; --exam: #2fc2c4; --good: #3cc48d; --bad: #f06a6a; --wall: #7fd6ff;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "IBM Plex Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--night); color: var(--ink); font: 15px/1.5 var(--body); overflow: hidden; -webkit-font-smoothing: antialiased; }
+#stage { position: fixed; inset: 0; }
+#stage canvas { display: block; outline: none; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--net); outline-offset: 2px; }
+.glass { background: var(--glass); border: 1px solid var(--line); border-radius: 14px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.hud { position: fixed; z-index: 5; }
+.eyebrow { font: 500 11px/1.2 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+
+/* caption */
+#cap { top: calc(14px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); max-width: min(430px, calc(100vw - 32px)); padding: 12px 16px; }
+#cap .brand { display: flex; align-items: center; gap: 8px; font: 700 19px/1 var(--display); letter-spacing: .02em; }
+#cap .line { display: flex; gap: 10px; align-items: baseline; margin-top: 10px; }
+#cap .chip { flex: none; font: 600 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: #fff; background: var(--net); border-radius: 6px; padding: 5px 7px; }
+#cap .chip.idle { background: rgba(255, 255, 255, .1); color: var(--muted); }
+#say { font-size: 15.5px; line-height: 1.4; }
+#say b { font-weight: 600; }
+
+/* experiment panel */
+#lab { top: calc(14px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); width: 290px; padding: 14px 16px; }
+#lab h3 { margin: 0 0 10px; font: 600 19px var(--display); letter-spacing: .02em; }
+.sw { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.sw:first-of-type { border-top: 0; padding-top: 0; }
+.sw b { font-weight: 600; font-size: 14.5px; display: block; }
+.sw small { color: var(--muted); font-size: 12.5px; display: block; line-height: 1.35; }
+.tg { width: 44px; height: 26px; border-radius: 13px; border: 0; background: rgba(255, 255, 255, .14); position: relative; transition: background .2s; }
+.tg::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .2s; }
+.tg[aria-checked="true"] { background: var(--net); }
+.tg[aria-checked="true"]::after { transform: translateX(18px); }
+.tg.danger[aria-checked="true"] { background: var(--bad); }
+.tg:disabled { opacity: .35; cursor: not-allowed; }
+.results { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+.res { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; font-size: 13.5px; padding: 4px 0; align-items: baseline; }
+.res .v { font: 600 17px var(--display); font-variant-numeric: tabular-nums; }
+.res .sub { grid-column: 1 / -1; display: flex; gap: 3px; flex-wrap: wrap; margin-top: 3px; }
+.res .sub i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--alone); display: block; }
+.res .sub i.w { background: var(--net); border-color: var(--net); }
+.res .run { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+.note { font-size: 11.5px; color: var(--faint); margin: 8px 0 0; line-height: 1.4; }
+.res.now { color: var(--ink); } .res.todo { color: var(--faint); }
+#labToggle { display: none; }
+#lab { width: 312px; max-height: calc(100vh - 120px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overflow-y: auto; padding: 12px 14px; }
+.claim { border-top: 1px solid var(--line); }
+.claim:first-child { border-top: 0; }
+.claim .top { display: flex; justify-content: space-between; gap: 8px; align-items: center; width: 100%; background: none; border: 0; padding: 10px 0; text-align: left; color: var(--ink); }
+.claim .top::before { content: "▸"; color: var(--faint); font-size: 11px; margin-right: 2px; transition: transform .15s; }
+.claim.open .top::before { transform: rotate(90deg); }
+.claim .top b.t { flex: 1; }
+.claim .more { display: none; padding-bottom: 10px; }
+.claim.open .more { display: block; }
+.claim b.t { font-weight: 600; font-size: 14.5px; line-height: 1.3; }
+.claim p { margin: 4px 0 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.claim p strong { color: var(--ink); font-weight: 600; }
+.tag { flex: none; font: 600 10px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 4px 6px; border-radius: 5px; border: 1.2px solid; white-space: nowrap; }
+.tag.ok { color: var(--good); } .tag.sim { color: var(--wall); } .tag.small { color: var(--pool); }
+.ctl { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 8px; font-size: 13px; }
+.mini { border: 1px solid var(--line); background: rgba(255, 255, 255, .05); border-radius: 8px; padding: 5px 10px; font-size: 12.5px; }
+.auditlog { margin-top: 6px; font: 11.5px/1.5 var(--mono); color: var(--muted); min-height: 0; }
+.auditlog .ok { color: var(--good); }
+.scale { margin-top: 8px; display: grid; gap: 4px; }
+.scale .r { display: grid; grid-template-columns: 112px minmax(0, 1fr) 44px; gap: 6px; align-items: center; font-size: 11.5px; color: var(--muted); }
+.scale .t { height: 7px; border-radius: 4px; background: rgba(255, 255, 255, .06); overflow: hidden; }
+.scale .f { height: 100%; border-radius: 4px; min-width: 2px; }
+.scale .v { font: 11px var(--mono); text-align: right; }
+.reg { display: grid; grid-template-columns: minmax(0, 1fr) 52px 52px; gap: 2px 8px; font-size: 12px; margin-top: 6px; color: var(--muted); }
+.reg span:nth-child(3n+2), .reg span:nth-child(3n) { text-align: right; font-family: var(--mono); font-size: 11.5px; }
+.reg .h { color: var(--faint); font: 500 10px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.reg .hl { color: var(--ink); }
+
+/* deck */
+#deck { bottom: calc(14px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); padding: 10px; display: flex; gap: 10px; align-items: center; max-width: calc(100vw - 32px); flex-wrap: wrap; justify-content: center; }
+.tbtn { border: 1px solid var(--line); background: rgba(255, 255, 255, .05); border-radius: 10px; padding: 9px 13px; font-size: 14px; }
+.tbtn[aria-pressed="true"] { border-color: var(--ink); background: rgba(255, 255, 255, .1); }
+#go { background: var(--net); border: 0; color: #fff; font: 600 17px var(--display); letter-spacing: .03em; border-radius: 12px; padding: 12px 22px; min-width: 210px; box-shadow: 0 0 0 0 rgba(91, 140, 255, .6); }
+#go.pulse { animation: pulse 1.8s infinite; }
+#go:disabled { background: rgba(91, 140, 255, .35); cursor: default; animation: none; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(91, 140, 255, .55); } 70% { box-shadow: 0 0 0 14px rgba(91, 140, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(91, 140, 255, 0); } }
+.prog { display: flex; gap: 5px; align-items: center; padding: 0 4px; }
+.prog i { width: 22px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .12); display: block; }
+.prog i.done { background: var(--net); } .prog i.on { background: rgba(91, 140, 255, .55); }
+
+/* card, toasts */
+#card { left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); width: min(320px, calc(100vw - 32px)); padding: 14px 16px; }
+#card h4 { margin: 2px 0 8px; font: 600 22px/1.1 var(--display); }
+#card .row { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; padding: 4px 0; border-top: 1px solid var(--line); }
+#card .row span:last-child { text-align: right; }
+#card .x { position: absolute; top: 8px; right: 10px; background: none; border: 0; color: var(--muted); font-size: 20px; }
+.gbar { display: grid; grid-template-columns: 112px minmax(0, 1fr) 54px; gap: 8px; align-items: center; font-size: 13px; margin-top: 6px; }
+.gbar .t { height: 8px; border-radius: 4px; background: rgba(255, 255, 255, .07); overflow: hidden; }
+.gbar .f { height: 100%; border-radius: 4px; }
+.gbar .v { font: 12px var(--mono); text-align: right; }
+#toasts { top: calc(14px + env(safe-area-inset-top, 0px)); left: calc(max(16px, env(safe-area-inset-left, 0px)) + 446px); width: 330px; display: grid; gap: 8px; pointer-events: none; }
+.toast { padding: 10px 14px; font-size: 14px; animation: tin .3s ease-out both; }
+.toast .who { font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+.toast .v { display: inline-block; margin-top: 6px; font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 3px 7px; border-radius: 5px; border: 1.5px solid; }
+@keyframes tin { from { opacity: 0; transform: translateY(8px); } }
+
+/* in-world labels */
+.lab { position: fixed; left: 0; top: 0; z-index: 3; pointer-events: none; white-space: nowrap; font: 500 11.5px var(--mono); color: var(--ink); text-shadow: 0 1px 6px rgba(0, 0, 0, .9); will-change: transform; }
+.lab.title { font: 700 21px var(--display); letter-spacing: .04em; text-align: center; }
+.lab.title small { display: block; font: 500 10.5px var(--mono); letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+.lab.wall { font: 500 11px var(--mono); letter-spacing: .14em; color: var(--wall); text-transform: uppercase; }
+.lab.pill { font: 600 12px var(--mono); padding: 2px 7px; border-radius: 6px; background: rgba(5, 9, 14, .78); text-shadow: none; }
+.lab.agent { font: 600 12px var(--body); padding: 3px 8px; border-radius: 999px; background: rgba(5, 9, 14, .8); text-shadow: none; }
+.lab.badge { font: 500 12.5px var(--body); padding: 8px 11px; border-radius: 10px; background: rgba(5, 9, 14, .82); border: 1px solid var(--line); text-shadow: none; text-align: left; line-height: 1.35; }
+.lab.badge b { font: 600 20px var(--display); display: block; }
+
+/* intro */
+#intro { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(6, 10, 15, .66); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); overflow-y: auto; padding-block: 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+#intro .box { max-width: 760px; width: 100%; padding: 28px; }
+#intro h1 { font: 600 clamp(30px, 4.6vw, 46px)/1.02 var(--display); margin: 8px 0 14px; text-wrap: balance; }
+#intro h1 em { font-style: normal; color: var(--net); }
+#intro p { color: var(--muted); margin: 0 0 8px; max-width: 58ch; font-size: 16px; }
+#intro .how { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 18px 0 20px; }
+#intro .how div { background: rgba(255, 255, 255, .04); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 14px; color: var(--muted); }
+#intro .how b { display: block; color: var(--ink); font: 600 18px var(--display); margin-bottom: 2px; }
+@media (max-width: 700px) { #intro .how { grid-template-columns: 1fr; } }
+#fail { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); }
+
+@media (min-width: 901px) and (max-width: 1240px) {
+  #toasts { top: auto; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); }
+}
+@media (max-width: 900px) {
+  #lab { top: auto; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); width: min(290px, calc(100vw - 32px)); }
+  #lab.collapsed .body { display: none; }
+  #labToggle { display: inline; float: right; background: none; border: 0; color: var(--muted); font: 500 11px var(--mono); }
+  #toasts { top: 150px; left: 16px; transform: none; }
+  #card { bottom: auto; top: 150px; }
+  #go { min-width: 0; padding: 10px 14px; font-size: 15px; }
+  #deck { flex-wrap: nowrap; gap: 6px; padding: 8px; width: calc(100vw - 32px); }
+  #deck .tbtn { padding: 8px 10px; }
+  .prog { display: none; }
+  #cap { max-width: calc(100vw - 32px); }
+}
+@media (prefers-reduced-motion: reduce) { .toast, #go.pulse { animation: none; } }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="labels"></div>
+
+<div id="intro"><div class="box glass">
+  <div class="eyebrow">Prebuilt · a test of a method, not a product</div>
+  <h1>Can two factories learn together without sharing data? <em>And can you check that they didn't?</em></h1>
+  <p>Every 3D printer makes parts slightly too big or too small. Here, AI assistants at two printers choose test parts, and the printers swap tiny notes instead of their data.</p>
+  <p>The panel on the right lists what we can actually show, how strong each piece of evidence is, and one result that turned out small. You run the rounds and change the rules.</p>
+  <div class="how">
+    <div><b>Nothing private leaves</b>Every note is logged and checked. Replay the audit yourself.</div>
+    <div><b>Liars get cut off</b>Make one printer lie and watch the other stop listening.</div>
+    <div><b>The gain is small</b>Sharing helps the guesses by about 2 µm. We show it to scale.</div>
+  </div>
+  <button class="tbtn" id="start" style="background:var(--net);border:0;color:#fff;font:600 18px var(--display);padding:12px 24px;border-radius:12px">Start</button>
+</div></div>
+
+<div class="hud glass" id="cap">
+  <div class="brand"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="8" cy="12" r="5" fill="#5b8cff"/><circle cx="16" cy="12" r="5" fill="none" stroke="#e7eef5" stroke-width="2.5"/></svg>Prebuilt<span id="runKind" style="font:500 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-left:6px"></span></div>
+  <div class="line"><span class="chip idle" id="chip">Ready</span><span id="say"></span></div>
+</div>
+
+<div class="hud glass" id="lab">
+  <h3>What we can show <button id="labToggle">hide</button></h3>
+  <p style="margin:-4px 0 4px;font-size:12px;color:var(--faint)">Tap a claim for its evidence.</p>
+  <div class="body" id="claims"></div>
+</div>
+
+<div class="hud" id="toasts"></div>
+<div class="hud glass" id="card" hidden></div>
+
+<div class="hud glass" id="deck">
+  <button class="tbtn" id="reset" title="Start this experiment over">↺</button>
+  <button id="go" class="pulse">Print round 1 ▸</button>
+  <div class="prog" id="prog" aria-hidden="true"></div>
+  <button class="tbtn" id="auto" aria-pressed="false" title="Keep printing rounds automatically">Auto</button>
+  <button class="tbtn" id="help" title="What is this?">?</button>
+</div>
+
+<script>
+const BLOB = /*__DATA__*/null;
+if (!window.THREE) {
+  document.body.insertAdjacentHTML("beforeend", `<div id="fail"><div><h2 style="font-family:var(--display)">The 3D view needs an internet connection</h2><p>three.js loads from a CDN. Connect and reload, or build the report instead: <code>python -m viewer.export --report --open</code></p></div></div>`);
+  throw new Error("three.js did not load");
+}
+const ALL = BLOB.scenarios || { normal: BLOB };
+const LIAR = BLOB.liar;
+let SC = "normal", D = ALL.normal;
+const SITES = Object.keys(D.sites), R = D.rounds;
+const PROC = { resin: "Resin printer", pla: "Plastic printer" };
+const siteName = s => PROC[D.sites[s]] || s;
+const HEX = { isolated: 0x8d9bad, networked: 0x5b8cff, oracle: 0xe3a443, heldout: 0x2fc2c4, seed: 0x6d7b8c };
+const CSS = { isolated: "var(--alone)", networked: "var(--net)", oracle: "var(--pool)", heldout: "var(--exam)", seed: "#6d7b8c" };
+const NAME = { isolated: "On its own", networked: "Working together", oracle: "All data shared (ideal)", heldout: "Test part", seed: "Warm-up" };
+const ROLE = { physics: "The Physicist", calibration: "The Calibrator", geometry: "The Size Expert", empirical: "The Pattern Spotter", printability: "The Safety Checker", position: "The Mapper" };
+const who = a => ROLE[a] || a;
+const AGENT_HEX = [0x5b8cff, 0xe3a443, 0x3cc48d, 0xf06a6a, 0xad8bff, 0x2fc2c4];
+const AGENTS = [...new Set(Object.values(ALL).flatMap(d => [...d.credibility.flatMap(r => Object.keys(r).filter(k => !["round", "site", "dlpd"].includes(k))), ...d.spawned.map(s => s.agent)]))];
+const AHEX = Object.fromEntries(AGENTS.map((a, i) => [a, AGENT_HEX[i % 6]]));
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const um = v => Math.round(v * 1000);
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// ---------- data helpers (all read the current scenario D)
+const plateOf = (s, r) => (D.plates[s] || []).find(p => p.round === r);
+const credOf = (s, r) => { const row = D.credibility.find(x => x.site === s && x.round === r); if (row) return row; const ag = AGENTS.filter(a => !D.spawned.some(z => z.agent === a) && a !== "position"); return Object.fromEntries(ag.map(a => [a, 1 / ag.length])); };
+const trustOf = (rcv, snd, r) => { const t = D.trust.filter(x => x.receiver === rcv && x.sender === snd && x.round <= r).pop(); return t ? t.trust : (D.config.trust_init ?? 1); };
+const score = (s, r, a) => D.scores.find(x => x.site === s && x.round === r && x.arm === a);
+function pctCloser(d, r) {
+  let iso = 0, net = 0;
+  for (const s of SITES) { const i = d.scores.find(x => x.site === s && x.round === r && x.arm === "isolated"), k = d.scores.find(x => x.site === s && x.round === r && x.arm === "networked"); if (i && k) { iso += i.mae; net += k.mae; } }
+  return iso ? (iso - net) / iso * 100 : null;
+}
+let PICKS = {};
+function mapPicks() {
+  PICKS = {};
+  for (const s of SITES) (D.chains[s] || []).filter(e => e.kind === "clearing").forEach((e, i) => {
+    const pool = Object.entries(e.payload.proposals).flatMap(([a, ks]) => ks.map(k => ({ a, k }))), p = plateOf(s, i + 1); if (!p) return;
+    for (const q of p.pieces.filter(q => q.arm === "networked")) { const j = pool.findIndex(x => x.k === `${q.kind}-${q.d.toFixed(1)}`); if (j >= 0) { PICKS[q.id] = pool[j].a; pool.splice(j, 1); } }
+  });
+}
+
+// ---------- scene
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
+$("stage").appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x070b10);
+scene.fog = new THREE.Fog(0x070b10, 30, 70);
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, .1, 200);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = .08; controls.maxPolarAngle = Math.PI * .47; controls.minDistance = 6; controls.maxDistance = 42;
+const VIEWS = {
+  home: [new THREE.Vector3(0, 11, 16.5), new THREE.Vector3(0, 1.8, 0)],
+  agents: [new THREE.Vector3(0, 8.5, 13.5), new THREE.Vector3(0, 3.2, -1.2)],
+  plates: [new THREE.Vector3(0, 14.5, 12.5), new THREE.Vector3(0, 1.4, .4)],
+  wall: [new THREE.Vector3(6.5, 7, 12), new THREE.Vector3(0, 3.4, 0)],
+};
+function fitView(v) { const [p, t] = VIEWS[v]; const k = innerWidth / innerHeight < .7 ? 2.7 : innerWidth / innerHeight < .9 ? 2.1 : innerWidth < 1100 ? 1.45 : 1.22; return [t.clone().add(p.clone().sub(t).multiplyScalar(k)), t.clone()]; }
+function offsetView() { // centre the 3D scene in the space left of the claims panel
+  const lab = $("lab"), wide = innerWidth > 900 && lab && !lab.hidden;
+  const shift = wide ? (lab.offsetWidth + 24) / 2 : 0;
+  if (shift) camera.setViewOffset(innerWidth, innerHeight, shift, 0, innerWidth, innerHeight); else camera.clearViewOffset();
+}
+{ const [p, t] = fitView("home"); camera.position.copy(p); controls.target.copy(t); }
+let follow = true, camGoal = fitView("home"), lastTouch = 0;
+controls.addEventListener("start", () => { follow = false; lastTouch = performance.now(); });
+function view(v) { camGoal = fitView(v); if (performance.now() - lastTouch > 6000) follow = true; }
+
+scene.add(new THREE.HemisphereLight(0x9fb8e8, 0x0a0806, .45));
+const key = new THREE.DirectionalLight(0xfff1e0, 1.5);
+key.position.set(6, 16, 10); key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -14, right: 14, top: 10, bottom: -10, near: 1, far: 50 }); scene.add(key);
+const rim = new THREE.DirectionalLight(0x7fd6ff, .35); rim.position.set(-8, 6, -10); scene.add(rim);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshStandardMaterial({ color: 0x0a1016, roughness: .85, metalness: .1 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+const grid = new THREE.GridHelper(60, 60, 0x16212c, 0x101821); grid.position.y = .002; scene.add(grid);
+// a soft pool of light under each printer, so the stations read as two lit work areas
+const pool = (() => { const c = document.createElement("canvas"); c.width = c.height = 256; const g = c.getContext("2d");
+  const gr = g.createRadialGradient(128, 128, 10, 128, 128, 128); gr.addColorStop(0, "rgba(120,160,220,0.32)"); gr.addColorStop(1, "rgba(120,160,220,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, 256, 256); return new THREE.CanvasTexture(c); })();
+
+// privacy wall
+const wallTex = (() => {
+  const c = document.createElement("canvas"); c.width = 64; c.height = 256; const g = c.getContext("2d");
+  g.fillStyle = "rgba(127,214,255,0.05)"; g.fillRect(0, 0, 64, 256);
+  g.fillStyle = "rgba(127,214,255,0.22)"; for (let y = 0; y < 256; y += 8) g.fillRect(0, y, 64, 1);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 2); return t;
+})();
+const wallMat = new THREE.MeshBasicMaterial({ map: wallTex, transparent: true, opacity: .9, side: THREE.DoubleSide, depthWrite: false, color: 0x7fd6ff });
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(10, 5), wallMat); wall.rotation.y = Math.PI / 2; wall.position.set(0, 2.5, 0); scene.add(wall);
+const wallEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(.01, 5, 10)), new THREE.LineBasicMaterial({ color: 0x7fd6ff, transparent: true, opacity: .5 }));
+wallEdge.position.copy(wall.position); scene.add(wallEdge);
+
+// ---------- labels with overlap culling (higher priority wins)
+const LABELS = [];
+function label(html, posFn, cls = "", prio = 1) {
+  const el = document.createElement("div"); el.className = "lab " + cls; el.innerHTML = html; $("labels").appendChild(el);
+  const L = { el, posFn, prio, on: true, w: 0, h: 0 }; LABELS.push(L); return L;
+}
+function setLabel(L, html) { L.el.innerHTML = html; L.w = 0; }
+function dropLabel(L) { const i = LABELS.indexOf(L); if (i >= 0) { L.el.remove(); LABELS.splice(i, 1); } }
+const tv = new THREE.Vector3();
+function placeLabels() {
+  const placed = [];
+  const order = LABELS.slice().sort((a, b) => b.prio - a.prio);
+  for (const L of order) {
+    if (!L.on) { L.el.style.display = "none"; continue; }
+    tv.copy(L.posFn()).project(camera);
+    if (tv.z > 1 || Math.abs(tv.x) > 1.15 || Math.abs(tv.y) > 1.15) { L.el.style.display = "none"; continue; }
+    L.el.style.display = "";
+    if (!L.w) { L.w = L.el.offsetWidth; L.h = L.el.offsetHeight; }
+    const x = Math.min(Math.max((tv.x * .5 + .5) * innerWidth - L.w / 2, 8), innerWidth - L.w - 8), y = Math.min(Math.max((-tv.y * .5 + .5) * innerHeight - L.h, 8), innerHeight - L.h - 8);
+    const box = [x - 3, y - 2, x + L.w + 3, y + L.h + 2];
+    if (placed.some(b => box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1])) { L.el.style.display = "none"; continue; }
+    placed.push(box);
+    L.el.style.transform = `translate(${x}px, ${y}px)`;
+  }
+}
+label("Privacy wall", () => new THREE.Vector3(0, 5.3, 0), "wall", 5);
+
+// ---------- printers
+const PLATE = 4, CELL = PLATE / 8, TABLE_Y = 1.0, PIECE_H = .34;
+const slotX = c => -PLATE / 2 + CELL * (c + .5), slotZ = r => -PLATE / 2 + CELL * (r + .5);
+const ST = {}, SX = { [SITES[0]]: -5.8, [SITES[1]]: 5.8 };
+const std = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: .55, metalness: .25, ...o });
+function buildStation(site) {
+  const x0 = SX[site], g = new THREE.Group(); g.position.set(x0, 0, 0); scene.add(g);
+  const resin = D.sites[site] === "resin";
+  const glow = new THREE.Mesh(new THREE.PlaneGeometry(11, 11), new THREE.MeshBasicMaterial({ map: pool, transparent: true, depthWrite: false }));
+  glow.rotation.x = -Math.PI / 2; glow.position.y = .01; g.add(glow);
+  const spot = new THREE.SpotLight(0xdfe9ff, 1.1, 18, Math.PI / 6, .6, 1.2); spot.position.set(0, 9, 3); spot.target.position.set(0, TABLE_Y, 0); g.add(spot, spot.target);
+  const table = new THREE.Mesh(new THREE.BoxGeometry(5.4, TABLE_Y, 5.4), std(0x18212c, { metalness: .5, roughness: .4 }));
+  table.position.y = TABLE_Y / 2; table.castShadow = table.receiveShadow = true; g.add(table);
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(PLATE + .3, .08, PLATE + .3), std(resin ? 0xa9b3bf : 0x2a2f36, { metalness: resin ? .85 : .2, roughness: resin ? .25 : .7 }));
+  plate.position.y = TABLE_Y + .04; plate.receiveShadow = true; g.add(plate);
+  const dotGeo = new THREE.CircleGeometry(.025, 12), dotMat = new THREE.MeshBasicMaterial({ color: 0x4a5866 });
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const d = new THREE.Mesh(dotGeo, dotMat); d.rotation.x = -Math.PI / 2; d.position.set(slotX(c), TABLE_Y + .085, slotZ(r)); g.add(d); }
+  if (resin) { const vat = new THREE.Mesh(new THREE.BoxGeometry(PLATE + .5, .5, PLATE + .5), new THREE.MeshPhysicalMaterial({ color: 0xffb347, transparent: true, opacity: .12, roughness: .1, depthWrite: false })); vat.position.y = TABLE_Y + .25; g.add(vat); }
+  const frameMat = std(0x2c3947, { metalness: .6, roughness: .35 });
+  for (const [px, pz] of [[-2.5, -2.5], [2.5, -2.5], [-2.5, 2.5], [2.5, 2.5]]) { const post = new THREE.Mesh(new THREE.BoxGeometry(.14, 3.4, .14), frameMat); post.position.set(px, TABLE_Y + 1.7, pz); post.castShadow = true; g.add(post); }
+  for (const pz of [-2.5, 2.5]) { const b = new THREE.Mesh(new THREE.BoxGeometry(5.14, .14, .14), frameMat); b.position.set(0, TABLE_Y + 3.4, pz); g.add(b); }
+  const head = new THREE.Group();
+  if (resin) {
+    head.add(new THREE.Mesh(new THREE.BoxGeometry(.5, .25, .5), std(0x39414c)));
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(.06, .24, 2.1, 20, 1, true), new THREE.MeshBasicMaterial({ color: 0xa974ff, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }));
+    beam.position.y = -1.15; head.add(beam); head.userData.beam = beam;
+  } else {
+    head.add(new THREE.Mesh(new THREE.BoxGeometry(.5, .4, .5), std(0x39414c)));
+    const noz = new THREE.Mesh(new THREE.ConeGeometry(.12, .3, 20), std(0xd9a441, { metalness: .8, roughness: .3 })); noz.rotation.x = Math.PI; noz.position.y = -.35; head.add(noz);
+    const tip = new THREE.PointLight(0xff8a3d, 0, 1.6); tip.position.y = -.55; head.add(tip); head.userData.tip = tip;
+  }
+  head.position.set(0, TABLE_Y + 3.0, 0); head.traverse(o => o.castShadow = true); g.add(head);
+  const scan = new THREE.Mesh(new THREE.BoxGeometry(PLATE + .6, .05, .08), new THREE.MeshBasicMaterial({ color: 0x7fd6ff, transparent: true, opacity: 0 }));
+  scan.position.set(0, TABLE_Y + .5, -2.4); g.add(scan);
+  const scanLight = new THREE.PointLight(0x7fd6ff, 0, 3); scan.add(scanLight);
+  const orbs = {};
+  AGENTS.forEach((a, i) => {
+    const n = AGENTS.length, ang = (i - (n - 1) / 2) * .4;
+    const pos = new THREE.Vector3(Math.sin(ang) * 3.3, TABLE_Y + 4.6 + (i % 2) * .35, -2.4 - Math.cos(ang) * .4);
+    const m = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 24), std(AHEX[a], { emissive: AHEX[a], emissiveIntensity: .55, roughness: .3, metalness: .1 }));
+    m.position.copy(pos); m.castShadow = false; m.userData.agent = a; m.userData.site = site; g.add(m);
+    const L = label(esc(who(a)), () => m.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, m.scale.x + .3, 0)), "agent", 3);
+    L.el.style.color = "#" + AHEX[a].toString(16).padStart(6, "0"); L.on = false;
+    orbs[a] = { mesh: m, base: pos.clone(), size: .2, label: L, active: true };
+  });
+  const title = label(`${siteName(site)}<small>its data never leaves</small>`, () => new THREE.Vector3(x0, .05, 3.55), "title", 6);
+  const badge = label("", () => new THREE.Vector3(x0, TABLE_Y + 3.55, 2.5), "badge", 7); badge.on = false;
+  ST[site] = { g, head, scan, scanLight, orbs, pieces: [], stalks: [], x0, title, badge };
+}
+SITES.forEach(buildStation);
+
+// ---------- pieces + error bars
+function pieceMesh(q) {
+  const rad = .045 + (q.d - 1) / 7 * .14, col = HEX[q.arm] ?? HEX.seed;
+  const mat = std(col, { emissive: col, emissiveIntensity: .12, roughness: .45, metalness: .1 });
+  let mesh;
+  if (q.kind === "pin") { mesh = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, PIECE_H, 28), mat); mesh.geometry.translate(0, PIECE_H / 2, 0); }
+  else {
+    const s = new THREE.Shape(), h = .21; s.moveTo(-h, -h); s.lineTo(h, -h); s.lineTo(h, h); s.lineTo(-h, h); s.lineTo(-h, -h);
+    const hole = new THREE.Path(); hole.absarc(0, 0, rad, 0, Math.PI * 2, true); s.holes.push(hole);
+    const geo = new THREE.ExtrudeGeometry(s, { depth: PIECE_H * .55, bevelEnabled: false, curveSegments: 28 }); geo.rotateX(-Math.PI / 2); mesh = new THREE.Mesh(geo, mat);
+  }
+  mesh.castShadow = mesh.receiveShadow = true;
+  const [r, c] = q.slot; mesh.position.set(slotX(c), TABLE_Y + .08, slotZ(r)); mesh.userData.q = q; mesh.userData.part = true;
+  if (q.arm === "heldout") { const ring = new THREE.Mesh(new THREE.RingGeometry(.23, .26, 32), new THREE.MeshBasicMaterial({ color: HEX.heldout, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.y = .006; mesh.add(ring); }
+  return mesh;
+}
+function markFailed(m) { if (m.userData.q.status === "ok") return; m.material.color.setHex(0x5a2a2a); m.material.emissive.setHex(0xf06a6a); m.material.emissiveIntensity = .25; m.scale.y = .35; }
+function clearStalks(site) { const st = ST[site]; st.stalks.forEach(o => st.g.remove(o)); st.stalks = []; }
+function layPlate(site, r, grown = true) {
+  const st = ST[site]; st.pieces.forEach(m => st.g.remove(m)); st.pieces = []; clearStalks(site);
+  const p = plateOf(site, r); if (!p) return [];
+  st.pieces = p.pieces.map(q => { const m = pieceMesh(q); m.scale.y = grown ? 1 : .001; m.visible = grown; st.g.add(m); if (grown) markFailed(m); return m; });
+  return st.pieces;
+}
+const BAR_K = .028; // scene units per micron of guess error
+function errorsFor(site, r) {
+  const p = plateOf(site, r); if (!p) return {};
+  const ids = new Set(p.pieces.filter(q => q.arm === "heldout").map(q => q.id));
+  const out = {};
+  for (const x of D.predictions.filter(x => x.site === site && x.round === r && ids.has(x.piece_id) && x.measured_d != null)) (out[x.piece_id] ||= {})[x.arm] = Math.abs(x.mean - (x.truth ?? x.measured_d)) * 1000;
+  return out;
+}
+function stalks(site, r, ms = 0) {
+  clearStalks(site); const st = ST[site], errs = errorsFor(site, r), tasks = [];
+  for (const m of st.pieces) {
+    const e = errs[m.userData.q.id]; if (!e) continue;
+    [["isolated", -.075], ["networked", .075]].forEach(([a, dx]) => {
+      if (e[a] == null) return;
+      const h = Math.max(e[a] * BAR_K, .02);
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(.11, 1, .11), new THREE.MeshStandardMaterial({ color: HEX[a], emissive: HEX[a], emissiveIntensity: .5, transparent: true, opacity: .92 }));
+      bar.position.set(m.position.x + dx, TABLE_Y + .5, m.position.z); bar.scale.y = .001; bar.userData.q = m.userData.q;
+      st.g.add(bar); st.stalks.push(bar);
+      const set = t => { bar.scale.y = Math.max(h * t, .001); bar.position.y = TABLE_Y + .45 + h * t / 2; };
+      ms ? tasks.push(tween(ms, set)) : set(1);
+    });
+  }
+  return Promise.all(tasks);
+}
+
+// ---------- animation core
+let epoch = 0, speed = 1;
+const ANIMS = new Set();
+function tween(ms, fn, ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2) {
+  const my = epoch;
+  return new Promise(res => { if (reduce) { fn(1); return res(); } ANIMS.add({ t0: performance.now(), ms: ms / speed, fn, ease, res, my }); });
+}
+function stepAnims(now) {
+  for (const a of [...ANIMS]) {
+    if (a.my !== epoch) { ANIMS.delete(a); a.res(); continue; }
+    const t = Math.min((now - a.t0) / a.ms, 1); a.fn(a.ease(t)); if (t >= 1) { ANIMS.delete(a); a.res(); }
+  }
+}
+const wait = ms => tween(ms, () => { });
+const alive = my => my === epoch;
+function beam(from, to, color, ms = 600) {
+  const mid = from.clone().lerp(to, .5); mid.y += 1.1;
+  const geo = new THREE.BufferGeometry().setFromPoints(new THREE.QuadraticBezierCurve3(from, mid, to).getPoints(40));
+  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color, transparent: true, opacity: .9 })); geo.setDrawRange(0, 0); scene.add(line);
+  return { kill: () => { scene.remove(line); geo.dispose(); }, grow: tween(ms, t => geo.setDrawRange(0, Math.ceil(t * 41))) };
+}
+
+// ---------- HUD
+function say(chip, text) { $("chip").textContent = chip; $("chip").className = "chip" + (chip === "Ready" || chip === "Done" ? " idle" : ""); $("say").innerHTML = text; }
+function toast(whoTxt, html, verdict, ms = 4500) {
+  const el = document.createElement("div"); el.className = "toast glass";
+  el.innerHTML = `<div class="who">${whoTxt}</div><div>${html}</div>${verdict || ""}`;
+  $("toasts").prepend(el); while ($("toasts").children.length > 2) $("toasts").lastChild.remove();
+  setTimeout(() => el.remove(), ms);
+}
+function pill(text, posFn, color, ms = 1800, prio = 2) { const L = label(text, posFn, "pill", prio); L.el.style.color = color; setTimeout(() => dropLabel(L), ms); }
+const isReal = () => !D.scores.some(x => x.mae_truth != null); // real printers: no true sizes, only measurements
+const errKey = () => D.scores.some(x => x.mae_truth != null) ? "mae_truth" : "mae";
+function gapUm(r) { // alone minus together, µm, averaged over printers (true size in simulation)
+  const k = errKey(); let d = 0, n = 0;
+  for (const s of SITES) { const i = score(s, r, "isolated"), t = score(s, r, "networked"); if (i && t) { d += (i[k] - t[k]) * 1000; n++; } }
+  return n ? d / n : null;
+}
+function badges(r) {
+  for (const s of SITES) {
+    const st = ST[s], i = score(s, r, "isolated"), n = score(s, r, "networked");
+    st.badge.on = !!(r && i && n);
+    if (st.badge.on) {
+      const k = errKey(), d = (i[k] - n[k]) * 1000;
+      setLabel(st.badge, `<span style="color:var(--muted)">Guess error on test parts${k === "mae_truth" ? ", vs true size" : ""}</span><b><span style="color:var(--net)">${f1(n[k] * 1000)} µm</span> <span style="font-size:14px;color:var(--muted)">together</span> · <span style="color:var(--alone)">${f1(i[k] * 1000)} µm</span> <span style="font-size:14px;color:var(--muted)">alone</span></b><span style="color:var(--muted)">${Math.abs(d) < .05 ? "no difference" : `together ${f1(Math.abs(d))} µm ${d > 0 ? "closer" : "further"}`}</span>`);
+    }
+  }
+}
+const DONE = {};
+const E = BLOB.evidence;
+const f1 = v => (Math.round(v * 10) / 10).toFixed(1);
+function runCov() { // share of test parts inside the 90% range, team arm, latest round played
+  const r = Math.max(at, 1), rows = D.predictions.filter(x => x.arm === "networked" && x.round === r && x.measured_d != null);
+  return rows.length ? Math.round(rows.filter(x => x.lo <= x.measured_d && x.measured_d <= x.hi).length / rows.length * 100) : null;
+}
+let OPEN = -1; // which claim is expanded
+function claims() {
+  const a = D.audit, liar = LIAR && siteName(LIAR).toLowerCase();
+  const cov = at ? runCov() : null;
+  let h = `<div class="claim"><button class="top"><b class="t">Nothing private left either printer</b><span class="tag ok">checked · this run</span></button><div class="more">
+    <p>${D.messages.length ? `${D.messages.length} notes crossed the wall. Each one is in both printers' tamper-evident logs and holds only a few shared numbers: no measurements, settings or designs.` : `Notes are off, so nothing crossed. The logs still prove it.`}</p>
+    <div class="ctl"><button class="mini" id="replay">Replay the audit</button><span style="color:${a.passed ? "var(--good)" : "var(--bad)"}">${a.passed ? "passed" : "failed"}</span></div><div class="auditlog" id="auditlog"></div></div></div>`;
+  if (E) {
+    const L = E.liar;
+    h += `<div class="claim"><button class="top"><b class="t">A lying printer gets cut off</b><span class="tag sim">${E.worlds} sim worlds</span></button><div class="more">
+      <p>The other printer stops listening after one round (trust <strong>${Math.round(L.trust_by_round[1] * 100)}% → ${Math.round(L.trust_by_round[2] * 100)}%</strong>). The cost comes first: in round 1 the team's error jumps to <strong>${f1(L.round1_error_um)} µm</strong>, against ${f1(L.round1_error_um_no_notes)} µm with no notes. After that the damage is contained, but the honest notes' benefit is lost too.${trustNote()}</p>
+      ${ALL.liar ? `<div class="ctl"><span>Make the ${esc(liar)} lie</span><button class="tg danger" id="tgLie" role="switch" aria-checked="${SC === "liar"}" ${SC === "alone" ? "disabled" : ""} aria-label="Make one printer lie"></button></div>` : ""}</div></div>`;
+    h += `<div class="claim"><button class="top"><b class="t">The guess ranges are honest</b><span class="tag sim">${E.worlds} sim worlds</span></button><div class="more">
+      <p>Each guess comes with a 90% range. Across ${E.worlds} worlds about <strong>${E.coverage ? E.coverage.networked : 90}%</strong> of true sizes fell inside it${cov != null ? `; this run so far: ${cov}%` : ""}.</p></div></div>`;
+    const T = E.together_vs_alone, N = E.notes_vs_no_notes, mx = Math.max(E.slip_band_um.resin, E.measured.alone_error_um) * 1.05;
+    const bar = (lbl, v, col) => `<div class="r"><span>${lbl}</span><span class="t"><span class="f" style="display:block;width:${v / mx * 100}%;background:${col}"></span></span><span class="v">${f1(v)}</span></div>`;
+    h += `<div class="claim"><button class="top"><b class="t">Sharing improves the guesses, a little</b><span class="tag small">small effect</span></button><div class="more">
+      <p>Together lands <strong>${f1(T.um)} µm closer</strong> to the true size than alone (${Math.round(T.pct)}%), better in ${T.wins} of ${T.n} worlds, as good as pooling all the raw data. It works even though one printer is resin and the other plastic. The assistants without notes gain nothing, so the notes are what help. To scale, in µm:</p>
+      <div class="scale">${bar("gain from sharing", T.um, "var(--net)")}${bar("guess error, alone", E.error_um.isolated, "var(--alone)")}${bar("scanner noise", E.measured.alone_error_um, "var(--pool)")}${bar("resin slip-fit band", E.slip_band_um.resin, "var(--exam)")}</div>
+      <p>Because the scanner adds ~${Math.round(E.measured.alone_error_um)} µm of noise, the gain shrinks to ${f1(E.measured.together_vs_alone.pct)}% on real measurements: too small for a weekend of prints to detect.</p>
+      ${ALL.alone ? `<div class="ctl"><span>Printers share notes</span><button class="tg" id="tgShare" role="switch" aria-checked="${SC !== "alone"}" aria-label="Printers share notes"></button></div>` : ""}</div></div>`;
+    if (E.regimes && E.regimes.length) {
+      const pick = n => E.regimes.find(x => x.name === n);
+      const rows = [["2 sites, warm-up 16, 6/round", "2 printers (today's setup)"], ["2 sites, warm-up 4, 2/round", "2 printers, little data"], ["4 sites, warm-up 8, 6/round", "4 printers"], ["4 sites, warm-up 4, 2/round", "4 printers, little data"]].map(([k, l]) => [pick(k), l]).filter(([x]) => x);
+      const top = rows[rows.length - 1][0];
+      h += `<div class="claim"><button class="top"><b class="t">Where sharing would matter more</b><span class="tag sim">sim sweep</span></button><div class="more">
+        <p>The same test in other settings, ${top.worlds} worlds each, after ${top.rounds} rounds. Neither more printers nor less data helps much on its own. Many printers that each know little is where sharing pays:</p>
+        <div class="reg"><span class="h">setting</span><span class="h">gain µm</span><span class="h">wins</span>${rows.map(([x, l]) => `<span class="${x === top ? "hl" : ""}">${esc(l)}</span><span class="${x === top ? "hl" : ""}">${f1(x.together_vs_alone.um)}</span><span>${x.together_vs_alone.wins}/${x.together_vs_alone.n}</span>`).join("")}</div>
+        <p>With 4 data-poor printers the gain is ${f1(top.together_vs_alone.um)} µm (${Math.round(top.together_vs_alone.pct)}%), and wrong pin-in-hole fit calls drop from ${f1(top.fit.isolated.wrong_per_100)} to ${f1(top.fit.networked.wrong_per_100)} per 100. Still simulation only.</p></div></div>`;
+    }
+  }
+  $("claims").innerHTML = h;
+  $("claims").querySelectorAll(".claim").forEach((c, i) => {
+    if (OPEN === i) c.classList.add("open");
+    c.querySelector(".top").onclick = () => { OPEN = OPEN === i ? -1 : i; claims(); };
+  });
+  $("replay").onclick = () => replayAudit();
+  if ($("tgShare")) $("tgShare").onclick = () => useScenario(SC === "alone" ? "normal" : "alone");
+  if ($("tgLie")) $("tgLie").onclick = () => useScenario(SC === "liar" ? "normal" : "liar");
+}
+function trustNote() {
+  const t = E && E.trust_start, a = t && t["trust 1.0 | liar"], b = t && t["trust 0.3 | liar"];
+  return a && b ? ` Starting trust at 30% instead of 100% only trims that to ${f1(b[0])} µm (from ${f1(a[0])}).` : "";
+}
+async function replayAudit() {
+  if (OPEN !== 0) { OPEN = 0; claims(); }
+  const log = $("auditlog"), chains = Object.values(D.chains), total = chains.reduce((n, c) => n + c.length, 0), my = epoch;
+  $("replay").disabled = true; view("wall");
+  for (let i = 1; i <= total; i += Math.max(1, Math.round(total / 30))) { log.innerHTML = `checking log entry ${i} of ${total}: hash links back to the previous entry`; await new Promise(r => setTimeout(r, 35)); }
+  const out = D.messages.length;
+  for (let i = 1; i <= out; i++) { log.innerHTML = `note ${i} of ${out}: received exactly as sent, only allowed fields`; flashWall(); await new Promise(r => setTimeout(r, 220)); }
+  const a = D.audit;
+  log.innerHTML = `${Object.entries(a.chains_ok).map(([s, ok]) => `<span class="${ok ? "ok" : ""}">${esc(siteName(s))} log ${ok ? "intact ✓" : "BROKEN"}</span>`).join("<br>")}<br><span class="ok">${out} notes, all inside the allowed format ✓</span><br><span class="ok">${a.rejected} blocked, 0 measurements crossed ✓</span>`;
+  $("replay").disabled = false;
+}
+function progress(r, phase) { $("prog").innerHTML = Array.from({ length: R }, (_, i) => `<i class="${i + 1 < r || (i + 1 === r && phase === "done") ? "done" : i + 1 === r ? "on" : ""}"></i>`).join(""); }
+
+function orbSizes(r, ms = 0) {
+  const tasks = [];
+  for (const s of SITES) {
+    const c = credOf(s, r);
+    for (const [a, o] of Object.entries(ST[s].orbs)) {
+      const woke = D.spawned.some(z => z.site === s && z.agent === a && z.round <= r);
+      const active = (a in c && c[a] > 1e-9) && (a !== "position" || woke);
+      o.active = active;
+      o.mesh.material.transparent = !active; o.mesh.material.opacity = active ? 1 : .25;
+      const target = active ? .16 + Math.sqrt(c[a]) * .45 : .07, from = o.size;
+      if (ms) tasks.push(tween(ms, t => { o.size = from + (target - from) * t; o.mesh.scale.setScalar(o.size); }));
+      else { o.size = target; o.mesh.scale.setScalar(target); }
+    }
+  }
+  return Promise.all(tasks);
+}
+const TETHER = {};
+function tethers(r) {
+  for (const rcv of SITES) {
+    const snd = SITES.find(s => s !== rcv), v = trustOf(rcv, snd, r), z = rcv === SITES[0] ? .8 : -.8;
+    if (!TETHER[rcv]) {
+      const a = new THREE.Vector3(SX[snd], 4.8, z), b = new THREE.Vector3(SX[rcv], 4.8, z), mid = a.clone().lerp(b, .5); mid.y += 1.2;
+      const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
+      const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 60, .035, 8), new THREE.MeshBasicMaterial({ color: 0x7fd6ff, transparent: true }));
+      scene.add(tube);
+      const L = label("", () => curve.getPoint(.5).add(new THREE.Vector3(0, .35, 0)), "pill", 4);
+      TETHER[rcv] = { tube, curve, L };
+    }
+    const T = TETHER[rcv], off = D.config.share_messages === false;
+    T.tube.visible = !off; T.L.on = !off;
+    T.tube.material.opacity = .05 + v * .35;
+    T.tube.material.color.setHex((D.config.bad_sites || []).includes(snd) ? 0xf06a6a : 0x7fd6ff);
+    setLabel(T.L, `${esc(siteName(rcv).split(" ")[0])} listens ${Math.round(v * 100)}%`);
+    T.L.el.style.color = v > .6 ? "var(--wall)" : v > .25 ? "var(--pool)" : "var(--bad)";
+  }
+}
+
+// ---------- one round, seven quick beats
+async function round(r, my) {
+  const liarSite = (D.config.bad_sites || [])[0];
+  // 1 choose
+  view("agents"); say("1 · Choose", `The assistants above each printer <b>pick what to test</b>, so every approach gets a fair share of the plate. Bigger spheres have more say.`);
+  const beams = [];
+  for (const s of SITES) {
+    const st = ST[s], p = plateOf(s, r); if (!p) continue;
+    for (const q of p.pieces.filter(q => q.arm === "networked")) {
+      const o = st.orbs[PICKS[q.id]]; if (!o) continue;
+      const [rr, cc] = q.slot;
+      beams.push(beam(o.mesh.getWorldPosition(new THREE.Vector3()), new THREE.Vector3(st.x0 + slotX(cc), TABLE_Y + .1, slotZ(rr)), AHEX[PICKS[q.id]], 600));
+    }
+  }
+  await wait(1700); beams.forEach(b => b.kill()); if (!alive(my)) return;
+
+  // 2 debate (at most two, so it stays quick)
+  const flags = D.challenges.filter(f => f.round === r).slice(0, 2);
+  if (flags.length) {
+    say("2 · Debate", `Assistants can <b>object</b> to each other's picks. Later we'll see who was right.`);
+    for (const f of flags) {
+      const st = ST[f.site], A = st.orbs[f.flagger], B = st.orbs[f.target]; if (!A || !B) continue;
+      A.label.on = B.label.on = true;
+      const b = beam(A.mesh.getWorldPosition(new THREE.Vector3()), B.mesh.getWorldPosition(new THREE.Vector3()), 0xf06a6a, 400);
+      const [kind, d] = f.piece.split("-");
+      toast(`${esc(siteName(f.site))} · ${esc(who(f.flagger))}`, f.reason.startsWith("redundant") ? `“That ${d} mm ${kind} duplicates one of mine.”` : `“We can already predict that ${d} mm ${kind}.”`,
+        f.credit == null ? "" : f.credit > 0 ? `<span class="v" style="color:var(--good)">turned out right</span>` : `<span class="v" style="color:var(--bad)">turned out wrong</span>`, 4200);
+      await tween(600, t => B.mesh.position.x = B.base.x + Math.sin(t * 28) * .06 * (1 - t));
+      await wait(700); b.kill(); A.label.on = B.label.on = false;
+      if (!alive(my)) return;
+    }
+  }
+
+  // 3 print
+  view("home"); say("3 · Print", `Both printers build the plate. Blue parts were picked <b>together</b>, gray <b>alone</b>, gold with <b>all data shared</b>. Teal rings are <b>test parts</b> nobody picked.`);
+  for (const s of SITES) { clearStalks(s); ST[s].badge.on = false; }
+  await Promise.all(SITES.map(async s => {
+    const st = ST[s], old = st.pieces.slice();
+    await tween(400, t => old.forEach(m => { m.position.y = TABLE_Y + .08 - t * .5; m.scale.setScalar(Math.max(1 - t, .01)); }));
+    if (!alive(my)) return;
+    const ps = layPlate(s, r, false).slice().sort((a, b) => a.userData.q.slot[0] - b.userData.q.slot[0] || a.userData.q.slot[1] - b.userData.q.slot[1]);
+    for (const m of ps) {
+      if (!alive(my)) return;
+      const from = st.head.position.clone(), to = new THREE.Vector3(m.position.x, TABLE_Y + 1.1, m.position.z);
+      await tween(80, t => st.head.position.lerpVectors(from, to, t));
+      m.visible = true;
+      if (st.head.userData.beam) st.head.userData.beam.material.opacity = .45;
+      if (st.head.userData.tip) st.head.userData.tip.intensity = 2;
+      await tween(110, t => m.scale.y = Math.max(t, .001));
+      if (st.head.userData.beam) st.head.userData.beam.material.opacity = 0;
+      if (st.head.userData.tip) st.head.userData.tip.intensity = 0;
+      markFailed(m);
+    }
+    const from = st.head.position.clone();
+    await tween(400, t => st.head.position.lerpVectors(from, new THREE.Vector3(0, TABLE_Y + 3, 0), t));
+  }));
+  if (!alive(my)) return;
+
+  // 4 measure: scanner sweep, show sizes on test parts only
+  view("plates"); say("4 · Measure", `A scanner measures every part. Pills show how far test parts came out from their intended size (a hair is about 70 µm).`);
+  await Promise.all(SITES.map(async s => {
+    const st = ST[s]; st.scan.material.opacity = .95; st.scanLight.intensity = 2.5; const seen = new Set();
+    await tween(1300, t => {
+      const z = -2.4 + t * 4.8; st.scan.position.z = z;
+      for (const m of st.pieces) if (!seen.has(m) && m.position.z < z) {
+        seen.add(m); const q = m.userData.q;
+        m.material.emissiveIntensity = .9; setTimeout(() => m.material.emissiveIntensity = q.status === "ok" ? .12 : .25, 220);
+        if (q.arm === "heldout" && q.status === "ok") { const dv = um(q.measured - q.d); pill(`${dv >= 0 ? "+" : ""}${dv} µm`, () => m.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, .5, 0)), "#2fc2c4", 2200); }
+      }
+    }, t => t);
+    st.scan.material.opacity = 0; st.scanLight.intensity = 0; st.scan.position.z = -2.4;
+  }));
+  await wait(700); if (!alive(my)) return;
+
+  // 5 reward
+  view("agents"); say("5 · Reward", `Assistants whose picks helped the guesses <b>grow</b>; the rest shrink. In simulation this doesn't measurably improve the guesses. The notes in the next step do.`);
+  for (const sp of D.spawned.filter(z => z.round === r)) toast(`${esc(siteName(sp.site))} · new assistant`, `<b>${esc(who(sp.agent))}</b> joins to chase a pattern nobody could explain.`);
+  await orbSizes(r, 1200); await wait(500); if (!alive(my)) return;
+
+  // 6 share
+  const msgs = D.messages.filter(m => m.round === r);
+  if (msgs.length) {
+    view("wall");
+    say("6 · Share", liarSite ? `Notes cross the wall. The <b style="color:var(--bad)">${esc(siteName(liarSite).toLowerCase())} is lying</b>. Watch whether the other one keeps listening.` : `Each printer sends a <b>tiny note</b>: three numbers, no measurements. The wall checks it.`);
+    await Promise.all(msgs.map(async (m, i) => {
+      await wait(i * 400); const T = TETHER[m.to]; if (!T) return;
+      const bad = m.from === liarSite, col = bad ? 0xf06a6a : 0x7fd6ff;
+      const pkt = new THREE.Mesh(new THREE.BoxGeometry(.34, .24, .34), new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 1.4 }));
+      pkt.add(new THREE.PointLight(col, 2, 3)); scene.add(pkt);
+      let crossed = false;
+      await tween(1800, t => { pkt.position.copy(T.curve.getPoint(t)); pkt.rotation.y = t * 6; if (!crossed && t > .5) { crossed = true; flashWall(); } }, t => t);
+      scene.remove(pkt);
+    }));
+    toast("Privacy wall", `${msgs.length} notes crossed. Each one was checked: only a few shared numbers, nothing private.`, `<span class="v" style="color:var(--good)">check passed</span>`, 3600);
+  } else {
+    say("6 · Share", `Notes are switched off, so each printer <b>learns alone</b>.`); await wait(1200);
+  }
+  tethers(r);
+  if (!alive(my)) return;
+
+  // 7 check: error bars over test parts
+  view("plates");
+  const d = gapUm(r);
+  say("7 · Check", `Bars show <b>how far each guess was from ${isReal() ? "what the scanner measured" : "the true size"}</b>, magnified. <span style="color:var(--net)">Blue: together</span>, <span style="color:var(--alone)">gray: alone</span>.` + (d != null ? ` This round together was <b>${f1(Math.abs(d))} µm ${d >= 0 ? "closer" : "further"}</b>, a fraction of a hair's width.` : ""));
+  await Promise.all(SITES.map(s => stalks(s, r, 900)));
+  badges(r);
+  await wait(1600);
+}
+function flashWall() { tween(600, t => { wallMat.opacity = .9 + Math.sin(t * Math.PI) * 1.6; wallMat.color.setHex(t < .99 ? 0x9cffd6 : 0x7fd6ff); }); }
+
+// ---------- state & controls
+let at = 0, busy = false, autoOn = false;
+function settle(r) { // static state at the end of round r
+  for (const s of SITES) { layPlate(s, r, true); if (r) stalks(s, r); }
+  orbSizes(r); tethers(r); badges(r); progress(r, "done");
+}
+function goLabel() {
+  $("go").disabled = busy;
+  $("go").textContent = busy ? `Round ${at} running…` : at < R ? `Print round ${at + 1} ▸` : "Start over ↺";
+  $("go").classList.toggle("pulse", !busy && at === 0);
+}
+async function next() {
+  if (busy) return;
+  if (at >= R) { reset(); return; }
+  busy = true; const my = ++epoch; const r = at + 1; at = r; goLabel(); progress(r, "on");
+  $("card").hidden = true;
+  await round(r, my);
+  if (!alive(my)) return;
+  busy = false; progress(r, "done");
+  if (r === R) {
+    const d = gapUm(R); DONE[SC] = d; claims();
+    const other = SC === "normal" && ALL.liar ? `Try making <b>one printer lie</b>, or replay the audit.` : SC === "liar" && ALL.alone ? `Try turning <b>notes off</b> to compare.` : `Replay the audit, or click any part to inspect it.`;
+    if (isReal()) {
+      say("Done", (d != null ? `On these printers, measured with scanner noise, together ended <b>${f1(Math.abs(d))} µm ${d >= 0 ? "closer" : "further"}</b> than alone. ` : "")
+        + (E ? `Simulation expects only about ${f1(E.measured.together_vs_alone.um)} µm on measured data, so one real run can't confirm or rule out the effect. ` : "")
+        + `Replay the audit to check what crossed between the printers.`);
+      autoOn = false; $("auto").setAttribute("aria-pressed", "false"); goLabel(); return;
+    }
+    say("Done", (d != null ? `In this world, together ended <b>${f1(Math.abs(d))} µm ${d >= 0 ? "closer" : "further"}</b> than alone. ` : "")
+      + (E ? (() => {
+          const typ = { normal: E.together_vs_alone.um, alone: E.team_without_notes_vs_alone.um, liar: E.liar_together_vs_alone.um }[SC];
+          const what = { normal: "with notes", alone: "without notes", liar: "with a liar present" }[SC];
+          const fit = d == null ? "" : d - typ > 1 ? ", so this world is a lucky one" : typ - d > 1 ? ", so this world is an unlucky one" : ", so this world is typical";
+          return `Across ${E.worlds} worlds the typical gain ${what} is ${f1(typ)} µm${fit}${SC === "normal" ? ": real, but small" : ""}. `;
+        })() : "") + other);
+    autoOn = false; $("auto").setAttribute("aria-pressed", "false");
+  } else say("Ready", autoOn ? `Next round coming up…` : `Press <b>Print round ${r + 1}</b> when you're ready. Click any part to inspect it.`);
+  goLabel();
+  if (autoOn && at < R) setTimeout(() => autoOn && next(), 900);
+}
+function reset() {
+  epoch++; busy = false; at = 0; $("toasts").innerHTML = ""; $("card").hidden = true;
+  settle(0); goLabel(); progress(0); claims();
+  say("Ready", D.config.share_messages === false ? `Notes are <b>off</b>: each printer learns alone. Press <b>Print round 1</b>.`
+    : (D.config.bad_sites || []).length ? `The <b style="color:var(--bad)">${esc(siteName(D.config.bad_sites[0]).toLowerCase())}</b> will send wrong notes. Press <b>Print round 1</b>.`
+    : `Both printers have a warm-up plate. Press <b>Print round 1</b> to start.`);
+  view("home");
+}
+function useScenario(k) {
+  if (!ALL[k] || k === SC) return;
+  SC = k; D = ALL[k]; mapPicks(); reset();
+  toast("Experiment changed", k === "alone" ? "Printers can't send notes now. Same printers, same warm-up." : k === "liar" ? `The ${esc(siteName(LIAR).toLowerCase())} now sends confident, wrong notes.` : "Back to normal: printers share honest notes.", "", 3200);
+}
+$("go").onclick = next;
+$("reset").onclick = reset;
+$("auto").onclick = () => { autoOn = !autoOn; $("auto").setAttribute("aria-pressed", autoOn); if (autoOn && !busy && at < R) next(); };
+$("help").onclick = () => $("intro").hidden = false;
+$("start").onclick = () => { $("intro").hidden = true; next(); };
+$("labToggle").onclick = () => { $("lab").classList.toggle("collapsed"); $("labToggle").textContent = $("lab").classList.contains("collapsed") ? "show" : "hide"; offsetView(); camera.updateProjectionMatrix(); };
+addEventListener("keydown", e => {
+  if (e.key === "Escape") $("intro").hidden = true;
+  if (e.key === " " || e.key === "Enter") { if (e.target.closest && e.target.closest("button")) return; e.preventDefault(); $("intro").hidden ? next() : $("start").click(); }
+});
+
+// ---------- picking: parts, bars, assistants
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+let down = null, hovered = null;
+function pickables() { return SITES.flatMap(s => [...ST[s].pieces.filter(m => m.visible), ...ST[s].stalks, ...Object.values(ST[s].orbs).map(o => o.mesh)]); }
+function pick(e) { mouse.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1); ray.setFromCamera(mouse, camera); const h = ray.intersectObjects(pickables(), false)[0]; return h ? h.object : null; }
+function unhover(o) {
+  if (!o) return;
+  if (o.userData.agent) ST[o.userData.site].orbs[o.userData.agent].label.on = false;
+  else if (o.userData.part) o.material.emissiveIntensity = o.userData.q.status === "ok" ? .12 : .25;
+}
+renderer.domElement.addEventListener("pointerdown", e => down = [e.clientX, e.clientY]);
+renderer.domElement.addEventListener("pointermove", e => {
+  const hit = pick(e);
+  if (hovered !== hit) unhover(hovered);
+  hovered = hit;
+  if (hit?.userData.agent) ST[hit.userData.site].orbs[hit.userData.agent].label.on = true;
+  else if (hit?.userData.part) hit.material.emissiveIntensity = .7;
+  renderer.domElement.style.cursor = hit ? "pointer" : "";
+});
+renderer.domElement.addEventListener("pointerup", e => {
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
+  const hit = pick(e);
+  if (!hit) { $("card").hidden = true; return; }
+  hit.userData.agent ? agentCard(hit.userData.site, hit.userData.agent) : partCard(hit.userData.q);
+});
+function partCard(q) {
+  const site = q.id.split("-")[0], r = q.id.includes("-seed") ? 0 : +q.id.split("-")[1].slice(1);
+  const dv = q.measured != null ? um(q.measured - q.d) : null;
+  const rows = [
+    ["Picked by", q.arm === "heldout" ? "Nobody (test part)" : `<span style="color:${CSS[q.arm]}">${NAME[q.arm]}</span>${PICKS[q.id] ? ` · ${esc(who(PICKS[q.id]))}` : ""}`],
+    ["Meant to be", `${q.d.toFixed(1)} mm`],
+    ["Came out", q.status === "ok" ? `${Math.abs(dv)} µm too ${dv >= 0 ? "big" : "small"}` : `<span style="color:var(--bad)">didn't print</span>`],
+  ];
+  const e = errorsFor(site, Math.max(r, 1))[q.id];
+  let bars = "";
+  if (e && r) {
+    const mx = Math.max(...Object.values(e), 1);
+    bars = `<div class="eyebrow" style="margin-top:10px">How far off the guesses were</div>` + ["isolated", "networked", "oracle"].filter(a => e[a] != null).map(a =>
+      `<div class="gbar"><span style="color:${CSS[a]}">${{ isolated: "Alone", networked: "Together", oracle: "All data (ideal)" }[a]}</span><span class="t"><span class="f" style="display:block;width:${e[a] / mx * 100}%;background:${CSS[a]}"></span></span><span class="v">${e[a].toFixed(0)} µm</span></div>`).join("");
+  }
+  $("card").innerHTML = `<button class="x" aria-label="Close">×</button><div class="eyebrow">${esc(siteName(site))} · ${r ? "round " + r : "warm-up"}</div>
+    <h4>${q.kind === "pin" ? "Pin" : "Hole"}, ${q.d.toFixed(1)} mm</h4>${rows.map(([k, v]) => `<div class="row"><span>${k}</span><span>${v}</span></div>`).join("")}${bars}`;
+  $("card").hidden = false; $("card").querySelector(".x").onclick = () => $("card").hidden = true;
+}
+function agentCard(site, a) {
+  const c = credOf(site, at), share = c[a] != null ? Math.round(c[a] * 100) : 0;
+  const DESC = { physics: "Models the physics of how this printer distorts sizes.", calibration: "Only trusts the first warm-up plate.", geometry: "Studies how a part's size changes its error.", empirical: "Hunts for spots where the guesses keep missing.", printability: "Tests parts that might fail to print.", position: "Checks whether a part's spot on the plate matters. Sleeps until someone notices a pattern." };
+  const picks = Object.entries(PICKS).filter(([id, x]) => x === a && id.startsWith(site + "-") && +id.split("-")[1].slice(1) <= at).length;
+  $("card").innerHTML = `<button class="x" aria-label="Close">×</button><div class="eyebrow">${esc(siteName(site))} · assistant</div>
+    <h4 style="color:#${AHEX[a].toString(16).padStart(6, "0")}">${esc(who(a))}</h4><p style="margin:0 0 6px;font-size:13.5px;color:var(--muted)">${DESC[a] || ""}</p>
+    <div class="row"><span>Say in the vote</span><span>${share}%</span></div><div class="row"><span>Parts it won so far</span><span>${picks}</span></div>`;
+  $("card").hidden = false; $("card").querySelector(".x").onclick = () => $("card").hidden = true;
+}
+
+// ---------- loop
+addEventListener("resize", () => { camera.aspect = innerWidth / innerHeight; offsetView(); camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); camGoal = fitView("home"); LABELS.forEach(L => L.w = 0); });
+const clock = new THREE.Clock();
+function frame(now) {
+  requestAnimationFrame(frame);
+  stepAnims(now);
+  const t = clock.getElapsedTime();
+  if (!reduce) for (const s of SITES) for (const o of Object.values(ST[s].orbs)) o.mesh.position.y = o.base.y + Math.sin(t * 1.3 + o.base.x) * .08;
+  wallTex.offset.y = reduce ? 0 : -t * .04;
+  if (!follow && busy && performance.now() - lastTouch > 8000) follow = true;
+  if (follow) { camera.position.lerp(camGoal[0], .03); controls.target.lerp(camGoal[1], .035); }
+  controls.update(); renderer.render(scene, camera); placeLabels();
+}
+mapPicks(); reset();
+$("runKind").textContent = isReal() ? "· real printers" : "· simulation";
+mapPicks(); reset(); offsetView(); camera.updateProjectionMatrix();
+if (innerWidth <= 900) { $("lab").classList.add("collapsed"); $("labToggle").textContent = "show"; }
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

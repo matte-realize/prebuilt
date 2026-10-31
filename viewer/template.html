@@ -2,184 +2,260 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Prebuilt Viewer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prebuilt Run Viewer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
+/* Layout: a calibration report read top to bottom. A sticky round scrubber, then one chapter per idea, each a big drawing plus one sentence. */
 :root {
-  --bg: #f6f6f3; --panel: #ffffff; --ink: #1b1d21; --muted: #6a6f78; --faint: #9a9ea6; --line: #e2e3de; --soft: #f0f0ec;
-  --iso: #8a8f98; --net: #2f6fdf; --ora: #c97f12; --held: #7c4ddb; --seed: #c4c7cc;
-  --ok: #1d8a4d; --bad: #cf3f3f;
-  --a1: #2f6fdf; --a2: #c97f12; --a3: #1d8a4d; --a4: #cf3f3f; --a5: #7c4ddb; --a6: #0e8f8f;
+  --paper: #f2f4f7; --surface: #ffffff; --ink: #142030; --muted: #5a6879; --faint: #8b97a6; --rule: #d8dee6; --soft: #e8ecf1;
+  --alone: #7b8898; --net: #1f5bff; --pool: #b5761a; --exam: #0d8a8c; --seed: #c2cbd6;
+  --good: #12805c; --bad: #c2352f;
+  --a1: #1f5bff; --a2: #b5761a; --a3: #12805c; --a4: #c2352f; --a5: #7a3fe0; --a6: #0d8a8c;
+  --display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+  --body: "IBM Plex Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #111316; --panel: #191c20; --ink: #e8e9eb; --muted: #9aa0a8; --faint: #6c727b; --line: #2a2e35; --soft: #20242a;
-    --iso: #9aa0a8; --net: #5b93ff; --ora: #e8a53c; --held: #a58bf5; --seed: #3c4149;
-    --ok: #3cbf74; --bad: #f06a6a;
-    --a1: #5b93ff; --a2: #e8a53c; --a3: #3cbf74; --a4: #f06a6a; --a5: #a58bf5; --a6: #34c3c3;
+    --paper: #0d131a; --surface: #141c25; --ink: #e5ecf3; --muted: #93a1b2; --faint: #657385; --rule: #253140; --soft: #1a2430;
+    --alone: #8c9aac; --net: #6b93ff; --pool: #e2a548; --exam: #35bcbe; --seed: #374556;
+    --good: #3cc48d; --bad: #f0706a;
+    --a1: #6b93ff; --a2: #e2a548; --a3: #3cc48d; --a4: #f0706a; --a5: #ad8bff; --a6: #35bcbe;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #111316; --panel: #191c20; --ink: #e8e9eb; --muted: #9aa0a8; --faint: #6c727b; --line: #2a2e35; --soft: #20242a;
-  --iso: #9aa0a8; --net: #5b93ff; --ora: #e8a53c; --held: #a58bf5; --seed: #3c4149;
-  --ok: #3cbf74; --bad: #f06a6a;
-  --a1: #5b93ff; --a2: #e8a53c; --a3: #3cbf74; --a4: #f06a6a; --a5: #a58bf5; --a6: #34c3c3;
+  --paper: #0d131a; --surface: #141c25; --ink: #e5ecf3; --muted: #93a1b2; --faint: #657385; --rule: #253140; --soft: #1a2430;
+  --alone: #8c9aac; --net: #6b93ff; --pool: #e2a548; --exam: #35bcbe; --seed: #374556;
+  --good: #3cc48d; --bad: #f0706a;
+  --a1: #6b93ff; --a2: #e2a548; --a3: #3cc48d; --a4: #f0706a; --a5: #ad8bff; --a6: #35bcbe;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; }
 body {
-  background: var(--bg); color: var(--ink);
-  font: 15px/1.5 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 16px/1.55 var(--body); -webkit-font-smoothing: antialiased;
 }
-.mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; }
+.wrap { max-width: 1160px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: 0; text-wrap: balance; margin: 0; }
+.eyebrow { font: 500 12px/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.mono { font-family: var(--mono); }
 .muted { color: var(--muted); }
-header.bar {
-  position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line);
-}
-.bar-in { max-width: 1180px; margin: 0 auto; padding: 10px 16px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
-.brand { font-weight: 650; letter-spacing: -0.01em; font-size: 17px; margin-right: auto; }
-.brand small { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: 8px; }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
-.seg button { border: 0; background: transparent; color: var(--muted); padding: 6px 12px; font: inherit; font-size: 13.5px; cursor: pointer; }
-.seg button + button { border-left: 1px solid var(--line); }
-.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
-.icon-btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 13.5px; cursor: pointer; }
-main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 80px; }
-.hero h1 { font-size: 26px; letter-spacing: -0.02em; margin: 8px 0 4px; font-weight: 650; }
-.hero p { margin: 0; color: var(--muted); max-width: 70ch; }
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 18px 0 8px; }
-.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
-.tile .k { font-size: 12.5px; color: var(--muted); }
-.tile .v { font-size: 26px; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-top: 2px; }
-.tile .s { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.pass { color: var(--ok); } .fail { color: var(--bad); }
-section { margin-top: 34px; }
-section > h2 { font-size: 18px; margin: 0 0 2px; letter-spacing: -0.01em; font-weight: 640; }
-section > .lede { margin: 0 0 12px; color: var(--muted); font-size: 14px; max-width: 80ch; }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.grid-plate { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 14px; }
-@media (max-width: 860px) { .grid2, .grid-plate { grid-template-columns: 1fr; } }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; min-width: 0; }
-.card h3 { margin: 0 0 8px; font-size: 14px; font-weight: 620; }
-.card h3 .muted { font-weight: 400; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--net); outline-offset: 2px; }
+
+/* ---- sticky control bar */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); }
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; background: color-mix(in srgb, var(--paper) 90%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--rule); }
+.bar .wrap { display: flex; align-items: center; gap: 14px 20px; padding-block: 10px; flex-wrap: wrap; }
+.brand { font: 700 22px/1 var(--display); letter-spacing: .01em; margin-right: auto; display: flex; align-items: center; gap: 10px; }
+.brand svg { width: 22px; height: 22px; }
+.scrub { display: flex; align-items: center; gap: 10px; }
+.track { display: flex; align-items: center; position: relative; }
+.track::before { content: ""; position: absolute; left: 14px; right: 14px; top: 50%; height: 2px; background: var(--rule); }
+.stop { position: relative; border: 0; background: none; padding: 4px 8px; cursor: pointer; display: grid; justify-items: center; gap: 2px; }
+.stop i { width: 12px; height: 12px; border-radius: 50%; background: var(--paper); border: 2px solid var(--faint); transition: all .2s; }
+.stop span { font: 500 11px/1 var(--mono); color: var(--muted); }
+.stop[aria-current="true"] i { background: var(--net); border-color: var(--net); transform: scale(1.25); }
+.stop[aria-current="true"] span { color: var(--ink); }
+.stop.done i { border-color: var(--net); }
+.pill { border: 1px solid var(--rule); background: var(--surface); border-radius: 999px; padding: 6px 14px; font-size: 14px; cursor: pointer; }
+.pill.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.toggle { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; background: var(--surface); padding: 3px; }
+.toggle button { border: 0; background: none; border-radius: 999px; padding: 4px 12px; font-size: 14px; cursor: pointer; color: var(--muted); }
+.toggle button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+/* ---- hero */
+.hero { padding-block: 44px 20px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 36px; align-items: center; }
+.hero h1 { font-size: clamp(38px, 5.4vw, 62px); line-height: .98; margin: 12px 0 16px; }
+.hero h1 em { font-style: normal; color: var(--net); }
+.hero p.lead { font-size: 18px; color: var(--muted); max-width: 52ch; margin: 0; }
+.facts { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 26px; }
+.fact b { display: block; font: 600 40px/1 var(--display); font-variant-numeric: tabular-nums; }
+.fact span { font-size: 13.5px; color: var(--muted); display: block; max-width: 20ch; margin-top: 4px; }
+.fact.hl b { color: var(--net); }
+.sites { background: var(--surface); border: 1px solid var(--rule); border-radius: 18px; padding: 10px; }
+@media (max-width: 900px) { .hero { grid-template-columns: 1fr; padding-top: 28px; } }
+
+/* ---- chapters */
+.chapter { padding-block: 56px 8px; border-top: 1px solid var(--rule); margin-top: 40px; }
+.chapter-head { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 0 18px; margin-bottom: 22px; }
+.chapter-head .n { font: 600 52px/0.9 var(--display); color: var(--faint); }
+.chapter-head h2 { font-size: clamp(28px, 3.4vw, 40px); line-height: 1.05; }
+.chapter-head p { margin: 8px 0 0; color: var(--muted); max-width: 68ch; }
+.takeaway { font: 500 19px/1.4 var(--body); margin: 14px 0 0; max-width: 60ch; }
+.takeaway b { color: var(--net); font-weight: 600; }
+@media (max-width: 600px) { .chapter-head { grid-template-columns: 1fr; } .chapter-head .n { font-size: 34px; margin-bottom: 4px; } }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 16px; padding: 18px; min-width: 0; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.plate-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 18px; align-items: start; }
+@media (max-width: 900px) { .two, .plate-grid { grid-template-columns: 1fr; } }
+.panel h3 { font-size: 22px; margin-bottom: 4px; }
+.panel .sub { font-size: 14px; color: var(--muted); margin: 0 0 12px; }
+
 svg { display: block; width: 100%; height: auto; overflow: visible; }
-svg text { fill: var(--muted); font-size: 11px; font-family: inherit; }
-.axis line, .axis path { stroke: var(--line); }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--muted); margin-top: 8px; }
-.legend i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
-.legend i.dot { width: 10px; height: 10px; border-radius: 50%; }
-.legend i.ring { width: 10px; height: 10px; border-radius: 50%; background: transparent !important; border: 2.5px solid; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-.chip { border: 1px solid var(--line); background: var(--panel); color: var(--muted); border-radius: 999px; padding: 3px 10px; font-size: 12.5px; cursor: pointer; }
-.chip[aria-pressed="true"] { border-color: var(--ink); color: var(--ink); }
-.flag { padding: 10px 0; border-top: 1px solid var(--line); font-size: 14px; }
-.flag:first-child { border-top: 0; padding-top: 2px; }
-.flag b { font-weight: 620; }
-.tag { display: inline-block; font-size: 11.5px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); margin-left: 6px; white-space: nowrap; }
-.tag.good { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
-.tag.bad { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
-table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
-th { text-align: left; font-weight: 560; color: var(--muted); font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
-td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
-tr:last-child td { border-bottom: 0; }
-.boundary { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0; align-items: stretch; }
-.boundary .wall { width: 2px; background: repeating-linear-gradient(to bottom, var(--ink) 0 6px, transparent 6px 11px); margin: 0 14px; opacity: .5; }
-@media (max-width: 860px) { .boundary { grid-template-columns: 1fr; } .boundary .wall { width: auto; height: 2px; margin: 12px 0; background: repeating-linear-gradient(to right, var(--ink) 0 6px, transparent 6px 11px); } }
-.never { list-style: none; padding: 0; margin: 6px 0 0; }
-.never li { padding: 3px 0; font-size: 13.5px; }
-.never li::before { content: "🔒"; margin-right: 8px; font-size: 11px; }
-.bar-row { display: grid; grid-template-columns: 92px 1fr 46px; gap: 8px; align-items: center; font-size: 12.5px; margin: 3px 0; }
-.bar-row .track { height: 7px; background: var(--soft); border-radius: 4px; overflow: hidden; }
-.bar-row .fill { height: 100%; border-radius: 4px; }
-.receipts { max-height: 460px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
-.receipts table td, .receipts table th { padding: 6px 10px; }
-.receipts th { position: sticky; top: 0; background: var(--panel); }
-.receipts tr.row { cursor: pointer; }
-.receipts tr.row:hover td { background: var(--soft); }
-.receipts pre { margin: 0; white-space: pre-wrap; word-break: break-all; max-height: 260px; overflow: auto; background: var(--soft); padding: 10px; border-radius: 8px; }
-.kind { font-weight: 560; }
-#tip { position: fixed; pointer-events: none; z-index: 20; background: var(--ink); color: var(--bg); font-size: 12.5px; padding: 7px 10px; border-radius: 8px; max-width: 260px; line-height: 1.4; opacity: 0; transition: opacity .08s; }
-.empty { color: var(--muted); font-size: 14px; padding: 8px 0; }
-footer { margin-top: 40px; color: var(--faint); font-size: 12.5px; }
+svg text { fill: var(--muted); font: 11px var(--mono); }
+svg .lbl { font: 600 14px var(--display); letter-spacing: .02em; }
+
+/* plate */
+.armlist { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.armlist li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--soft); }
+.armlist .sw { width: 26px; height: 26px; border-radius: 50%; }
+.armlist b { font-weight: 600; display: block; }
+.armlist small { color: var(--muted); font-size: 13px; display: block; line-height: 1.35; }
+.armlist .count { font: 600 26px/1 var(--display); font-variant-numeric: tabular-nums; }
+@keyframes pop { from { transform: scale(.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.piece { transform-box: fill-box; transform-origin: center; animation: pop .45s cubic-bezier(.2, 1.4, .4, 1) both; }
+
+/* chart chips */
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.chip { border: 1.5px solid var(--rule); background: var(--surface); border-radius: 999px; padding: 4px 12px 4px 8px; font-size: 13.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
+.chip i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.chip[aria-pressed="true"] { color: var(--ink); border-color: currentColor; }
+.chip[aria-pressed="false"] i { opacity: .3; }
+
+/* agents */
+.board { display: grid; gap: 10px; }
+.brow { display: grid; grid-template-columns: 36px 108px minmax(0, 1fr) 62px; gap: 10px; align-items: center; }
+.ava { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #fff; font: 600 15px var(--display); letter-spacing: .02em; }
+.brow .name { font-weight: 500; }
+.brow .bar-t { height: 14px; border-radius: 7px; background: var(--soft); overflow: hidden; }
+.brow .bar-f { height: 100%; border-radius: 7px; transition: width .6s cubic-bezier(.3, .7, .2, 1); }
+.brow .val { font: 500 13px var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+.delta { font: 500 12px var(--mono); }
+.up { color: var(--good); } .down { color: var(--bad); }
+.convo { display: grid; gap: 14px; }
+.msg { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 10px; align-items: start; animation: pop .35s ease-out both; transform-origin: left top; }
+.bubble { background: var(--soft); border-radius: 4px 14px 14px 14px; padding: 10px 14px; }
+.bubble .who { font-size: 13px; color: var(--muted); margin-bottom: 2px; }
+.bubble .what { font-size: 15.5px; }
+.stamp { display: inline-block; margin-top: 8px; font: 600 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 5px 9px; border-radius: 6px; border: 1.5px solid; }
+.stamp.good { color: var(--good); } .stamp.bad { color: var(--bad); } .stamp.na { color: var(--faint); }
+.empty { color: var(--muted); padding: 10px 0; }
+
+/* boundary */
+.cross { display: grid; grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1fr); align-items: stretch; }
+.wall { position: relative; }
+.wall::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; border-left: 2px dashed var(--faint); }
+.wall span { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-90deg); white-space: nowrap; background: var(--surface); padding: 2px 8px; font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+@media (max-width: 760px) { .cross { grid-template-columns: 1fr; } .wall { height: 44px; } .wall::before { left: 0; right: 0; top: 50%; bottom: auto; border-left: 0; border-top: 2px dashed var(--faint); } .wall span { transform: translate(-50%, -50%); } }
+.vault h3, .ticket h3 { font-size: 20px; }
+.locked { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.locked li { display: flex; gap: 10px; align-items: center; font-size: 14.5px; }
+.locked svg { width: 14px; height: 14px; flex: none; }
+.locked svg path, .locked svg rect { stroke: var(--muted); fill: none; stroke-width: 2; }
+.ticket { border: 1.5px solid var(--net); border-radius: 14px; padding: 14px 16px; background: color-mix(in srgb, var(--net) 6%, var(--surface)); }
+.ticket .route { font: 600 15px var(--mono); }
+.param { display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 10px; align-items: center; margin-top: 8px; font: 13px var(--mono); }
+.gauges { display: grid; gap: 18px; }
+.gauge .top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.gauge .top b { font: 600 30px/1 var(--display); font-variant-numeric: tabular-nums; }
+.gauge .meter { position: relative; height: 16px; border-radius: 8px; background: var(--soft); margin-top: 8px; overflow: hidden; }
+.gauge .meter div { height: 100%; border-radius: 8px; transition: width .6s cubic-bezier(.3, .7, .2, 1); }
+.gauge .hist { display: flex; gap: 6px; margin-top: 6px; font: 12px var(--mono); color: var(--muted); flex-wrap: wrap; }
+
+/* audit */
+.audit { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 28px; align-items: center; }
+@media (max-width: 700px) { .audit { grid-template-columns: 1fr; } }
+.seal { width: 168px; height: 168px; }
+.checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.checks li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; font-size: 15.5px; }
+.checks .ok { color: var(--good); font-weight: 700; } .checks .no { color: var(--bad); font-weight: 700; }
+.chain { display: flex; gap: 6px; overflow-x: auto; padding: 6px 2px 12px; margin-top: 22px; }
+.blk { flex: none; width: 92px; border-radius: 10px; border: 1.5px solid var(--rule); background: var(--surface); padding: 8px; cursor: pointer; text-align: left; position: relative; }
+.blk::after { content: ""; position: absolute; right: -8px; top: 50%; width: 8px; border-top: 2px solid var(--rule); }
+.blk:last-child::after { display: none; }
+.blk .k { font: 600 14px/1.1 var(--display); display: block; }
+.blk .h { font: 10.5px var(--mono); color: var(--muted); display: block; margin-top: 4px; }
+.blk .s { font: 10.5px var(--mono); color: var(--faint); }
+.blk[aria-pressed="true"] { border-color: var(--ink); }
+.payload { background: var(--soft); border-radius: 12px; padding: 12px 14px; font: 12px/1.5 var(--mono); white-space: pre-wrap; word-break: break-all; max-height: 320px; overflow: auto; margin: 0; }
+
+#tip { position: fixed; pointer-events: none; z-index: 20; background: var(--ink); color: var(--paper); font-size: 13px; padding: 8px 11px; border-radius: 10px; max-width: 280px; line-height: 1.4; opacity: 0; transition: opacity .1s; }
+footer { padding-block: 40px 60px; color: var(--faint); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
-<header class="bar"><div class="bar-in">
-  <div class="brand">Prebuilt<small id="label"></small></div>
-  <div class="seg" id="siteSeg" role="group" aria-label="Site"></div>
-  <div class="seg" id="roundSeg" role="group" aria-label="Round"></div>
-  <button class="icon-btn" id="play" title="Step through rounds (space)">▶ Play</button>
-  <button class="icon-btn" id="theme" title="Toggle theme">◐</button>
+
+<header class="bar"><div class="wrap">
+  <div class="brand"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="12" r="5" fill="var(--net)"/><circle cx="16" cy="12" r="5" fill="none" stroke="var(--ink)" stroke-width="2.5"/></svg>Prebuilt</div>
+  <div class="scrub"><div class="track" id="track" role="group" aria-label="Round"></div><button class="pill primary" id="play">▶ Play rounds</button></div>
+  <div class="toggle" id="siteToggle" role="group" aria-label="Site"></div>
+  <button class="pill" id="theme" aria-label="Toggle light and dark">◐</button>
 </div></header>
 
-<main>
-  <div class="hero">
-    <h1>Two printers learning together without sharing data</h1>
-    <p>Each site runs its own agents and keeps its raw measurements. Only small belief summaries cross between sites.
-      We compare three setups on the same plates: <b style="color:var(--iso)">isolated</b> (own data only),
-      <b style="color:var(--net)">networked</b> (own data plus the other site's messages) and
-      <b style="color:var(--ora)">oracle</b> (all raw data pooled, the upper bound).</p>
-  </div>
-  <div class="tiles" id="tiles"></div>
-
-  <section>
-    <h2>Prediction error by round</h2>
-    <p class="lede">Scored on held-out pieces no agent chose. Lower error and higher log predictive density are better.
-      Oracle gap closed is how much of the isolated-to-oracle gap the network closes (1 = as good as pooling raw data).</p>
-    <div class="grid2">
-      <div class="card"><h3>Mean absolute error <span class="muted">· µm</span></h3><div id="chMae"></div></div>
-      <div class="card"><h3>Log predictive density <span class="muted">· nats per piece</span></h3><div id="chLpd"></div></div>
+<main class="wrap">
+  <section class="hero">
+    <div>
+      <div class="eyebrow" id="runLabel"></div>
+      <h1 id="headline"></h1>
+      <p class="lead">Two 3D printers, a resin SLA and a PLA FDM, each learn how far their pins and holes come out from the size they were drawn at.
+        They help each other by sending small summaries of what they believe. Their measurements never leave the site.</p>
+      <div class="facts" id="facts"></div>
     </div>
-    <div class="legend" id="armLegend"></div>
+    <div class="sites" id="sitesDiagram"></div>
   </section>
 
-  <section>
-    <h2>The plate</h2>
-    <p class="lede">Each round every arm gets the same number of slots on one shared plate, at random positions.
-      Purple pieces are held out for scoring. Hover a piece for its measurement.</p>
-    <div class="grid-plate">
-      <div class="card"><div class="chips" id="plateChips"></div><div id="plate"></div><div class="legend" id="plateLegend"></div></div>
-      <div class="card">
-        <h3>Held-out predictions <span class="muted" id="predSub"></span></h3>
-        <div id="preds"></div>
-        <div class="legend" id="predLegend"></div>
-      </div>
+  <section class="chapter">
+    <div class="chapter-head"><div class="n">1</div><div>
+      <h2>Every round, one shared plate</h2>
+      <p>The three approaches get the same number of slots on the same build plate, at random positions, so they only differ in what they chose to print. A fixed set of held-out parts is the exam nobody gets to pick.</p>
+    </div></div>
+    <div class="plate-grid">
+      <div class="panel"><div id="plate"></div></div>
+      <div class="panel"><h3 id="plateTitle"></h3><p class="sub">Hover a part to see what the scanner measured.</p><ul class="armlist" id="armlist"></ul></div>
     </div>
   </section>
 
-  <section>
-    <h2>Agents at the site</h2>
-    <p class="lede">Agents propose pieces and bid with credibility. Credibility goes up when an agent's pieces improve held-out predictions.
-      Before the bids clear, agents can flag each other's proposals, and each flag is checked on held-out data after printing.</p>
-    <div class="grid2">
-      <div class="card"><h3>Agent credibility</h3><div id="chCred"></div><div class="legend" id="credLegend"></div><div id="events"></div></div>
-      <div class="card"><h3>Challenge round <span class="muted" id="flagSub"></span></h3><div id="flags"></div></div>
+  <section class="chapter">
+    <div class="chapter-head"><div class="n">2</div><div>
+      <h2>Who predicts the parts better?</h2>
+      <p>After each round every approach predicts the held-out parts before they are measured. Average error is in microns (µm). The pooled approach sees both printers' raw data, which a real network can't. It is the ceiling.</p>
+      <p class="takeaway" id="raceTake"></p>
+    </div></div>
+    <div class="two">
+      <div class="panel"><h3>Prediction error by round</h3><p class="sub">Average miss on held-out parts, lower is better</p><div id="race"></div></div>
+      <div class="panel"><h3>Each held-out part, this round</h3><p class="sub" id="predSub"></p><div class="chips" id="armChips"></div><div id="preds"></div></div>
     </div>
   </section>
 
-  <section>
-    <h2>Across the boundary</h2>
-    <p class="lede">The only thing that leaves a site is a message with shared-parameter summaries, agent credibility and unmet needs.
-      Each site weights incoming messages by how much they have helped its own held-out predictions.</p>
-    <div class="card" style="margin-bottom:14px"><div class="boundary" id="boundary"></div></div>
-    <div class="grid2">
-      <div class="card"><h3>Trust in the other site's messages</h3><div id="chTrust"></div><div class="legend" id="trustLegend"></div></div>
-      <div class="card"><h3>Privacy audit <span class="muted">· replayed from receipts only</span></h3><div id="audit"></div></div>
+  <section class="chapter">
+    <div class="chapter-head"><div class="n">3</div><div>
+      <h2>Inside a site, agents bid and argue</h2>
+      <p>Each site runs five agents with different ideas about what to print next. They bid for slots with credibility, and they earn credibility only when their parts make the exam predictions better. Before bids clear, they can challenge each other.</p>
+    </div></div>
+    <div class="two">
+      <div class="panel"><h3>Credibility after this round</h3><p class="sub">Share of the bidding power each agent holds</p><div class="board" id="board"></div><div id="events"></div></div>
+      <div class="panel"><h3>The challenge round</h3><p class="sub" id="flagSub"></p><div class="convo" id="convo"></div></div>
     </div>
   </section>
 
-  <section>
-    <h2>Receipts</h2>
-    <p class="lede">Every decision and message is written to a hash-chained log at its site. Editing, deleting or reordering any entry breaks the chain. Click a row to see its payload.</p>
-    <div class="chips" id="kindChips"></div>
-    <div class="receipts"><table><thead><tr><th>#</th><th>Kind</th><th>Summary</th><th>Hash</th></tr></thead><tbody id="rcpt"></tbody></table></div>
+  <section class="chapter">
+    <div class="chapter-head"><div class="n">4</div><div>
+      <h2>What crosses the boundary</h2>
+      <p>One short message per round in each direction: a few shared numbers with their uncertainty, plus how much each agent is trusted. Each site decides how much to listen based on whether those messages have helped its own predictions.</p>
+      <p class="takeaway" id="trustTake"></p>
+    </div></div>
+    <div class="panel" style="margin-bottom:18px"><div class="cross" id="cross"></div></div>
+    <div class="panel"><h3>How much each site listens</h3><p class="sub">Weight on the other site's messages, from 0 (ignored) to 1 (fully trusted)</p><div class="gauges" id="gauges"></div></div>
   </section>
 
+  <section class="chapter">
+    <div class="chapter-head"><div class="n">5</div><div>
+      <h2>Proof that nothing else leaked</h2>
+      <p>Every decision and message goes into a hash-chained log at its site. An auditor can replay just these logs, with no access to either site's data, and check what crossed.</p>
+    </div></div>
+    <div class="panel">
+      <div class="audit"><div id="seal"></div><ul class="checks" id="checks"></ul></div>
+      <div class="chain" id="chain"></div>
+      <pre class="payload" id="payload" hidden></pre>
+    </div>
+  </section>
   <footer id="foot"></footer>
 </main>
 <div id="tip"></div>
@@ -187,314 +263,346 @@ footer { margin-top: 40px; color: var(--faint); font-size: 12.5px; }
 <script>
 const D = /*__DATA__*/null;
 const SITES = Object.keys(D.sites), ARMS = D.arms, R = D.rounds;
-const ARM_COLOR = { isolated: "var(--iso)", networked: "var(--net)", oracle: "var(--ora)", heldout: "var(--held)", seed: "var(--seed)" };
-const ARM_LABEL = { isolated: "Isolated", networked: "Networked", oracle: "Oracle", heldout: "Held-out", seed: "Seed" };
+const PROC = { resin: "Resin SLA", pla: "PLA FDM" };
+const siteName = s => PROC[D.sites[s]] || s;
+const COLOR = { isolated: "var(--alone)", networked: "var(--net)", oracle: "var(--pool)", heldout: "var(--exam)", seed: "var(--seed)" };
+const NAME = { isolated: "Alone", networked: "Networked", oracle: "Pooled data", heldout: "Held-out exam", seed: "Calibration" };
+const BLURB = {
+  isolated: "Picked by agents that see only this printer's data",
+  networked: "Picked by agents that also hear from the other site",
+  oracle: "Picked with both printers' raw data pooled (the ceiling)",
+  heldout: "Fixed exam parts. Nobody picks them; they score everyone",
+  seed: "First plate, used to calibrate every approach",
+};
 const AGENTS = [...new Set(D.credibility.flatMap(r => Object.keys(r).filter(k => !["round", "site", "dlpd"].includes(k))))];
-const AGENT_COLOR = Object.fromEntries(AGENTS.map((a, i) => [a, `var(--a${i % 6 + 1})`]));
-const S = { site: SITES[0], round: R, plate: null, kinds: null, open: null };
+const ACOL = Object.fromEntries(AGENTS.map((a, i) => [a, `var(--a${i % 6 + 1})`]));
+const S = { site: SITES[0], round: R, show: new Set(["isolated", "networked", "oracle"]), blk: null };
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const fmt = (v, d = 2) => v == null || !isFinite(v) ? "—" : (+v).toFixed(d);
-const um = v => v == null ? "—" : Math.round(v * 1000);
-const NS = "http://www.w3.org/2000/svg";
+const um = v => Math.round(v * 1000);
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 
-// ---- tooltip
+// tooltip
 const tip = $("tip");
-function showTip(e, html) { tip.innerHTML = html; tip.style.opacity = 1; moveTip(e); }
-function moveTip(e) { const x = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8); tip.style.left = x + "px"; tip.style.top = (e.clientY + 14) + "px"; }
-function hideTip() { tip.style.opacity = 0; }
 function bindTips(root) {
   root.querySelectorAll("[data-tip]").forEach(n => {
-    n.addEventListener("mouseenter", e => showTip(e, n.dataset.tip));
-    n.addEventListener("mousemove", moveTip);
-    n.addEventListener("mouseleave", hideTip);
+    n.addEventListener("mouseenter", e => { tip.innerHTML = n.dataset.tip; tip.style.opacity = 1; move(e); });
+    n.addEventListener("mousemove", move);
+    n.addEventListener("mouseleave", () => tip.style.opacity = 0);
   });
 }
+function move(e) { tip.style.left = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 10) + "px"; tip.style.top = e.clientY + 16 + "px"; }
 
-// ---- metrics
-function score(site, round, arm) { return D.scores.find(r => r.site === site && r.round === round && r.arm === arm); }
-function gap(site, round, m) {
-  const g = a => { const r = score(site, round, a); return r ? r[m] : null; };
-  const i = g("isolated"), n = g("networked"), o = g("oracle");
-  if (i == null || n == null || o == null) return null;
-  const better = m === "lpd" ? o - i : i - o;  // oracle must beat isolated for the ratio to mean anything
-  return better > 1e-12 ? (i - n) / (i - o) : null;
-}
-
-// ---- line chart
-function lineChart(el, { series, yfmt = v => v, ymin, ymax, height = 210 }) {
-  const W = 520, H = height, L = 44, Rp = 14, T = 12, B = 26;
-  const xs = Array.from({ length: R }, (_, i) => i + 1);
-  const vals = series.flatMap(s => s.values.filter(v => v != null && isFinite(v)));
-  if (!vals.length) { el.innerHTML = `<div class="empty">No data yet.</div>`; return; }
-  let lo = ymin ?? Math.min(...vals), hi = ymax ?? Math.max(...vals);
-  if (hi - lo < 1e-9) { lo -= 1; hi += 1; }
-  const pad = (hi - lo) * 0.08; if (ymin == null) lo -= pad; if (ymax == null) hi += pad;
-  const X = x => R === 1 ? (L + W - Rp) / 2 : L + (x - 1) / (R - 1) * (W - L - Rp);
-  const Y = y => T + (1 - (y - lo) / (hi - lo)) * (H - T - B);
-  const ticks = niceTicks(lo, hi, 4);
-  let s = `<svg viewBox="0 0 ${W} ${H}" role="img">`;
-  s += ticks.map(t => `<line x1="${L}" x2="${W - Rp}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--line)"/><text x="${L - 8}" y="${Y(t) + 4}" text-anchor="end">${yfmt(t)}</text>`).join("");
-  s += xs.map(x => `<text x="${X(x)}" y="${H - 6}" text-anchor="middle">Round ${x}</text>`).join("");
-  s += `<rect x="${X(S.round) - 16}" y="${T - 4}" width="32" height="${H - T - B + 8}" rx="6" fill="var(--soft)"/>`;
-  for (const se of series) {
-    const pts = xs.map((x, i) => [x, se.values[i]]).filter(p => p[1] != null && isFinite(p[1]));
-    if (!pts.length) continue;
-    s += `<polyline fill="none" stroke="${se.color}" stroke-width="${se.width || 2.25}" ${se.dash ? `stroke-dasharray="${se.dash}"` : ""} stroke-linejoin="round" stroke-linecap="round" points="${pts.map(p => `${X(p[0])},${Y(p[1])}`).join(" ")}"/>`;
-    s += pts.map(p => `<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="${p[0] === S.round ? 5 : 3.5}" fill="${se.color}" stroke="var(--panel)" stroke-width="1.5" data-tip="<b>${esc(se.name)}</b> · round ${p[0]}<br>${yfmt(p[1], true)}"/>`).join("");
-  }
-  el.innerHTML = s + `</svg>`;
-  bindTips(el);
-}
+const score = (s, r, a) => D.scores.find(x => x.site === s && x.round === r && x.arm === a);
 function niceTicks(lo, hi, n) {
-  const span = hi - lo, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
-  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(st => span / st <= n + 0.5) || mag * 10;
+  const span = hi - lo, mag = Math.pow(10, Math.floor(Math.log10(span / n)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(st => span / st <= n + .5) || mag * 10;
   const out = []; for (let t = Math.ceil(lo / step) * step; t <= hi + 1e-9; t += step) out.push(+t.toFixed(10));
   return out;
 }
-function legend(el, items) {
-  el.innerHTML = items.map(([name, color, kind]) => `<span><i class="${kind || ""}" style="background:${color};border-color:${color}"></i>${esc(name)}</span>`).join("");
-}
+const lockIcon = `<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>`;
 
-// ---- controls
-function seg(el, items, get, set) {
-  el.innerHTML = items.map(([v, l]) => `<button data-v="${v}" aria-pressed="${String(get()) === String(v)}">${esc(l)}</button>`).join("");
-  el.querySelectorAll("button").forEach(b => b.onclick = () => { set(b.dataset.v); render(); });
+// ---------- controls
+function controls() {
+  $("track").innerHTML = Array.from({ length: R }, (_, i) => i + 1).map(r =>
+    `<button class="stop ${r < S.round ? "done" : ""}" aria-current="${r === S.round}" data-r="${r}"><i></i><span>Round ${r}</span></button>`).join("");
+  $("track").querySelectorAll("button").forEach(b => b.onclick = () => { stop(); go(+b.dataset.r); });
+  $("siteToggle").innerHTML = SITES.map(s => `<button aria-pressed="${s === S.site}" data-s="${s}">${esc(siteName(s))}</button>`).join("");
+  $("siteToggle").querySelectorAll("button").forEach(b => b.onclick = () => { S.site = b.dataset.s; S.blk = null; render(); });
 }
+function go(r) { S.round = r; render(); }
 let timer = null;
-function play() {
-  if (timer) { stop(); return; }
-  $("play").textContent = "❚❚ Pause";
-  S.round = 1; S.plate = null; render();
-  timer = setInterval(() => { if (S.round >= R) { stop(); return; } S.round++; S.plate = null; render(); }, 1800);
-}
-function stop() { clearInterval(timer); timer = null; $("play").textContent = "▶ Play"; }
-$("play").onclick = play;
+function stop() { clearInterval(timer); timer = null; $("play").textContent = "▶ Play rounds"; }
+$("play").onclick = () => {
+  if (timer) return stop();
+  $("play").textContent = "❚❚ Pause"; go(1);
+  timer = setInterval(() => S.round >= R ? stop() : go(S.round + 1), 2400);
+};
 $("theme").onclick = () => {
-  const cur = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-  document.documentElement.dataset.theme = cur === "dark" ? "light" : "dark";
+  const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.dataset.theme = dark ? "light" : "dark";
 };
 addEventListener("keydown", e => {
-  if (e.target.closest("input,textarea")) return;
-  if (e.key === "ArrowRight" && S.round < R) { S.round++; S.plate = null; render(); }
-  if (e.key === "ArrowLeft" && S.round > 1) { S.round--; S.plate = null; render(); }
-  if (e.key === " ") { e.preventDefault(); play(); }
+  if (e.key === "ArrowRight" && S.round < R) { stop(); go(S.round + 1); }
+  if (e.key === "ArrowLeft" && S.round > 1) { stop(); go(S.round - 1); }
 });
 
-// ---- sections
-function renderTiles() {
-  const s = S.site, r = S.round;
-  const n = score(s, r, "networked"), i = score(s, r, "isolated"), o = score(s, r, "oracle");
-  const g = gap(s, r, "mae"), gl = gap(s, r, "lpd");
-  const a = D.audit;
-  $("tiles").innerHTML = [
-    ["Networked error", n ? `${um(n.mae)} µm` : "—", i && o ? `isolated ${um(i.mae)} · oracle ${um(o.mae)} µm` : ""],
-    ["Oracle gap closed", g == null ? `<span class="muted">n/a</span>` : fmt(g),
-      (g == null ? "oracle no better than isolated here · " : `${gl == null ? "n/a" : fmt(gl)} by log density · `) +
-      `both sites ${fmt(D.gap_closed.mae[r])}`],
-    ["90% interval coverage", n ? `${Math.round(n.cov90 * 100)}%` : "—", i ? `isolated ${Math.round(i.cov90 * 100)}% · ${n.n_heldout} held-out pieces` : ""],
-    ["Privacy audit", `<span class="${a.passed ? "pass" : "fail"}">${a.passed ? "Pass" : "Fail"}</span>`, `${a.crossings} messages crossed · ${a.rejected} rejected`],
-  ].map(([k, v, sub]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${sub}</div></div>`).join("");
+// ---------- hero
+function hero() {
+  const r = S.round;
+  const diffs = SITES.map(s => { const i = score(s, r, "isolated"), n = score(s, r, "networked"); return i && n ? (i.mae - n.mae) * 1000 : null; }).filter(v => v != null);
+  const avg = diffs.reduce((a, b) => a + b, 0) / Math.max(diffs.length, 1);
+  $("headline").innerHTML = avg > 0.05
+    ? `Sharing beliefs, not data, made predictions <em>${avg.toFixed(1)} µm</em> sharper`
+    : `This round, sharing beliefs ${Math.abs(avg) < 0.05 ? "matched" : "trailed"} learning alone`;
+  const raw = SITES.reduce((a, s) => a + D.private[s].measurements, 0);
+  const sent = D.messages.filter(m => m.round <= r);
+  const bytes = sent.reduce((a, m) => a + m.bytes, 0);
+  $("facts").innerHTML = [
+    [`${avg >= 0 ? "−" : "+"}${Math.abs(avg).toFixed(1)} µm`, `average error vs. learning alone, round ${r}, both printers`, true],
+    ["0", `of ${raw} raw measurements left either site`],
+    [`${sent.length}`, `messages crossed so far, ${(bytes / 1024).toFixed(1)} KB in total`],
+  ].map(([b, s, hl]) => `<div class="fact ${hl ? "hl" : ""}"><b>${b}</b><span>${s}</span></div>`).join("");
+  $("runLabel").textContent = D.label;
+  sitesDiagram();
 }
 
-function renderCurves() {
-  const series = m => ARMS.map(a => ({
-    name: ARM_LABEL[a], color: ARM_COLOR[a], dash: a === "oracle" ? "5 4" : null, width: a === "networked" ? 3 : 2,
-    values: Array.from({ length: R }, (_, k) => { const x = score(S.site, k + 1, a); return x ? (m === "mae" ? x.mae * 1000 : x.lpd) : null; }),
-  }));
-  lineChart($("chMae"), { series: series("mae"), yfmt: (v, full) => full ? `${v.toFixed(1)} µm` : Math.round(v) });
-  lineChart($("chLpd"), { series: series("lpd"), yfmt: (v, full) => full ? `${v.toFixed(3)} nats` : v.toFixed(2) });
-  legend($("armLegend"), ARMS.map(a => [ARM_LABEL[a], ARM_COLOR[a]]));
+function miniPlate(site, x0, y0, size) {
+  const plates = D.plates[site] || [];
+  const p = plates.find(q => q.round === S.round) || plates[plates.length - 1];
+  const c = size / 8; let s = `<rect x="${x0}" y="${y0}" width="${size}" height="${size}" rx="8" fill="var(--soft)"/>`;
+  if (!p) return s;
+  for (const q of p.pieces) {
+    const [rr, cc] = q.slot, cx = x0 + cc * c + c / 2, cy = y0 + rr * c + c / 2, rad = c * .18 + (q.d - 1) / 7 * c * .2;
+    s += q.kind === "pin" ? `<circle class="piece" style="animation-delay:${(rr * 8 + cc) * 8}ms" cx="${cx}" cy="${cy}" r="${rad}" fill="${COLOR[q.arm]}"/>`
+      : `<circle class="piece" style="animation-delay:${(rr * 8 + cc) * 8}ms" cx="${cx}" cy="${cy}" r="${rad}" fill="none" stroke="${COLOR[q.arm]}" stroke-width="2.4"/>`;
+  }
+  return s;
+}
+function sitesDiagram() {
+  const W = 560, H = 330, P = 150, y = 92;
+  const [a, b] = SITES;
+  const tr = (rcv, snd) => { const t = D.trust.filter(x => x.receiver === rcv && x.sender === snd && x.round <= S.round).pop(); return t ? t.trust : 1; };
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const packet = (path, dur, begin, col) => reduce ? "" :
+    `<g><rect x="-15" y="-10" width="30" height="20" rx="4" fill="${col}"/><path d="M-15 -10 L0 2 L15 -10" fill="none" stroke="var(--surface)" stroke-width="1.6"/>
+      <animateMotion dur="${dur}s" begin="${begin}s" repeatCount="indefinite" path="${path}" keyPoints="0;1;1" keyTimes="0;.7;1" calcMode="linear"/></g>`;
+  const box = (site, x) => `
+    <rect x="${x}" y="24" width="${P + 40}" height="${H - 40}" rx="14" fill="var(--surface)" stroke="var(--rule)" stroke-width="1.5"/>
+    <text class="lbl" x="${x + 20}" y="54" style="fill:var(--ink);font-size:20px">${esc(siteName(site))}</text>
+    <text x="${x + 20}" y="72">${esc(site)} site</text>
+    ${miniPlate(site, x + 20, y, P)}
+    <g transform="translate(${x + 20}, ${y + P + 20})"><g transform="scale(.9)"><rect x="1" y="5" width="12" height="9" rx="2" fill="none" stroke="var(--muted)" stroke-width="2"/><path d="M4 5V3.5a3 3 0 0 1 6 0V5" fill="none" stroke="var(--muted)" stroke-width="2"/></g>
+      <text x="20" y="13">${D.private[site].measurements} measurements stay here</text></g>`;
+  const L = 10, Rx = W - P - 50;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Two printer sites exchanging belief summaries across a boundary">`;
+  s += box(a, L) + box(b, Rx);
+  const mid = W / 2;
+  s += `<line x1="${mid}" x2="${mid}" y1="14" y2="${H - 6}" stroke="var(--faint)" stroke-width="2" stroke-dasharray="6 6"/>`;
+  s += `<text x="${mid}" y="${H + 8}" text-anchor="middle">SITE BOUNDARY</text>`;
+  const top = `M${L + P + 44} 130 C ${mid - 20} 104, ${mid + 20} 104, ${Rx - 4} 130`;
+  const bot = `M${Rx - 4} 214 C ${mid + 20} 240, ${mid - 20} 240, ${L + P + 44} 214`;
+  s += `<path d="${top}" fill="none" stroke="var(--net)" stroke-width="${1 + tr(b, a) * 3}" stroke-opacity="${.25 + tr(b, a) * .6}"/>`;
+  s += `<path d="${bot}" fill="none" stroke="var(--net)" stroke-width="${1 + tr(a, b) * 3}" stroke-opacity="${.25 + tr(a, b) * .6}"/>`;
+  s += `<text x="${mid}" y="99" text-anchor="middle">${esc(b)} listens ${Math.round(tr(b, a) * 100)}%</text>`;
+  s += `<text x="${mid}" y="262" text-anchor="middle">${esc(a)} listens ${Math.round(tr(a, b) * 100)}%</text>`;
+  if (D.config.share_messages !== false) s += packet(top, 2.6, 0, "var(--net)") + packet(bot, 2.6, 1.3, "var(--net)");
+  $("sitesDiagram").innerHTML = s + `</svg>`;
 }
 
-function renderPlate() {
+// ---------- 1. plate
+function plate() {
   const plates = D.plates[S.site] || [];
-  const cur = S.plate ?? (plates.find(p => p.round === S.round) || plates[plates.length - 1] || {}).plate_id;
-  $("plateChips").innerHTML = plates.map(p => `<button class="chip" data-p="${p.plate_id}" aria-pressed="${p.plate_id === cur}">${p.round ? "Round " + p.round : "Seed plate"}</button>`).join("");
-  $("plateChips").querySelectorAll("button").forEach(b => b.onclick = () => { S.plate = b.dataset.p; renderPlate(); });
-  const plate = plates.find(p => p.plate_id === cur);
-  if (!plate) { $("plate").innerHTML = `<div class="empty">No plates yet.</div>`; return; }
-  const N = 8, C = 52, P = 22, W = P + N * C + 6;
-  let s = `<svg viewBox="0 0 ${W} ${W}" role="img" aria-label="Plate ${esc(plate.plate_id)}">`;
-  s += `<rect x="${P - 4}" y="${P - 4}" width="${N * C + 8}" height="${N * C + 8}" rx="10" fill="var(--soft)" stroke="var(--line)"/>`;
+  const p = plates.find(q => q.round === S.round);
+  $("plateTitle").textContent = `${siteName(S.site)}, round ${S.round} plate`;
+  if (!p) { $("plate").innerHTML = `<div class="empty">No plate for this round.</div>`; $("armlist").innerHTML = ""; return; }
+  const N = 8, C = 58, P = 24, W = P + N * C + 8;
+  let s = `<svg viewBox="0 0 ${W} ${W}" role="img" aria-label="Build plate layout">`;
+  s += `<rect x="${P - 6}" y="${P - 6}" width="${N * C + 12}" height="${N * C + 12}" rx="14" fill="var(--soft)"/>`;
   for (let k = 0; k < N; k++) {
-    s += `<text x="${P + k * C + C / 2}" y="${P - 10}" text-anchor="middle">${k}</text>`;
-    s += `<text x="${P - 12}" y="${P + k * C + C / 2 + 4}" text-anchor="middle">${k}</text>`;
+    s += `<text x="${P + k * C + C / 2}" y="${P - 12}" text-anchor="middle">${String.fromCharCode(65 + k)}</text>`;
+    s += `<text x="${P - 14}" y="${P + k * C + C / 2 + 4}" text-anchor="middle">${k + 1}</text>`;
   }
-  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++)
-    s += `<circle cx="${P + c * C + C / 2}" cy="${P + r * C + C / 2}" r="2" fill="var(--line)"/>`;
-  for (const q of plate.pieces) {
-    const [r, c] = q.slot, cx = P + c * C + C / 2, cy = P + r * C + C / 2;
-    const rad = 7 + (q.d - 1) / 7 * 13, col = ARM_COLOR[q.arm] || "var(--seed)", failed = q.status !== "ok";
-    const dev = q.measured != null ? q.measured - q.d : null;
-    const t = `<b>${ARM_LABEL[q.arm] || q.arm}</b> · ${q.kind} ${q.d.toFixed(1)} mm<br>` +
-      (failed ? "Did not print" : `measured ${q.measured.toFixed(3)} mm (${dev >= 0 ? "+" : ""}${um(dev)} µm)`) +
-      `<br><span style="opacity:.7">${esc(q.id)}</span>`;
-    s += `<g data-tip="${esc(t)}" style="cursor:default">`;
-    s += `<rect x="${cx - C / 2 + 1}" y="${cy - C / 2 + 1}" width="${C - 2}" height="${C - 2}" fill="transparent"/>`;
-    if (q.kind === "pin") s += `<circle cx="${cx}" cy="${cy}" r="${rad}" fill="${col}" ${failed ? `fill-opacity=".25" stroke="${col}" stroke-dasharray="3 3"` : ""}/>`;
-    else s += `<circle cx="${cx}" cy="${cy}" r="${rad - 2}" fill="none" stroke="${col}" stroke-width="4" ${failed ? `stroke-opacity=".35" stroke-dasharray="3 3"` : ""}/>`;
-    if (failed) s += `<path d="M${cx - 6} ${cy - 6}L${cx + 6} ${cy + 6}M${cx + 6} ${cy - 6}L${cx - 6} ${cy + 6}" stroke="var(--bad)" stroke-width="2.2" stroke-linecap="round"/>`;
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) s += `<circle cx="${P + c * C + C / 2}" cy="${P + r * C + C / 2}" r="2.2" fill="var(--rule)"/>`;
+  p.pieces.forEach(q => {
+    const [r, c] = q.slot, cx = P + c * C + C / 2, cy = P + r * C + C / 2, rad = 8 + (q.d - 1) / 7 * 15, col = COLOR[q.arm], fail = q.status !== "ok";
+    const dev = q.measured != null ? um(q.measured - q.d) : null;
+    const t = `<b>${NAME[q.arm]}</b> · ${q.kind} drawn at ${q.d.toFixed(1)} mm<br>` + (fail ? "Did not print" : `came out ${q.measured.toFixed(3)} mm (${dev >= 0 ? "+" : ""}${dev} µm)`);
+    const delay = `animation-delay:${(r * 8 + c) * 14}ms`;
+    s += `<g data-tip="${esc(t)}"><rect x="${cx - C / 2}" y="${cy - C / 2}" width="${C}" height="${C}" fill="transparent"/>`;
+    s += q.kind === "pin"
+      ? `<circle class="piece" style="${delay}" cx="${cx}" cy="${cy}" r="${rad}" fill="${col}" ${fail ? `fill-opacity=".2" stroke="${col}" stroke-dasharray="3 3"` : ""}/>`
+      : `<circle class="piece" style="${delay}" cx="${cx}" cy="${cy}" r="${rad - 2}" fill="none" stroke="${col}" stroke-width="4.5" ${fail ? `stroke-opacity=".3" stroke-dasharray="3 3"` : ""}/>`;
+    if (fail) s += `<path d="M${cx - 6} ${cy - 6}L${cx + 6} ${cy + 6}M${cx + 6} ${cy - 6}L${cx - 6} ${cy + 6}" stroke="var(--bad)" stroke-width="2.4" stroke-linecap="round"/>`;
     s += `</g>`;
-  }
+  });
   $("plate").innerHTML = s + `</svg>`;
   bindTips($("plate"));
-  const arms = [...new Set(plate.pieces.map(q => q.arm))];
-  const nFail = plate.pieces.filter(q => q.status !== "ok").length;
-  legend($("plateLegend"), [...["seed", ...ARMS, "heldout"].filter(a => arms.includes(a)).map(a => [ARM_LABEL[a], ARM_COLOR[a], "dot"]),
-    ["Filled = pin, ring = hole, size = diameter", "transparent", "ring"]]);
-  if (nFail) $("plateLegend").insertAdjacentHTML("beforeend", `<span><span style="color:var(--bad)">✕</span> ${nFail} did not print</span>`);
+  const order = ["networked", "isolated", "oracle", "heldout"];
+  $("armlist").innerHTML = order.map(a => {
+    const qs = p.pieces.filter(q => q.arm === a); if (!qs.length) return "";
+    const fails = qs.filter(q => q.status !== "ok").length;
+    return `<li><span class="sw" style="background:${COLOR[a]}"></span><span><b>${NAME[a]}</b><small>${BLURB[a]}${fails ? ` · ${fails} failed to print` : ""}</small></span><span class="count">${qs.length}</span></li>`;
+  }).join("") + `<li style="background:none;padding-top:2px"><span style="display:flex;gap:4px;align-items:center"><svg viewBox="0 0 20 20" style="width:14px"><circle cx="10" cy="10" r="7" fill="var(--muted)"/></svg><svg viewBox="0 0 20 20" style="width:14px"><circle cx="10" cy="10" r="6" fill="none" stroke="var(--muted)" stroke-width="3"/></svg></span><small style="grid-column:span 2">Filled dot is a pin, ring is a hole, size is the drawn diameter</small></li>`;
 }
 
-function renderPreds() {
+// ---------- 2. race
+function race() {
+  const W = 540, H = 280, L = 40, Rp = 104, T = 16, B = 30;
+  const vals = D.scores.filter(x => x.site === S.site).map(x => x.mae * 1000);
+  if (!vals.length) { $("race").innerHTML = `<div class="empty">No scores yet.</div>`; return; }
+  let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * .15 || 1; lo -= pad; hi += pad;
+  const X = r => R === 1 ? (L + W - Rp) / 2 : L + (r - 1) / (R - 1) * (W - L - Rp);
+  const Y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Prediction error by round">`;
+  s += niceTicks(lo, hi, 4).map(t => `<line x1="${L}" x2="${W - Rp}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--rule)"/><text x="${L - 8}" y="${Y(t) + 4}" text-anchor="end">${Math.round(t)}</text>`).join("");
+  s += `<text x="${L - 8}" y="${T - 4}" text-anchor="end">µm</text>`;
+  for (let r = 1; r <= R; r++) s += `<text x="${X(r)}" y="${H - 8}" text-anchor="middle" style="${r === S.round ? "fill:var(--ink);font-weight:600" : ""}">Round ${r}</text>`;
+  s += `<line x1="${X(S.round)}" x2="${X(S.round)}" y1="${T}" y2="${H - B}" stroke="var(--ink)" stroke-opacity=".15" stroke-width="22" stroke-linecap="round"/>`;
+  const ends = [];
+  for (const a of ["oracle", "isolated", "networked"]) {
+    const pts = []; for (let r = 1; r <= R; r++) { const x = score(S.site, r, a); if (x) pts.push([r, x.mae * 1000]); }
+    if (!pts.length) continue;
+    const w = a === "networked" ? 4 : 2.5;
+    s += `<polyline fill="none" stroke="${COLOR[a]}" stroke-width="${w}" ${a === "oracle" ? `stroke-dasharray="6 5"` : ""} stroke-linejoin="round" stroke-linecap="round" points="${pts.map(([r, v]) => `${X(r)},${Y(v)}`).join(" ")}"/>`;
+    s += pts.map(([r, v]) => `<circle cx="${X(r)}" cy="${Y(v)}" r="${r === S.round ? 6.5 : 4}" fill="${COLOR[a]}" stroke="var(--surface)" stroke-width="2" data-tip="<b>${NAME[a]}</b>, round ${r}<br>average miss ${v.toFixed(1)} µm"/>`).join("");
+    ends.push([a, Y(pts[pts.length - 1][1]), pts[pts.length - 1][1]]);
+  }
+  ends.sort((p, q) => p[1] - q[1]);
+  for (let i = 1; i < ends.length; i++) if (ends[i][1] - ends[i - 1][1] < 30) ends[i][1] = ends[i - 1][1] + 30;
+  for (const [a, yy, v] of ends) s += `<text class="lbl" x="${X(R) + 14}" y="${yy + 1}" style="fill:${COLOR[a]}">${NAME[a]}</text><text x="${X(R) + 14}" y="${yy + 15}">${v.toFixed(1)} µm</text>`;
+  $("race").innerHTML = s + `</svg>`;
+  bindTips($("race"));
+
+  const i = score(S.site, S.round, "isolated"), n = score(S.site, S.round, "networked"), o = score(S.site, S.round, "oracle");
+  if (i && n && o) {
+    const d = (i.mae - n.mae) * 1000;
+    $("raceTake").innerHTML = d > 0.05
+      ? `In round ${S.round}, ${siteName(S.site)}'s networked predictions missed by <b>${d.toFixed(1)} µm less</b> than learning alone` + (n.mae <= o.mae ? `, matching or beating the pooled-data ceiling.` : `. Pooled data is ${((n.mae - o.mae) * 1000).toFixed(1)} µm better still.`)
+      : `In round ${S.round}, ${siteName(S.site)}'s networked predictions were ${Math.abs(d).toFixed(1)} µm ${d < -0.05 ? "worse than" : "level with"} learning alone. One run is noisy; the pre-registered claim is the median over many runs.`;
+  }
+}
+
+function preds() {
   const rows = D.predictions.filter(p => p.site === S.site && p.round === S.round);
-  $("predSub").textContent = `· round ${S.round}`;
-  if (!rows.length) { $("preds").innerHTML = `<div class="empty">This run has no saved predictions (it was made before the viewer existed). Re-run it to see them.</div>`; $("predLegend").innerHTML = ""; return; }
-  const ids = [...new Set(rows.map(p => p.piece_id))];
-  const first = Object.fromEntries(rows.map(p => [p.piece_id, p]));
-  ids.sort((a, b) => first[a].kind.localeCompare(first[b].kind) || first[a].nominal_d - first[b].nominal_d || a.localeCompare(b));
-  const dev = v => (v - 0) * 1000;
-  const vals = rows.flatMap(p => [p.lo - p.nominal_d, p.hi - p.nominal_d, p.measured_d - p.nominal_d]).map(dev);
-  let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * 0.06; lo -= pad; hi += pad;
-  const n = ids.length, W = 520, H = 300, L = 46, Rp = 8, T = 10, B = 52;
-  const step = (W - L - Rp) / n, X = i => L + step * (i + 0.5), Y = y => T + (1 - (y - lo) / (hi - lo)) * (H - T - B);
-  let s = `<svg viewBox="0 0 ${W} ${H}" role="img">`;
-  s += niceTicks(lo, hi, 5).map(t => `<line x1="${L}" x2="${W - Rp}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--line)" ${t === 0 ? `stroke-width="1.5" stroke="var(--faint)"` : ""}/><text x="${L - 8}" y="${Y(t) + 4}" text-anchor="end">${t > 0 ? "+" : ""}${Math.round(t)}</text>`).join("");
-  s += `<text x="12" y="${T + (H - T - B) / 2}" transform="rotate(-90 12 ${T + (H - T - B) / 2})" text-anchor="middle">µm from nominal</text>`;
-  const kindSplit = ids.findIndex(id => first[id].kind !== first[ids[0]].kind);
-  if (kindSplit > 0) s += `<line x1="${L + step * kindSplit}" x2="${L + step * kindSplit}" y1="${T}" y2="${H - B}" stroke="var(--line)" stroke-dasharray="3 3"/>`;
-  const w = Math.min(step / 4.2, 7);
+  $("armChips").innerHTML = ARMS.map(a => `<button class="chip" aria-pressed="${S.show.has(a)}" data-a="${a}"><i style="background:${COLOR[a]}"></i>${NAME[a]}</button>`).join("");
+  $("armChips").querySelectorAll("button").forEach(b => b.onclick = () => { S.show.has(b.dataset.a) ? S.show.delete(b.dataset.a) : S.show.add(b.dataset.a); preds(); });
+  if (!rows.length) { $("preds").innerHTML = `<div class="empty">This run was saved before predictions were recorded. Re-run it to see them.</div>`; $("predSub").textContent = ""; return; }
+  const first = {}; rows.forEach(p => first[p.piece_id] ??= p);
+  const ids = Object.keys(first).sort((a, b) => first[a].kind.localeCompare(first[b].kind) || first[a].nominal_d - first[b].nominal_d);
+  const arms = ARMS.filter(a => S.show.has(a));
+  const inside = a => rows.filter(p => p.arm === a && p.lo <= p.measured_d && p.measured_d <= p.hi).length;
+  $("predSub").textContent = `Bar is the 90% predicted range, dot is what came out. ` + arms.map(a => `${NAME[a]} caught ${inside(a)} of ${ids.length}`).join(" · ");
+  const vals = rows.filter(p => S.show.has(p.arm)).flatMap(p => [p.lo - p.nominal_d, p.hi - p.nominal_d]).concat(rows.map(p => p.measured_d - p.nominal_d)).map(v => v * 1000);
+  let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * .06; lo -= pad; hi += pad;
+  const W = 540, H = 300, L = 40, Rp = 6, T = 12, B = 40, step = (W - L - Rp) / ids.length;
+  const X = i => L + step * (i + .5), Y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Predicted ranges and measurements for held-out parts">`;
+  s += niceTicks(lo, hi, 5).map(t => `<line x1="${L}" x2="${W - Rp}" y1="${Y(t)}" y2="${Y(t)}" stroke="${t === 0 ? "var(--faint)" : "var(--rule)"}"/><text x="${L - 8}" y="${Y(t) + 4}" text-anchor="end">${t > 0 ? "+" : ""}${Math.round(t)}</text>`).join("");
+  s += `<text x="${L - 8}" y="${T - 2}" text-anchor="end">µm</text><text x="${W - Rp}" y="${Y(0) - 5}" text-anchor="end">as drawn</text>`;
+  const split = ids.findIndex(id => first[id].kind !== first[ids[0]].kind);
+  if (split > 0) s += `<line x1="${L + step * split}" x2="${L + step * split}" y1="${T}" y2="${H - B}" stroke="var(--rule)" stroke-dasharray="4 4"/>`;
+  [[0, first[ids[0]].kind], ...(split > 0 ? [[split, first[ids[split]].kind]] : [])].forEach(([i, k]) =>
+    s += `<text class="lbl" x="${L + step * i + 4}" y="${H - 8}" style="fill:var(--ink)">${cap(k)}s</text>`);
+  const w = Math.min(step / (arms.length + 1.5), 9);
   ids.forEach((id, i) => {
     const f = first[id];
-    s += `<text x="${X(i)}" y="${H - B + 14}" text-anchor="middle" font-size="10">${f.nominal_d.toFixed(1)}</text>`;
-    if (i === 0 || (kindSplit > 0 && i === kindSplit)) s += `<text x="${X(i) - step / 2 + 2}" y="${H - B + 30}" font-size="11">${f.kind}s →</text>`;
-    ARMS.forEach((a, j) => {
+    s += `<text x="${X(i)}" y="${H - B + 14}" text-anchor="middle" font-size="9.5">${f.nominal_d.toFixed(1)}</text>`;
+    arms.forEach((a, j) => {
       const p = rows.find(q => q.piece_id === id && q.arm === a); if (!p) return;
-      const x = X(i) + (j - 1) * w * 1.5, inside = p.lo <= p.measured_d && p.measured_d <= p.hi;
-      const t = `<b>${ARM_LABEL[a]}</b> · ${f.kind} ${f.nominal_d.toFixed(1)} mm<br>predicted ${p.mean.toFixed(3)} mm, 90% [${p.lo.toFixed(3)}, ${p.hi.toFixed(3)}]<br>measured ${p.measured_d.toFixed(3)} mm · ${inside ? "inside" : "outside"} interval`;
-      s += `<g data-tip="${esc(t)}"><rect x="${x - w / 2 - 1}" y="${Y(dev(p.hi - p.nominal_d))}" width="${w + 2}" height="${Math.max(Y(dev(p.lo - p.nominal_d)) - Y(dev(p.hi - p.nominal_d)), 1)}" fill="transparent"/>`;
-      s += `<line x1="${x}" x2="${x}" y1="${Y(dev(p.lo - p.nominal_d))}" y2="${Y(dev(p.hi - p.nominal_d))}" stroke="${ARM_COLOR[a]}" stroke-width="${a === "networked" ? 3 : 2.2}" stroke-linecap="round" ${a === "oracle" ? `stroke-dasharray="3 2"` : ""}/>`;
-      s += `<line x1="${x - w / 2}" x2="${x + w / 2}" y1="${Y(dev(p.mean - p.nominal_d))}" y2="${Y(dev(p.mean - p.nominal_d))}" stroke="${ARM_COLOR[a]}" stroke-width="2"/></g>`;
+      const x = X(i) + (j - (arms.length - 1) / 2) * w * 1.25, hit = p.lo <= p.measured_d && p.measured_d <= p.hi;
+      const t = `<b>${NAME[a]}</b> · ${f.kind} drawn at ${f.nominal_d.toFixed(1)} mm<br>predicted ${um(p.lo - f.nominal_d)} to ${um(p.hi - f.nominal_d)} µm<br>came out ${um(p.measured_d - f.nominal_d) >= 0 ? "+" : ""}${um(p.measured_d - f.nominal_d)} µm · ${hit ? "caught" : "missed"}`;
+      const y1 = Y((p.hi - f.nominal_d) * 1000), y2 = Y((p.lo - f.nominal_d) * 1000);
+      s += `<rect data-tip="${esc(t)}" x="${x - w / 2}" y="${y1}" width="${w}" height="${Math.max(y2 - y1, 2)}" rx="${w / 2}" fill="${COLOR[a]}" fill-opacity="${a === "networked" ? .85 : .5}"/>`;
     });
-    s += `<circle cx="${X(i)}" cy="${Y(dev(f.measured_d - f.nominal_d))}" r="3.6" fill="var(--ink)" stroke="var(--panel)" stroke-width="1.2" pointer-events="none"/>`;
+    s += `<circle cx="${X(i)}" cy="${Y((f.measured_d - f.nominal_d) * 1000)}" r="4" fill="var(--ink)" stroke="var(--surface)" stroke-width="1.5" pointer-events="none"/>`;
   });
   $("preds").innerHTML = s + `</svg>`;
   bindTips($("preds"));
-  const cov = a => { const rs = rows.filter(p => p.arm === a); return `${rs.filter(p => p.lo <= p.measured_d && p.measured_d <= p.hi).length}/${rs.length}`; };
-  legend($("predLegend"), [["Measured", "var(--ink)", "dot"], ...ARMS.map(a => [`${ARM_LABEL[a]} 90% interval (${cov(a)} inside)`, ARM_COLOR[a]])]);
 }
 
-function renderAgents() {
-  const rows = D.credibility.filter(r => r.site === S.site);
-  const active = AGENTS.filter(a => rows.some(r => r[a] != null));
-  lineChart($("chCred"), {
-    series: active.map(a => ({ name: a, color: AGENT_COLOR[a], values: Array.from({ length: R }, (_, k) => { const r = rows.find(x => x.round === k + 1); return r && r[a] != null ? r[a] : null; }) })),
-    ymin: 0, yfmt: (v, full) => full ? `credibility ${v.toFixed(3)}` : v.toFixed(2), height: 190,
-  });
-  legend($("credLegend"), active.map(a => [a, AGENT_COLOR[a]]));
-  const ev = [...D.spawned.filter(e => e.site === S.site).map(e => `Round ${e.round}: <b>${esc(e.agent)}</b> woke up after ${e.unmet} unmet-needs entries`),
-    ...D.retired.filter(e => e.site === S.site).map(e => `Round ${e.round}: <b>${esc(e.agent)}</b> retired (credibility hit the floor)`)];
-  $("events").innerHTML = ev.length ? `<div class="legend" style="flex-direction:column;gap:4px;margin-top:12px">${ev.map(x => `<span>${x}</span>`).join("")}</div>` : "";
+// ---------- 3. agents
+function agents() {
+  const cur = D.credibility.find(r => r.site === S.site && r.round === S.round);
+  const prev = D.credibility.find(r => r.site === S.site && r.round === S.round - 1);
+  if (!cur) { $("board").innerHTML = `<div class="empty">No credit yet.</div>`; }
+  else {
+    const list = AGENTS.filter(a => cur[a] != null).sort((a, b) => cur[b] - cur[a]);
+    const mx = Math.max(...list.map(a => cur[a]));
+    const base = prev || Object.fromEntries(list.map(a => [a, 1 / list.length]));
+    $("board").innerHTML = list.map(a => {
+      const d = cur[a] - (base[a] ?? cur[a]);
+      return `<div class="brow"><span class="ava" style="background:${ACOL[a]}">${a.slice(0, 2).toUpperCase()}</span><span class="name">${esc(a)}</span>
+        <span class="bar-t"><span class="bar-f" style="display:block;width:${cur[a] / mx * 100}%;background:${ACOL[a]}"></span></span>
+        <span class="val">${Math.round(cur[a] * 100)}% <span class="delta ${d > .005 ? "up" : d < -.005 ? "down" : ""}">${d > .005 ? "▲" : d < -.005 ? "▼" : "·"}</span></span></div>`;
+    }).join("");
+  }
+  const ev = [...D.spawned.filter(e => e.site === S.site && e.round <= S.round).map(e => `Round ${e.round}: <b>${esc(e.agent)}</b> woke up to chase a pattern nobody could explain`),
+    ...D.retired.filter(e => e.site === S.site && e.round <= S.round).map(e => `Round ${e.round}: <b>${esc(e.agent)}</b> retired after its picks kept not helping`)];
+  $("events").innerHTML = ev.map(x => `<p class="sub" style="margin:14px 0 0">${x}</p>`).join("");
 
   const flags = D.challenges.filter(f => f.site === S.site && f.round === S.round);
-  $("flagSub").textContent = `· round ${S.round} · ${flags.length} flag${flags.length === 1 ? "" : "s"}`;
-  const dl = (rows.find(r => r.round === S.round) || {}).dlpd || {};
-  $("flags").innerHTML = flags.length ? flags.map(f => {
+  $("flagSub").textContent = flags.length ? `${flags.length} challenge${flags.length > 1 ? "s" : ""} in round ${S.round}, each checked against the exam after printing` : `Round ${S.round}`;
+  $("convo").innerHTML = flags.length ? flags.map((f, i) => {
     const [kind, d] = f.piece.split("-");
-    const verdict = f.credit == null ? `<span class="tag">not tested</span>` : f.credit > 0 ? `<span class="tag good">held up · +${f.credit.toFixed(3)}</span>` : `<span class="tag bad">did not hold up · ${f.credit.toFixed(3)}</span>`;
-    return `<div class="flag"><b style="color:${AGENT_COLOR[f.flagger]}">${esc(f.flagger)}</b> flagged <b style="color:${AGENT_COLOR[f.target]}">${esc(f.target)}</b>'s ${esc(kind)} ${esc(d)} mm
-      <div class="muted" style="font-size:13px">“${esc(f.reason)}”${f.eig != null ? ` · expected gain ${f.eig.toFixed(3)} nats` : ""}${f.tested_by ? ` · tested by ${esc(f.tested_by)}` : ""} ${verdict}</div></div>`;
-  }).join("") : `<div class="empty">No flags this round.</div>`;
-  const dls = Object.entries(dl).sort((a, b) => b[1] - a[1]);
-  if (dls.length) {
-    const mx = Math.max(...dls.map(([, v]) => Math.abs(v)), 1e-9);
-    $("flags").insertAdjacentHTML("beforeend", `<h3 style="margin-top:16px">Credit this round <span class="muted">· held-out ΔLPD per agent</span></h3>` +
-      dls.map(([a, v]) => `<div class="bar-row"><span style="color:${AGENT_COLOR[a]}">${esc(a)}</span><div class="track" style="display:flex;justify-content:${v < 0 ? "flex-end" : "flex-start"};${v < 0 ? "" : ""}"><div class="fill" style="width:${Math.abs(v) / mx * 100}%;background:${v >= 0 ? "var(--ok)" : "var(--bad)"}"></div></div><span class="mono">${v >= 0 ? "+" : ""}${v.toFixed(3)}</span></div>`).join(""));
-  }
+    const line = f.reason.startsWith("redundant")
+      ? `${cap(f.target)}, your ${d} mm ${kind} duplicates one I already picked.`
+      : `${cap(f.target)}, I can already predict your ${d} mm ${kind}. It won't teach us much.`;
+    const st = f.credit == null ? `<span class="stamp na">Not tested</span>` : f.credit > 0 ? `<span class="stamp good">Challenge held up</span>` : `<span class="stamp bad">Challenge overruled</span>`;
+    return `<div class="msg" style="animation-delay:${i * 120}ms"><span class="ava" style="background:${ACOL[f.flagger]}">${f.flagger.slice(0, 2).toUpperCase()}</span>
+      <div class="bubble"><div class="who"><b style="color:${ACOL[f.flagger]}">${esc(f.flagger)}</b> challenges <b style="color:${ACOL[f.target]}">${esc(f.target)}</b></div><div class="what">“${esc(line)}”</div>${st}</div></div>`;
+  }).join("") : `<div class="empty">No challenges this round. Every agent accepted the others' picks.</div>`;
 }
 
-function renderBoundary() {
+// ---------- 4. boundary
+function boundary() {
   const me = S.site, other = SITES.find(s => s !== me);
   const out = D.messages.find(m => m.from === me && m.round === S.round);
-  const inn = D.messages.find(m => m.to === me && m.round === S.round);
-  const side = (site, msg, dir) => {
-    const priv = D.private[site];
-    let h = `<h3>${esc(site)} <span class="muted">· ${esc(D.sites[site])} printer</span></h3>`;
-    h += `<div class="muted" style="font-size:13px">Stays at the site</div><ul class="never">` +
-      `<li>${priv.measurements} raw measurements</li>` + priv.params.map(p => `<li>${esc(p)} <span class="muted">(site parameter)</span></li>`).join("") + `</ul>`;
-    return h;
-  };
-  const msgCard = (msg, label) => {
-    if (!msg) return `<div class="empty">No message ${label} in round ${S.round}${D.config.share_messages === false ? " (network cut)" : ""}.</div>`;
-    let h = `<div class="muted" style="font-size:13px;margin-bottom:6px">${label}: <b style="color:var(--ink)">${esc(msg.from)} → ${esc(msg.to)}</b> · round ${msg.round} · ${msg.bytes} bytes · <span class="mono">${msg.hash.slice(0, 10)}</span></div>`;
-    h += `<table><thead><tr><th>Shared parameter</th><th>Mean</th><th>± sd</th></tr></thead><tbody>` +
-      Object.entries(msg.shared_params).map(([k, [m, sd]]) => `<tr><td>${esc(k)}</td><td>${fmt(m, 4)}</td><td>${fmt(sd, 4)}</td></tr>`).join("") + `</tbody></table>`;
-    const unmet = msg.unmet_needs.length ? msg.unmet_needs.map(u => `${esc(u.template)} (z = ${fmt(u.z)})`).join(", ") : "none";
-    h += `<div class="muted" style="font-size:12.5px;margin-top:6px">Also sent: agent credibility for ${Object.keys(msg.credibility).length} agents · unmet needs: ${unmet}</div>`;
-    return h;
-  };
-  $("boundary").innerHTML = `<div>${side(me)}<div style="margin-top:12px">${msgCard(out, "Sent")}</div></div><div class="wall" title="site boundary"></div><div>${side(other)}<div style="margin-top:12px">${msgCard(inn, "Received")}</div></div>`;
+  const vault = s => `<div class="vault"><div class="eyebrow">Stays at the ${esc(s)} site</div><h3>${esc(siteName(s))}</h3><ul class="locked">
+    <li>${lockIcon}${D.private[s].measurements} raw measurements</li>
+    <li>${lockIcon}Printer settings: ${D.private[s].params.map(esc).join(", ")}</li>
+    <li>${lockIcon}Plate files and scans</li></ul></div>`;
+  let ticket;
+  if (!out) ticket = `<div class="ticket"><div class="route">No message in round ${S.round}</div><p class="sub">${D.config.share_messages === false ? "The network is cut in this run." : ""}</p></div>`;
+  else {
+    const ps = Object.entries(out.shared_params);
+    const span = Math.max(...ps.map(([, [m, sd]]) => Math.abs(m) + 2 * sd), 1e-6);
+    ticket = `<div class="ticket"><div class="eyebrow">Message, round ${out.round}</div><div class="route">${esc(siteName(out.from))} → ${esc(siteName(out.to))}</div>
+      <p class="sub" style="margin:4px 0 8px">${out.bytes} bytes · ${ps.length} shared numbers with uncertainty · trust scores for ${Object.keys(out.credibility).length} agents${out.unmet_needs.length ? ` · ${out.unmet_needs.length} unexplained pattern` : ""}</p>
+      ${ps.map(([k, [m, sd]]) => {
+        const X = v => 50 + v / span * 46;
+        return `<div class="param"><span>${esc(k)}</span><svg viewBox="0 0 100 14" preserveAspectRatio="none" style="height:14px"><line x1="50" x2="50" y1="0" y2="14" stroke="var(--rule)"/><rect x="${X(m - 2 * sd)}" y="4" width="${X(m + 2 * sd) - X(m - 2 * sd)}" height="6" rx="3" fill="var(--net)" fill-opacity=".3"/><circle cx="${X(m)}" cy="7" r="3.2" fill="var(--net)"/></svg></div>`;
+      }).join("")}
+      <p class="sub mono" style="margin:10px 0 0;font-size:11.5px">receipt ${out.hash.slice(0, 16)}…</p></div>`;
+  }
+  $("cross").innerHTML = `<div>${vault(me)}<div style="margin-top:16px">${ticket}</div></div><div class="wall"><span>Site boundary</span></div><div>${vault(other)}</div>`;
 
   const pairs = [...new Set(D.trust.map(t => `${t.receiver}|${t.sender}`))];
-  const cols = ["var(--net)", "var(--ora)", "var(--a3)", "var(--a4)"];
-  lineChart($("chTrust"), {
-    series: pairs.map((p, i) => { const [rcv, snd] = p.split("|"); return { name: `${rcv} trusts ${snd}`, color: cols[i % 4], width: rcv === me ? 3 : 1.8, values: Array.from({ length: R }, (_, k) => { const t = D.trust.find(x => x.receiver === rcv && x.sender === snd && x.round === k + 1); return t ? t.trust : null; }) }; }),
-    ymin: 0, ymax: 1, yfmt: (v, full) => full ? `trust ${v.toFixed(3)}` : v.toFixed(2), height: 190,
-  });
-  legend($("trustLegend"), pairs.map((p, i) => { const [rcv, snd] = p.split("|"); return [`${rcv} trusts ${snd}`, cols[i % 4]]; }));
-  if (D.config.bad_sites && D.config.bad_sites.length) $("trustLegend").insertAdjacentHTML("beforeend", `<span>Bad-faith site: <b>${D.config.bad_sites.map(esc).join(", ")}</b></span>`);
-
-  const a = D.audit;
-  $("audit").innerHTML = `<div style="font-size:22px;font-weight:650" class="${a.passed ? "pass" : "fail"}">${a.passed ? "✓ Pass" : "✕ Fail"}</div>
-    <table style="margin-top:8px"><tbody>
-      ${Object.entries(a.chains_ok).map(([s, ok]) => `<tr><td>${esc(s)} receipt chain</td><td class="${ok ? "pass" : "fail"}">${ok ? "intact" : "broken"}</td></tr>`).join("")}
-      <tr><td>Messages that crossed</td><td>${a.crossings}</td></tr>
-      <tr><td>Every message inside the allowed schema</td><td class="${a.problems.length ? "fail" : "pass"}">${a.problems.length ? "no" : "yes"}</td></tr>
-      <tr><td>Every received message matches what was sent</td><td class="${a.problems.length ? "fail" : "pass"}">${a.problems.length ? "see problems" : "yes"}</td></tr>
-      <tr><td>Rejected at the boundary</td><td>${a.rejected}</td></tr>
-    </tbody></table>
-    ${a.problems.map(p => `<div class="fail mono" style="margin-top:6px">${esc(p)}</div>`).join("")}
-    <div class="muted" style="font-size:12.5px;margin-top:8px">The audit reads only the receipt chains, not either site's data.</div>`;
+  $("gauges").innerHTML = pairs.map(p => {
+    const [rcv, snd] = p.split("|");
+    const hist = D.trust.filter(t => t.receiver === rcv && t.sender === snd).sort((a, b) => a.round - b.round);
+    const cur = hist.filter(t => t.round <= S.round).pop();
+    const v = cur ? cur.trust : D.config.trust_init;
+    const col = v > .6 ? "var(--good)" : v > .25 ? "var(--pool)" : "var(--bad)";
+    return `<div class="gauge"><div class="top"><span><b style="color:${col}">${Math.round(v * 100)}%</b> <span class="muted">${esc(siteName(rcv))} listens to ${esc(siteName(snd))}</span></span></div>
+      <div class="meter"><div style="width:${v * 100}%;background:${col}"></div></div>
+      <div class="hist">${hist.map(t => `<span style="${t.round === S.round ? "color:var(--ink);font-weight:600" : ""}">R${t.round} ${Math.round(t.trust * 100)}%</span>`).join("<span>→</span>")}</div></div>`;
+  }).join("");
+  const low = pairs.map(p => { const [rcv, snd] = p.split("|"); const c = D.trust.filter(t => t.receiver === rcv && t.sender === snd && t.round <= S.round).pop(); return c && { rcv, snd, v: c.trust }; }).filter(Boolean).sort((a, b) => a.v - b.v)[0];
+  const bad = (D.config.bad_sites || []);
+  $("trustTake").innerHTML = bad.length
+    ? `${bad.map(s => siteName(s)).join(", ")} was set up to send misleading beliefs. Watch its weight fall as its messages fail to help.`
+    : low && low.v < .5 ? `By round ${S.round}, ${siteName(low.rcv)} gives ${siteName(low.snd)}'s messages only <b>${Math.round(low.v * 100)}%</b> weight, because they stopped improving its own predictions.` : `Both sites are still listening to each other in round ${S.round}.`;
 }
 
-function summary(e) {
-  const p = e.payload;
-  switch (e.kind) {
-    case "config": return `rounds ${p.rounds}, ${p.n_particles} particles, η ${p.eta}, seed ${p.seed}`;
-    case "plate": return `${p.plate_id} · plate hash ${p.plate_hash.slice(0, 10)}`;
-    case "measurements": return `${p.plate_id} · ${p.hashes.length} measurement hashes`;
-    case "approval": return `operator approval`;
-    case "challenge": return `${p.flags.length} flag${p.flags.length === 1 ? "" : "s"}`;
-    case "clearing": return Object.entries(p.allocation).filter(([, v]) => v).map(([a, v]) => `${a} ${v}`).join(" · ") + " slots";
-    case "credit": return `round ${p.round} · trust ${Object.entries(p.trust).map(([k, v]) => `${k} ${(+v).toFixed(2)}`).join(", ")}`;
-    case "challenge_credit": return `round ${p.round} · ${p.flags.length} flags scored`;
-    case "message_out": return `→ ${p.to} · ${p.wire.length} bytes`;
-    case "message_in": return `← ${p.from} · matches sender entry ${p.sender_entry.slice(0, 10)}`;
-    case "unmet_need": return `${p.template} · z ${fmt(p.z)}`;
-    case "spawn": return `woke ${p.agent}`;
-    case "boundary_reject": return `rejected: ${p.reason}`;
-    case "prereg": return `prereg ${String(p.sha256).slice(0, 10)}`;
-    default: return "";
-  }
-}
-function renderReceipts() {
+// ---------- 5. audit
+function auditView() {
+  const a = D.audit, ok = a.passed;
+  $("seal").innerHTML = `<svg class="seal" viewBox="0 0 168 168" role="img" aria-label="Audit ${ok ? "passed" : "failed"}">
+    <circle cx="84" cy="84" r="78" fill="none" stroke="${ok ? "var(--good)" : "var(--bad)"}" stroke-width="3"/>
+    <circle cx="84" cy="84" r="68" fill="none" stroke="${ok ? "var(--good)" : "var(--bad)"}" stroke-width="1.2" stroke-dasharray="3 4"/>
+    <text x="84" y="80" text-anchor="middle" style="font:700 40px var(--display);fill:${ok ? "var(--good)" : "var(--bad)"}">${ok ? "PASS" : "FAIL"}</text>
+    <text x="84" y="104" text-anchor="middle" style="font:500 10px var(--mono);letter-spacing:.12em;fill:${ok ? "var(--good)" : "var(--bad)"}">PRIVACY AUDIT</text></svg>`;
+  const chk = (good, text) => `<li><span class="${good ? "ok" : "no"}">${good ? "✓" : "✕"}</span><span>${text}</span></li>`;
+  $("checks").innerHTML = [
+    ...Object.entries(a.chains_ok).map(([s, v]) => chk(v, `${esc(siteName(s))}'s log is intact: no entry was edited, removed or reordered`)),
+    chk(!a.problems.length, `All ${a.crossings} messages that crossed fit the allowed format: shared numbers, trust scores, unexplained patterns`),
+    chk(!a.problems.length, `Every message received is byte-for-byte what the other site logged as sent`),
+    chk(true, `${a.rejected} attempts to send anything else were blocked at the boundary`),
+  ].join("") + a.problems.map(p => `<li><span class="no">!</span><span class="mono">${esc(p)}</span></li>`).join("");
+
+  const KIND = { config: "Setup", plate: "Plate", measurements: "Scans", approval: "Approved", challenge: "Challenges", clearing: "Bids clear", challenge_credit: "Challenge check", credit: "Credit", message_out: "Sent", message_in: "Received", unmet_need: "Pattern", spawn: "Agent wakes", boundary_reject: "Blocked", prereg: "Prereg" };
+  const KC = { message_out: "var(--net)", message_in: "var(--net)", plate: "var(--exam)", measurements: "var(--exam)", credit: "var(--pool)", boundary_reject: "var(--bad)" };
   const ch = D.chains[S.site] || [];
-  const kinds = [...new Set(ch.map(e => e.kind))];
-  if (!S.kinds) S.kinds = new Set(kinds);
-  $("kindChips").innerHTML = kinds.map(k => `<button class="chip" data-k="${k}" aria-pressed="${S.kinds.has(k)}">${esc(k)} · ${ch.filter(e => e.kind === k).length}</button>`).join("");
-  $("kindChips").querySelectorAll("button").forEach(b => b.onclick = () => { S.kinds.has(b.dataset.k) ? S.kinds.delete(b.dataset.k) : S.kinds.add(b.dataset.k); renderReceipts(); });
-  $("rcpt").innerHTML = ch.filter(e => S.kinds.has(e.kind)).map(e => `<tr class="row" data-seq="${e.seq}"><td class="mono">${e.seq}</td><td class="kind">${esc(e.kind)}</td><td>${esc(summary(e))}</td><td class="mono muted">${e.hash.slice(0, 12)}</td></tr>` +
-    (S.open === e.seq ? `<tr><td></td><td colspan="3"><div class="mono muted" style="margin-bottom:6px">prev ${e.prev_hash.slice(0, 16)}… → this ${e.hash.slice(0, 16)}…</div><pre>${esc(JSON.stringify(e.payload, null, 2))}</pre></td></tr>` : "")).join("");
-  $("rcpt").querySelectorAll("tr.row").forEach(r => r.onclick = () => { S.open = S.open === +r.dataset.seq ? null : +r.dataset.seq; renderReceipts(); });
+  $("chain").innerHTML = ch.map(e => `<button class="blk" aria-pressed="${S.blk === e.seq}" data-q="${e.seq}" style="${KC[e.kind] ? `border-top:4px solid ${KC[e.kind]}` : ""}"><span class="s">#${e.seq}</span><span class="k">${KIND[e.kind] || esc(e.kind)}</span><span class="h">${e.hash.slice(0, 8)}</span></button>`).join("");
+  $("chain").querySelectorAll(".blk").forEach(b => b.onclick = () => { S.blk = S.blk === +b.dataset.q ? null : +b.dataset.q; auditView(); });
+  const e = ch.find(x => x.seq === S.blk);
+  $("payload").hidden = !e;
+  if (e) $("payload").textContent = `#${e.seq} ${e.kind}\nprevious ${e.prev_hash}\nthis     ${e.hash}\n\n` + JSON.stringify(e.payload, null, 2);
 }
 
-function render() {
-  seg($("siteSeg"), SITES.map(s => [s, `${s}`]), () => S.site, v => { S.site = v; S.plate = null; S.kinds = null; S.open = null; });
-  seg($("roundSeg"), Array.from({ length: R }, (_, i) => [i + 1, `R${i + 1}`]), () => S.round, v => { S.round = +v; S.plate = null; stop(); });
-  renderTiles(); renderCurves(); renderPlate(); renderPreds(); renderAgents(); renderBoundary(); renderReceipts();
-}
-$("label").textContent = D.label;
-$("foot").textContent = `${D.label} · ${R} rounds · ${D.config.slots_per_arm} slots per arm · ${D.config.n_particles} particles · η ${D.config.eta}. Generated by viewer/export.py.`;
+function render() { controls(); hero(); plate(); race(); preds(); agents(); boundary(); auditView(); }
+$("foot").textContent = `${D.label} · ${R} rounds · ${D.config.slots_per_arm} slots per approach per plate · ${D.config.n_particles} particles. Generated by viewer/export.py from the run's own logs.`;
 render();
 </script>
 </body>
