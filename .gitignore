@@ -9,3 +9,4 @@ receipts/real/
 .claude/worktrees/
 viewer/out/
 eval/figures/out/
+.env
