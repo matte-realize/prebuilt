@@ -98,7 +98,7 @@ config:
   seed_pieces: 16
   slots_per_arm: 6
   n_particles: 2000
-  oracle_particles: null       # T: from the particles stage of the tuning sweep
+  oracle_particles: 2000       # = n_particles; oracle stage of the tuning sweep not run yet
   same_agents: true
   oracle_hierarchical: true
   between_site_sd: 0.25        # fraction of each shared parameter's prior std; not tuned on real data
@@ -107,10 +107,10 @@ config:
   dormant: []
   unmet_z: 2.0
   # Frozen from T's Phase C tuning sweep, M signs off. eta = 20 is known too high (finding 6).
-  eta: null
-  cred_floor: null
-  trust_init: null
-  discount: null
+  eta: 5
+  cred_floor: 0.05
+  trust_init: 1.0
+  discount: 0.2                # Config default; knobs stage still running when frozen
   challenge_eig: 0.05           # challenge and spawn are off; these apply to the secondary analysis only
   spawn_threshold: 2
   seed: 0
