@@ -43,7 +43,11 @@ A run started with both sites real can't be switched over: resume refuses a diff
 
 Use the same commands for resin, with `--sim-site resin`. From scan files instead of the checkpoint, pass the site explicitly: `--scans scans --sim-site pla`. A `--sim-site` that differs from the checkpoint's, or a prereg `config.seed` that differs from the run's, stops Phase D.
 
+Tier B is scored on the real site only. Pooled over both sites, the simulated half would be checked against its own known world. So the range to commit is the round-3 5% and 95% from the `isolated − networked, measured MAE, <real site> only` column in `summary.md` (`iso_minus_net_real_um` in `prediction.json`), not the pooled one.
+
 Then commit the range as above, check that `py -m prereg.check --stage round1` says ready, and resume with the same flag. Resume refuses a missing or different `--sim-site`.
 
-    py run.py --source real --sim-site pla
+    py run.py --source real --sim-site pla                  # rounds 1-3
+    py run.py --source real --sim-site pla --out real.json  # at the end: summary and scores
     py -m eval.audit receipts/real/resin.jsonl receipts/real/pla.jsonl
+    py -c "import json; from sim.calibrate import iso_minus_net; print(iso_minus_net(json.load(open('real.json')), 'mae', ['resin'])[3])"   # the measured value, µm
