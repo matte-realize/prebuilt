@@ -39,5 +39,6 @@ The spec describes the full vision. The walkthrough is what we are building this
 7. [Status and Phase C findings](build/07-status.md)
 8. [Warp posterior build log](build/08-warp-posterior.md)
 9. [Printer-day run sheet](build/09-run-sheet.md): step by step at the printers
+10. [Beyond the weekend](build/10-beyond-the-weekend.md): what the relevance sweeps found, what was left out of scope, and the long-term direction (production agents for complex products such as bioprinting). Not a build target
 
 Also: the live pre-registration [`prereg/prereg.yaml`](../prereg/prereg.yaml), the draft deck [`slides/`](slides/), and the backup demo [`demo/tier-d/`](../demo/tier-d/).

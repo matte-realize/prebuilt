@@ -26,8 +26,8 @@ failure_rules: failed pieces are printability outcomes; held-out failures report
 4. How the collective decides: auction, credibility, messages.
 5. Sim-to-real: frozen in simulation, prediction committed, then real printers.
 6. **Headline chart:** isolated vs. networked vs. oracle, with the predicted range.
-7. Robustness and scaling (simulation).
+7. Robustness and scaling (simulation): bad site cut off after one round; more sites raises the gain.
 8. Privacy audit replay.
 9. What reality taught the simulator.
-10. Closer: where this goes next. Print anywhere, trust the part.
+10. Closer: where this goes next. Print anywhere, trust the part; matters most for many-site networks and complex products such as bioprinting (direction, not a result).
 
