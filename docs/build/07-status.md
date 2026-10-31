@@ -7,6 +7,7 @@ As of Sat Oct 31. T's Phase C sweep results: `hpc/sweeps/phase_c/README.md` (rec
 - `python -m plates.seed` writes seed plates (JSON + watertight STL) for both sites and `prereg/heldout.json`.
 - `python run.py --source sim --seeds 20` runs the full three-arm, two-site experiment on the NumPy reference simulator (`sim/reference.py`) and runs the privacy audit for every seed. About 3 s per seed at 1000 particles.
 - `python run.py --source real` drives the real printers. It writes plate files, asks for human approval, waits for `scans/<site>/<plate>-holes.png` and `-pins.png`, measures them, and checkpoints after every round (`receipts/real/state.pkl`). Rerun the same command to resume.
+- `python -m measure.rehearsal --rounds 2 --out /tmp/reh` rehearses the real loop without printers: `RealPrinter`, plate files, approval prompts, scan files, scanner, receipts, checkpoint and resume, with a simulated printer rendering the scans. Scanner vs. printed truth on synthetic scans: about 5 µm RMS, under 30 µm max, no false or missed failures.
 - `python -m measure.target plates/out/resin/resin-seed.json target.pdf` writes a 1:1 paper target for checking the scanner before any plate prints.
 - `python -m eval.audit receipts/real/resin.jsonl receipts/real/pla.jsonl` replays the receipt chains for the privacy check.
 

@@ -142,6 +142,9 @@ def measure_scan(img: np.ndarray, plate: Plate, mode: str, method: str = "scanne
 def _measure_cell(cell: np.ndarray, mm2_per_px: float, nominal_d: float):
     """Coverage-weighted area of the bright blob nearest the cell center."""
     h, w = cell.shape
+    lo, hi = np.percentile(cell, [0.5, 99.5])
+    if hi - lo < 0.15:  # flat cell: nothing printed there
+        return None, "no feature (did not print?)", None
     u8 = (cell * 255).astype(np.uint8)
     _, bw = cv2.threshold(u8, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     n, lab, stats, cents = cv2.connectedComponentsWithStats(bw, connectivity=8)
