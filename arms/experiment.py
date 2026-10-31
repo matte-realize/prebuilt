@@ -26,7 +26,7 @@ from dataclasses import asdict, dataclass, field
 import numpy as np
 
 from agents import auction, challenge
-from agents.agents import AGENT_NAMES, DORMANT_NAMES, SPECS, propose
+from agents.agents import AGENT_NAMES, SPECS, propose
 from agents.credibility import Roster, delta_lpd, update_senders
 from agents.selection import greedy_batch
 from contracts import Measurement, Message, Piece, Printer
@@ -142,7 +142,7 @@ class Results:
 def run_experiment(
     printers: dict[str, Printer],
     processes: dict[str, str],
-    cfg: Config = Config(),
+    cfg: Config | None = None,
     chain_dir: str | None = None,
     checkpoint: str | None = None,
 ) -> Results:
@@ -151,6 +151,7 @@ def run_experiment(
     With `checkpoint`, the full state is pickled after the seed plates and after
     every round, so a crash mid-Saturday loses at most the round in progress.
     """
+    cfg = cfg or Config()
     state = _load(checkpoint) if checkpoint and os.path.exists(checkpoint) else None
     if state is None:
         state = _init(printers, processes, cfg, chain_dir)

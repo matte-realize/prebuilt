@@ -1,4 +1,5 @@
-"""The real-printer loop end to end, with a simulated printer rendering the scans."""
+"""The real-printer loop end to end: rehearsal with simulated scans, crash and resume, failed
+and vetoed plates, and fallback tier B (one site simulated)."""
 from arms.experiment import Config, run_experiment
 from eval.audit import audit
 from measure.rehearsal import rehearsal_printers
@@ -61,7 +62,6 @@ def test_tier_b_one_real_site_one_simulated(tmp_path):
 
 
 def test_crash_mid_round_resumes_with_valid_chains_and_same_results(tmp_path):
-    from measure.rehearsal import RehearsalPrinter
 
     class Crash(Exception):
         pass

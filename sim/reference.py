@@ -1,8 +1,7 @@
 """NumPy reference simulator implementing `contracts.Printer`.
 
-STAND-IN: the Warp multi-site simulator (teammate, docs/build/06-task-split.md)
-replaces this for batched sweeps. Keep this one as the readable reference that
-the Warp version must match on the same hidden truth.
+The readable reference simulator. sim/warp_sim.py is the batched GPU version for
+sweeps and must match this one on the same hidden truth (tests/test_warp_sim.py).
 
 Each simulated site draws its own machine parameters. The shared
 (process-agnostic) parameters are drawn once per world and perturbed slightly

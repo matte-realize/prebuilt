@@ -2,6 +2,8 @@
 
 ## 9. Pre-registration file (fill in at kickoff)
 
+> The live file is [`prereg/prereg.yaml`](../../prereg/prereg.yaml); it extends this template (deviations, config section, fallback tiers). The deck is in [`docs/slides/`](../slides/).
+
 ```
 claims: [network_vs_oracle, sim_to_real_range, robustness_sim]
 arms: [isolated, networked, oracle]
