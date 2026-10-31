@@ -11,7 +11,7 @@ This replaces the per-phase M/T assignments in [02-friday-night.md](02-friday-ni
 |---|---|---|---|
 | Contracts, receipts, physics models, NumPy posterior | M | `contracts.py`, `receipts/`, `model/` | Done (Phase A) |
 | Pre-registration values | M + T | `prereg/` | Kickoff, together |
-| Piece library, plate generator, seed STLs | M | `plates/` | Done; slice-check on both printers still to do |
+| Piece library, plate generator, seed STLs | M | `plates/` | Done; seed plate cut to 16 + 8 held-out (Phase C). Slice-check on both printers still to do |
 | Agents, auction, credibility | M | `agents/` | Done (challenge round, spawn not built) |
 | Message schema and boundary enforcement | M | `network/` | Done |
 | Three arms (isolated, networked, oracle) | M | `arms/` | Done; oracle definition open (see 07-status.md) |

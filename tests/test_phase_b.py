@@ -11,7 +11,7 @@ from eval.audit import audit
 from network.protocol import BoundaryViolation, deserialize, likelihood_factor, send, serialize
 from plates import heldout, spec
 from plates.library import Candidate
-from plates.seed import seed_plate
+from plates.seed import SEED_PIECES, seed_plate
 from plates.stl import to_trimesh, plate_manifold
 from receipts.chain import ReceiptChain
 from sim.reference import make_world
@@ -103,8 +103,10 @@ def test_audit_catches_tampered_crossing():
 # ---- plates ---------------------------------------------------------------------
 
 def test_seed_plate_layout_and_mesh():
+    assert len(seed_plate("resin", keep=None).pieces) == spec.GRID[0] * spec.GRID[1]
     p = seed_plate("resin")
-    assert len(p.pieces) == spec.GRID[0] * spec.GRID[1]
+    seed = [x for x in p.pieces if x.arm == "seed"]
+    assert len(seed) == SEED_PIECES and {x.kind for x in seed} == {"pin", "hole"}
     held = {x.slot for x in p.pieces if x.arm == "heldout"}
     assert held == set(heldout.HELDOUT_SLOTS)
     assert to_trimesh(plate_manifold(p)).is_watertight

@@ -14,7 +14,7 @@ from sim.reference import make_world
 @pytest.mark.parametrize("mode", ["holes", "pins"])
 @pytest.mark.parametrize("mirror,angle", [(True, 2.0), (False, -4.0)])
 def test_scanner_recovers_known_diameters(mode, mirror, angle):
-    plate = seed_plate("pla")
+    plate = seed_plate("pla", keep=None)  # full plate: every slot exercised
     rng = np.random.default_rng(0)
     true = {p.piece_id: p.nominal_d + rng.normal(0, 0.1) for p in plate.pieces}
     img = render_scan(plate, true, mode, dpi=400, mirror=mirror, angle_deg=angle, blur_px=1.5, noise=0.02)

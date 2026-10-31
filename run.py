@@ -10,6 +10,7 @@ from collections import defaultdict
 import numpy as np
 
 from arms.experiment import Config, run_experiment
+from plates.seed import SEED_PIECES
 from eval.audit import audit
 from eval.metrics import oracle_gap_closed, summarize
 
@@ -26,8 +27,8 @@ def main() -> None:
     ap.add_argument("--oracle-particles", type=int, default=None, help="oracle arm particles (default: --particles)")
     ap.add_argument("--bad-site", action="append", default=[], help="sim only: site that broadcasts bad beliefs")
     ap.add_argument("--no-messages", action="store_true", help="ablation: cut the network")
-    ap.add_argument("--seed-pieces", type=int, default=None, help="sim sweep: thin the seed plate to this many pieces")
-    ap.add_argument("--slots", type=int, default=18, help="slots per arm per plate")
+    ap.add_argument("--seed-pieces", type=int, default=SEED_PIECES, help="sim sweep: calibration pieces on the seed plate (max 56)")
+    ap.add_argument("--slots", type=int, default=Config.slots_per_arm, help="sim sweep: slots per arm per plate")
     ap.add_argument("--chains", default=None, help="directory for receipt chains (default: in memory)")
     ap.add_argument("--out", default=None, help="write results JSON here")
     ap.add_argument("--scans", default="scans", help="real only: directory the scanner saves into")

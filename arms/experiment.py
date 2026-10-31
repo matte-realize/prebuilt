@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import os
 import pickle
-from dataclasses import asdict, dataclass, field, replace
+from dataclasses import asdict, dataclass, field
 
 import numpy as np
 
@@ -33,7 +33,7 @@ from model.posterior import ParticlePosterior
 from network import protocol
 from plates import heldout
 from plates.layout import build_plate_indexed, plate_to_dict
-from plates.seed import seed_plate
+from plates.seed import SEED_PIECES, seed_plate
 from receipts.chain import ReceiptChain, canonical, sha256
 
 ARMS = ("isolated", "networked", "oracle")
@@ -45,7 +45,7 @@ Data = list[tuple[Piece, Measurement]]
 class Config:
     rounds: int = 3
     n_particles: int = 2000
-    slots_per_arm: int = 18          # (64 - 8 held-out) // 3
+    slots_per_arm: int = 6           # Phase C: keeps the arms separable (max (64 - 8 held-out) // 3 = 18)
     # Tuned and frozen in Phase C; these defaults are placeholders until then.
     eta: float = 20.0
     cred_floor: float = 0.05
@@ -63,7 +63,7 @@ class Config:
     share_messages: bool = True      # False = cut the network
     bad_sites: tuple[str, ...] = ()  # sites that broadcast corrupted beliefs
     agents: tuple[str, ...] = tuple(AGENT_NAMES)
-    seed_pieces: int | None = None   # sweep: keep only this many seed-plate pieces (None = all 56)
+    seed_pieces: int | None = SEED_PIECES  # calibration pieces on the seed plate (None = all 56)
     seed: int = 0
 
 
@@ -108,7 +108,7 @@ def run_experiment(
     sites, pieces, res, rng = state["sites"], state["pieces"], state["res"], state["rng"]
 
     if state["next_round"] == 0:
-        _print_all({s: _seed_plate(s, cfg.seed_pieces) for s in sites}, printers, sites, pieces)
+        _print_all({s: seed_plate(s, cfg.seed_pieces) for s in sites}, printers, sites, pieces)
         state["next_round"] = 1
         _save(checkpoint, state)
 
@@ -178,17 +178,6 @@ def _print_all(plates: dict, printers: dict[str, Printer], sites: dict[str, Site
         truth = getattr(printers[s], "truth", None)  # simulators only; never shown to agents
         if truth:
             sites[s].truth.update({p.piece_id: float(d) for p, d in zip(plate.pieces, truth(plate)) if p.arm == "heldout"})
-
-
-def _seed_plate(site: str, keep: int | None):
-    """The seed plate, optionally thinned to `keep` evenly spaced calibration pieces (held-out kept)."""
-    plate = seed_plate(site)
-    if keep is None:
-        return plate
-    seed = sorted((p for p in plate.pieces if p.arm == "seed"), key=lambda p: (p.kind, p.nominal_d, p.slot))
-    idx = set(np.round(np.linspace(0, len(seed) - 1, keep)).astype(int)) if keep else set()
-    kept = {seed[i].piece_id for i in idx}
-    return replace(plate, pieces=[p for p in plate.pieces if p.arm != "seed" or p.piece_id in kept])
 
 
 # ---- fitting ---------------------------------------------------------------
