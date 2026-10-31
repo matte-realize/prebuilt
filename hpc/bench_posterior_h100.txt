@@ -1,0 +1,12 @@
+device: NVIDIA H100 80GB HBM3
+
+| particles | NumPy update | Warp update | speedup | NumPy predict x200 | Warp predict x200 (per piece) | Warp predict x200 (batched) |
+|---|---|---|---|---|---|---|
+| 2,000 | 0.023 s | 0.016 s | 1.4x | 0.013 s | 0.067 s | 0.0005 s |
+| 20,000 | 0.207 s | 0.022 s | 9.3x | 0.116 s | 0.090 s | 0.0006 s |
+| 200,000 | 2.871 s | 0.048 s | 60.4x | 1.633 s | 0.180 s | 0.0021 s |
+
+| particles | B | NumPy loop (est.) | Warp batch | speedup |
+|---|---|---|---|---|
+| 2,000 | 64 | 3.13 s | 0.079 s | 39.4x |
+| 20,000 | 64 | 29.37 s | 0.350 s | 84.0x |
