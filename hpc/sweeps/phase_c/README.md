@@ -112,7 +112,7 @@ Full table: [`results/tuning_particles_seed16_slots6.md`](results/tuning_particl
 
 Every setting with better mixing (6 MH steps, or 8000 particles) shrinks iso − net by 0.5-1.0 µm, and always the same way: isolated gets better, networked slightly worse. So about a third of the 2.2 µm benefit at the old setting is sampler error in the isolated fit that incoming messages happen to correct, not information from the other site. With better mixing the benefit settles at 1.2-1.7 µm, still about 3 SE above zero.
 
-Recommendation: **n_particles 4000, mh_steps 6**. It sits on that plateau with margin (2000, 6 is there too, but only just). 26 s per simulated run is cheap, and on real rounds the fit time is negligible next to printing. `mh_steps` is not in the prereg's `config` section yet; `prereg.check.config_from` accepts any `Config` field, so adding `mh_steps: 6` there is enough. `oracle_mh_steps` scales with it (12 steps for the oracle).
+Recommendation: **n_particles 4000, mh_steps 6**. It sits on that plateau with margin (2000, 6 is there too, but only just). 26 s per simulated run is cheap, and on real rounds the fit time is negligible next to printing. `mh_steps` is not in the prereg's `config` section yet; `prereg.check.config_from` accepts any `Config` field, so adding `mh_steps: 6` there is enough. `oracle_mh_steps` scales with it: ceil(6 × 18 / 8) = 14 steps for the oracle.
 
 The trust and knobs stages ran at 2000, 3. A check of those choices at 4000, 6 is listed below.
 

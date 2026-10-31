@@ -91,14 +91,26 @@ deviations:
       bring back the confound same_agents removes. With them on, the oracle
       trailed networked at round 3 (+1.4 +- 0.9 um, 12 seeds); with them off it
       did not (07-status, headline chart).
+  - id: oracle_mh_steps
+    walkthrough: every arm fits its posterior the same way
+    registered: >-
+      the oracle's MH steps per resample scale with its dimension over a single
+      site's (arms.experiment.oracle_mh_steps): 14 for the 18-dim hierarchical
+      oracle against 6 for each site (8 and 7 dims; it scales from the larger),
+      capped at 15 for the Warp posterior
+    why: >-
+      with equal steps the oracle mixed worse than the sites it pools and scored
+      worse than networked on identical data, so it was not an upper bound
+      (07-status finding 4). Scaling the steps gives it the same mixing per
+      dimension; the arms still differ only in what data and messages they use.
 
 # Experiment config. Keys are arms.experiment.Config fields.
 config:
   rounds: 3
   seed_pieces: 16
   slots_per_arm: 6
-  n_particles: 4000            # particles stage: 4000 particles, 6 MH steps (feat/phase-c-tuning 46c4e69)
-  mh_steps: 6                  # oracle_mh_steps scales from it (12)
+  n_particles: 4000            # particles stage (hpc/sweeps/phase_c/README.md): 4000 particles, 6 MH steps
+  mh_steps: 6                  # oracle_mh_steps scales from it: ceil(6 * 18 / 8) = 14 (deviation oracle_mh_steps)
   oracle_particles: 4000       # = n_particles; oracle stage of the tuning sweep not run yet
   same_agents: true
   oracle_hierarchical: true
@@ -108,10 +120,11 @@ config:
   dormant: []
   unmet_z: 2.0
   # Frozen from T's Phase C tuning sweep, M signs off. eta = 20 is known too high (finding 6).
+  # The trust and knobs stages ran at 2000 particles, 3 MH steps; their recheck at 4000, 6 is pending.
   eta: 5
   cred_floor: 0.05
   trust_init: 1.0
-  discount: 0.2                # Config default; knobs stage still running when frozen
+  discount: 0.2                # knobs stage: middle of the 0.1-0.4 plateau; 0 halves iso - net
   challenge_eig: 0.05           # challenge and spawn are off; these apply to the secondary analysis only
   spawn_threshold: 2
   seed: 0

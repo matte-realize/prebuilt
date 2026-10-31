@@ -1,6 +1,9 @@
 import yaml
 
+from arms.experiment import oracle_mh_steps
 from prereg.check import PREREG, check_heldout, config_from, load, missing
+
+SITES = {"resin": "resin", "pla": "pla"}
 
 
 def _filled(tmp_path, with_range: bool):
@@ -23,6 +26,12 @@ def test_committed_prereg_is_ready_for_seed():
     check_heldout(pr)
     assert missing(pr, "seed") == [] and len(sha) == 64
     assert config_from(pr, sha).same_agents  # unknown keys would raise
+
+
+def test_registered_oracle_mh_steps():
+    # The prereg's deviation oracle_mh_steps states 14; the Warp posterior needs < 16.
+    pr, sha = load()
+    assert oracle_mh_steps(SITES, config_from(pr, sha)) == 14
 
 
 def test_filled_prereg_builds_config_and_gates_round1(tmp_path):
