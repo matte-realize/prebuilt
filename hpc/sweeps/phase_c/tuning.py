@@ -49,7 +49,8 @@ def main() -> None:
     elif a.stage == "clip":
         grid = {f"clip={c}": dict(lpd_clip=c) for c in (None, 1.0, 2.0, 4.0, 8.0)}
     else:
-        grid = {f"particles={n}": dict(n_particles=n) for n in (1000, 2000, 4000, 8000)}
+        grid = {f"particles={n}_mh={m}": dict(n_particles=n, mh_steps=m)
+                for n, m in itertools.product((1000, 2000, 4000, 8000), (3, 6))}
 
     arms = {f"{label}|{cond}": {**base, **kw, "bad_sites": bad}
             for label, kw in grid.items() for cond, bad in CONDITIONS.items()}

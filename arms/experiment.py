@@ -40,7 +40,6 @@ from receipts.chain import ReceiptChain, canonical, sha256
 
 ARMS = ("isolated", "networked", "oracle")
 SHARED_STD = {s.name: s.prior_std for s in SHARED}
-MH_STEPS = 3  # ParticlePosterior's default, used by every single-site fit
 Data = list[tuple[Piece, Measurement]]
 
 
@@ -73,9 +72,12 @@ class Config:
     # Metropolis moves per resample for the oracle. Random-walk MH mixes about 1/dim as
     # fast per step, so with the same 3 steps a single site gets, the 18-dim hierarchical
     # oracle carries roughly twice the Monte Carlo error in its predictions and loses to
-    # networked on identical data (07-status finding 4). None = MH_STEPS scaled by the
+    # networked on identical data (07-status finding 4). None = mh_steps scaled by the
     # oracle's dimension over the largest single site's; 3 = the old behavior.
     oracle_mh_steps: int | None = None
+    # Metropolis moves per resample for every single-site fit. All arms are limited by
+    # mixing at 3 (finding 4); T sweeps 3 vs 6 in tuning.py's particles stage.
+    mh_steps: int = 3
     # Diagnostics (docs/build/07-status.md finding 4); defaults are the real design.
     # oracle_data: which arm's measurements the oracle posterior pools ("oracle", or
     #   "networked" = exactly the networked arm's data, so only inference differs).
@@ -228,7 +230,7 @@ def _rng_seed(rng: np.random.Generator) -> int:
 
 
 def _fit(st: SiteState, pieces, data: Data, cfg: Config, rng, messages: dict[str, Message] | None = None) -> ParticlePosterior:
-    post = ParticlePosterior(st.process, pieces, n=cfg.n_particles, seed=_rng_seed(rng))
+    post = ParticlePosterior(st.process, pieces, n=cfg.n_particles, seed=_rng_seed(rng), mh_steps=cfg.mh_steps)
     for sender, msg in (messages or {}).items():
         means, cov = protocol.likelihood_factor(msg)
         if means:
@@ -245,7 +247,8 @@ def oracle_mh_steps(processes: dict[str, str], cfg: Config) -> int:
         return cfg.oracle_mh_steps
     bsd = cfg.between_site_sd if cfg.oracle_hierarchical else None
     dim = len(Layout(processes, bsd).specs)
-    return math.ceil(MH_STEPS * dim / max(len(PARAMS[p]) for p in processes.values()))
+    # The Warp posterior needs mh_steps < 16.
+    return min(15, math.ceil(cfg.mh_steps * dim / max(len(PARAMS[p]) for p in processes.values())))
 
 
 def _fit_oracle(sites: dict[str, SiteState], pieces, cfg: Config, rng, keep=lambda p: True) -> ParticlePosterior:
