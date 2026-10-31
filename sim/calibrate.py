@@ -2,6 +2,7 @@
 
     python -m sim.calibrate --state receipts/real/state.pkl --seeds 200 --out hpc/phase_d/out
     python -m sim.calibrate --synthetic 7 --draft --out ...   # self-check: seed data from a known sim world
+    python -m sim.calibrate --scans scans --sim-site pla ...  # tier B from scan files
 
 The collective config comes from the `config` section of prereg/prereg.yaml
 (prereg.check.config_from), the same place real runs take it from.
@@ -14,6 +15,12 @@ Diameters are fit jointly across sites, with the shared parameters tied by the
 same small between-site spread `make_world` draws them with, so a prediction
 world has one shared truth like the real one. Failures are fit per site.
 Both use adaptive Metropolis over several chains.
+
+Fallback tier B (`run.py --source real --sim-site <site>`): the simulated site's
+seed data came from a simulator, so it is not fitted. Only the real site is
+calibrated, and every prediction world uses the simulated site's actual world
+(`make_world` at the config seed, as `run.real_printers` builds it). The
+checkpoint records which sites were simulated; with --scans, pass --sim-site.
 
 Step 2 runs the full experiment with the pre-registered config many times.
 Every seed draws a fresh world from the calibration posterior, so the predicted
@@ -36,7 +43,7 @@ import pickle
 import shlex
 import subprocess
 import sys
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 from multiprocessing import get_context
 from pathlib import Path
 
@@ -70,10 +77,18 @@ def seed_data_from_state(path: str | Path) -> dict[str, Data]:
     return {s: [(p, m) for p, m in st.data["isolated"] if p.arm == "seed"] for s, st in state["sites"].items()}
 
 
-def seed_data_from_scans(scan_dir: str | Path) -> dict[str, Data]:
-    """Seed-plate pieces from `scans/<site>/<site>-seed-measurements.json` (measure/real.py)."""
+def state_config(path: str | Path) -> dict:
+    """The config a real-run checkpoint started with."""
+    with open(path, "rb") as f:
+        return pickle.load(f)["res"].config or {}
+
+
+def seed_data_from_scans(scan_dir: str | Path, skip: tuple[str, ...] = ()) -> dict[str, Data]:
+    """Seed-plate pieces from `scans/<site>/<site>-seed-measurements.json` (measure/real.py), except `skip`."""
     out = {}
     for site in SITES:
+        if site in skip:
+            continue
         plate = seed_plate(site, None)  # every id the seed plate can have; the scan file holds the printed ones
         rows = json.loads((Path(scan_dir) / site / f"{plate.plate_id}-measurements.json").read_text())
         by_id = {r["piece_id"]: Measurement(**r) for r in rows}
@@ -93,6 +108,15 @@ def seed_data_synthetic(seed: int, keep: int | None = None) -> tuple[dict[str, D
         ms = {m.piece_id: m for m in printer.print_and_measure(plate)}
         out[site] = [(p, ms[p.piece_id]) for p in plate.pieces if p.arm == "seed"]
     return out, world
+
+
+def simulated_sites(sim_sites: tuple[str, ...], seed: int) -> dict[str, SimPrinter]:
+    """The printers a tier B run uses for its simulated sites (run.real_printers)."""
+    unknown = set(sim_sites) - set(SITES)
+    if unknown or len(set(sim_sites)) == len(SITES):
+        raise SystemExit(f"simulated sites must be some but not all of {sorted(SITES)}, got {sorted(sim_sites)}")
+    world = make_world(SITES, seed)
+    return {s: world[s] for s in sim_sites}
 
 
 def check_seed_size(data: dict[str, Data], keep: int | None) -> None:
@@ -184,16 +208,20 @@ class SiteFit:
 
 @dataclass
 class Calibration:
-    """Joint fit of every site. Row k of each site's draws comes from the same joint sample."""
+    """Joint fit of every real site. Row k of each site's draws comes from the same joint sample."""
     sites: dict[str, SiteFit]
     shared: np.ndarray        # [K, len(SHARED)] world-level shared parameters
     shared_rhat: dict[str, float]
+    fixed: dict[str, SimPrinter] = field(default_factory=dict)  # tier B: simulated sites, known world, not fitted
 
     def __len__(self) -> int:
         return len(self.shared)
 
     def world(self, k: int, rng: np.random.Generator) -> dict[str, SimPrinter]:
-        return {s: f.printer(k, int(rng.integers(2**32))) for s, f in self.sites.items()}
+        world = {s: f.printer(k, int(rng.integers(2**32))) for s, f in self.sites.items()}
+        # fresh print noise per seed, same hidden truth as the run
+        world |= {s: replace(p, rng=np.random.default_rng(int(rng.integers(2**32)))) for s, p in self.fixed.items()}
+        return world
 
     def summary(self) -> dict:
         return {"shared_world": _summary([sp.name for sp in physics.SHARED], self.shared, self.shared_rhat),
@@ -451,6 +479,8 @@ def main() -> None:
     ap.add_argument("--shared-jitter", type=float, default=SHARED_JITTER,
                     help="assumed site-to-site spread of the shared parameters, fraction of prior std")
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 1))
+    ap.add_argument("--sim-site", action="append", default=[],
+                    help="fallback tier B: site the run simulates, not calibrated (read from --state's checkpoint)")
     ap.add_argument("--exclude-failed", nargs="*", default=[], metavar="PIECE_ID",
                     help="failed seed pieces to leave out of the failure fit (scanner misses, not print failures)")
     ap.add_argument("--out", required=True)
@@ -458,18 +488,28 @@ def main() -> None:
 
     cfg, prereg_sha, gaps = load_config(a.prereg, a.draft)
     truth = None
+    sim_sites = tuple(sorted(set(a.sim_site)))
     if a.state:
-        data = seed_data_from_state(a.state)
+        data, started = seed_data_from_state(a.state), state_config(a.state)
+        recorded = tuple(sorted(started.get("sim_sites") or ()))
+        if a.sim_site and sim_sites != recorded:
+            raise SystemExit(f"--sim-site {list(sim_sites)} but {a.state} simulated {list(recorded)}")
+        if recorded and started.get("seed") != cfg.seed:  # the simulated world is fixed by the run's seed
+            raise SystemExit(f"{a.state} ran with seed {started.get('seed')}, the prereg config has {cfg.seed}")
+        sim_sites = recorded
     elif a.scans:
-        data = seed_data_from_scans(a.scans)
+        data = seed_data_from_scans(a.scans, sim_sites)
     else:
         data, truth = seed_data_synthetic(a.synthetic, cfg.seed_pieces)
+    fixed = simulated_sites(sim_sites, cfg.seed) if sim_sites else {}
+    cfg = replace(cfg, sim_sites=sim_sites)
+    data = {s: d for s, d in data.items() if s not in fixed}  # simulated seed data says nothing about a printer
     check_seed_size(data, cfg.seed_pieces)
     data = screen_failures(data, a.exclude_failed)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
 
-    fitted = fit(dict(sorted(data.items())), a.draws, a.steps, jitter=a.shared_jitter)
+    fitted = replace(fit(dict(sorted(data.items())), a.draws, a.steps, jitter=a.shared_jitter), fixed=fixed)
     fits = fitted.sites
     calib = {"shared_world": {"params": fitted.summary()["shared_world"]}}
     for site, d in sorted(data.items()):
@@ -483,7 +523,9 @@ def main() -> None:
         plot_residuals(fits[site], d, out / f"residuals_{site}.png")
         print(f"{site}: {fits[site].n_ok} ok, {fits[site].n_failed} failed, "
               f"max R-hat {max(fits[site].rhat.values()):.3f}", flush=True)
-    (out / "calibration.json").write_text(json.dumps(calib, indent=1))
+    simulated = {s: {"world_seed": cfg.seed, "truth": {**dict(zip(physics.names(p.process), map(float, p.theta))), "radial": p.radial}}
+                 for s, p in fixed.items()}
+    (out / "calibration.json").write_text(json.dumps({**calib, "simulated": simulated}, indent=1))
 
     pred = predict(fitted, cfg, range(a.seed0, a.seed0 + a.seeds), a.workers)
     record = {**provenance(), "prereg_sha256": prereg_sha, "draft_null_fields": gaps, "config": asdict(cfg), "source": {"state": a.state, "scans": a.scans, "synthetic": a.synthetic},
@@ -502,6 +544,8 @@ def main() -> None:
         cells = ", ".join(f"{k} {v['mean']:.4g} ± {v['sd']:.2g} ({v['rhat']:.2f})" for k, v in c["params"].items())
         counts = f" ({c['n_ok']} ok, {c['n_failed']} failed)" if "n_ok" in c else ""
         lines.append(f"- **{site}**{counts}: {cells}")
+    for site in simulated:
+        lines.append(f"- **{site}**: simulated (fallback tier B), not calibrated; predicted on the run's world, seed {cfg.seed}")
     lines += ["", "## Failed seed pieces (fit as printability failures; check for scanner misses)", ""]
     for site, c in calib.items():
         if "failed" in c:

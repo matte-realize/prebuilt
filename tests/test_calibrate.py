@@ -1,6 +1,7 @@
 import copy
 import json
 import math
+from dataclasses import replace
 
 import numpy as np
 import pytest
@@ -125,3 +126,66 @@ def test_failure_screening():
     whole = {**data, "resin": [(p, Measurement(p.piece_id, "x", "resin", None, "failed", "scanner")) for p, _ in data["resin"]]}
     with pytest.raises(SystemExit, match="every seed piece failed"):
         calibrate.screen_failures(whole, [])
+
+
+@pytest.fixture(scope="module")
+def tier_b(tmp_path_factory):
+    """A tier B seed-plate checkpoint (pla simulated) and a small prereg with the same seed."""
+    import pickle
+    from arms.experiment import Config, run_experiment
+    from sim.reference import make_world
+    tmp = tmp_path_factory.mktemp("tier_b")
+    printers = {**make_world(calibrate.SITES, 0), "resin": make_world(calibrate.SITES, 11)["resin"]}  # resin stands in for a real printer
+    run_experiment(printers, calibrate.SITES, Config(rounds=0, n_particles=300, seed_pieces=16, seed=0, sim_sites=("pla",)),
+                   checkpoint=str(tmp / "state.pkl"))
+    prereg = yaml.safe_load(PREREG.read_text())
+    prereg["config"].update(rounds=1, n_particles=300, oracle_particles=300, mh_steps=2, slots_per_arm=4, seed=0)
+    (tmp / "prereg.yaml").write_text(yaml.safe_dump(prereg))
+    return tmp, pickle.loads((tmp / "state.pkl").read_bytes())
+
+
+def _calibrate(monkeypatch, tmp, *args):
+    monkeypatch.setattr("sys.argv", ["calibrate", "--state", str(tmp / "state.pkl"), "--prereg", str(tmp / "prereg.yaml"),
+                                     "--steps", "2000", "--draws", "50", "--seeds", "1", "--workers", "1", "--out", str(tmp / "out"), *args])
+    calibrate.main()
+
+
+def test_tier_b_calibrates_only_the_real_site(tier_b, monkeypatch):
+    from sim.reference import make_world
+    tmp, state = tier_b
+    assert state["sites"]["pla"].data["isolated"]  # the simulated site has seed data in the checkpoint
+    _calibrate(monkeypatch, tmp)
+    calib = json.loads((tmp / "out" / "calibration.json").read_text())
+    assert "resin" in calib and "pla" not in calib
+    world = make_world(calibrate.SITES, 0)["pla"]
+    assert calib["simulated"]["pla"]["world_seed"] == 0
+    assert calib["simulated"]["pla"]["truth"]["radial"] == world.radial
+    pred = json.loads((tmp / "out" / "prediction.json").read_text())
+    assert pred["config"]["sim_sites"] == ["pla"] and pred["iso_minus_net_um"]["1"]["n"] == 1
+    assert "pla**: simulated" in (tmp / "out" / "summary.md").read_text()
+
+
+def test_tier_b_prediction_uses_the_runs_world(synthetic):
+    from sim.reference import make_world
+    calib = replace(synthetic[2], sites={"resin": synthetic[2].sites["resin"]},
+                    fixed=calibrate.simulated_sites(("pla",), 0))
+    rng = np.random.default_rng(0)
+    a, b = calib.world(0, rng), calib.world(1, rng)
+    truth = make_world(calibrate.SITES, 0)["pla"]
+    for w in (a, b):
+        assert np.array_equal(w["pla"].theta, truth.theta) and w["pla"].radial == truth.radial
+    assert a["pla"].rng is not b["pla"].rng and a["pla"].rng.random() != b["pla"].rng.random()  # fresh noise per seed
+    with pytest.raises(SystemExit, match="some but not all"):
+        calibrate.simulated_sites(("pla", "resin"), 0)
+
+
+def test_tier_b_refuses_a_mismatched_checkpoint(tier_b, monkeypatch):
+    tmp, _ = tier_b
+    with pytest.raises(SystemExit, match="simulated"):
+        _calibrate(monkeypatch, tmp, "--sim-site", "resin")
+    prereg = yaml.safe_load((tmp / "prereg.yaml").read_text())
+    prereg["config"]["seed"] = 1
+    (tmp / "other.yaml").write_text(yaml.safe_dump(prereg))
+    monkeypatch.setattr("sys.argv", ["calibrate", "--state", str(tmp / "state.pkl"), "--prereg", str(tmp / "other.yaml"), "--out", str(tmp / "x")])
+    with pytest.raises(SystemExit, match="seed 0"):
+        calibrate.main()
