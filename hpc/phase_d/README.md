@@ -51,3 +51,12 @@ Then commit the range as above, check that `py -m prereg.check --stage round1` s
     py run.py --source real --sim-site pla --out real.json  # at the end: summary and scores
     py -m eval.audit receipts/real/resin.jsonl receipts/real/pla.jsonl
     py -c "import json; from sim.calibrate import iso_minus_net; print(iso_minus_net(json.load(open('real.json')), 'mae', ['resin'])[3])"   # the measured value, µm
+
+### Tier B coverage check
+
+`tier_b_coverage.py` plays a full tier B day per world: rehearsal scans at the real site, seed plate, Phase D, rounds 1-3. It then checks whether the measured round-3 value lands in that world's 5-95% range. 20 worlds at 200 seeds (Nebius, commit 59faf0c, `results/tier_b_coverage.jsonl`):
+
+- Real site only: inside 18/20, misses one high and one low, measured above the range centre in 9/20. Consistent with a 90% range.
+- Pooled over both sites: inside 19/20, but measured above the range centre in 19/20. The pooled prediction underestimates the sharing benefit, which is why tier B is scored on the real site.
+
+An earlier 10-world run at 50 seeds gave 7/10 for both. Most of that gap was the short runs and chance. 50-seed ranges are too narrow to commit.
