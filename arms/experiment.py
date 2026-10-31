@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import os
 import pickle
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 
 import numpy as np
 
@@ -55,10 +55,12 @@ class Config:
     # one's prior std. Added to every incoming message's variance, so two sites'
     # confident but slightly different beliefs don't fight.
     between_site_sd: float = 0.25
+    oracle_hierarchical: bool = True   # oracle pools raw data under the same between-site spread
     # Ablations
     share_messages: bool = True      # False = cut the network
     bad_sites: tuple[str, ...] = ()  # sites that broadcast corrupted beliefs
     agents: tuple[str, ...] = tuple(AGENT_NAMES)
+    seed_pieces: int | None = None   # sweep: keep only this many seed-plate pieces (None = all 56)
     seed: int = 0
 
 
@@ -69,6 +71,7 @@ class SiteState:
     chain: ReceiptChain
     data: dict[str, Data]                       # arm -> (piece, measurement); seed data in every arm
     escrow: Data = field(default_factory=list)  # held-out, scoring and credibility only
+    truth: dict[str, float] = field(default_factory=dict)  # sim only: noise-free held-out diameters, eval only
     roster: Roster | None = None
     inbox: dict[str, Message] = field(default_factory=dict)
     trust: dict[str, float] = field(default_factory=dict)
@@ -102,7 +105,7 @@ def run_experiment(
     sites, pieces, res, rng = state["sites"], state["pieces"], state["res"], state["rng"]
 
     if state["next_round"] == 0:
-        _print_all({s: seed_plate(s) for s in sites}, printers, sites, pieces)
+        _print_all({s: _seed_plate(s, cfg.seed_pieces) for s in sites}, printers, sites, pieces)
         state["next_round"] = 1
         _save(checkpoint, state)
 
@@ -169,6 +172,20 @@ def _print_all(plates: dict, printers: dict[str, Printer], sites: dict[str, Site
                 sites[s].chain.append("approval", approval)
     for s, plate in plates.items():
         _ingest(plate, printers[s].print_and_measure(plate), sites[s])
+        truth = getattr(printers[s], "truth", None)  # simulators only; never shown to agents
+        if truth:
+            sites[s].truth.update({p.piece_id: float(d) for p, d in zip(plate.pieces, truth(plate)) if p.arm == "heldout"})
+
+
+def _seed_plate(site: str, keep: int | None):
+    """The seed plate, optionally thinned to `keep` evenly spaced calibration pieces (held-out kept)."""
+    plate = seed_plate(site)
+    if keep is None:
+        return plate
+    seed = sorted((p for p in plate.pieces if p.arm == "seed"), key=lambda p: (p.kind, p.nominal_d, p.slot))
+    idx = set(np.round(np.linspace(0, len(seed) - 1, keep)).astype(int)) if keep else set()
+    kept = {seed[i].piece_id for i in idx}
+    return replace(plate, pieces=[p for p in plate.pieces if p.arm != "seed" or p.piece_id in kept])
 
 
 # ---- fitting ---------------------------------------------------------------
@@ -190,7 +207,8 @@ def _fit(st: SiteState, pieces, data: Data, cfg: Config, rng, messages: dict[str
 
 
 def _fit_oracle(sites: dict[str, SiteState], pieces, cfg: Config, rng) -> ParticlePosterior:
-    post = ParticlePosterior({s: st.process for s, st in sites.items()}, pieces, n=cfg.n_particles, seed=_rng_seed(rng))
+    post = ParticlePosterior({s: st.process for s, st in sites.items()}, pieces, n=cfg.n_particles, seed=_rng_seed(rng),
+                             between_site_sd=cfg.between_site_sd if cfg.oracle_hierarchical else None)
     post.update([m for st in sites.values() for _, m in st.data["oracle"]])
     return post
 
@@ -316,9 +334,11 @@ def _score(r: int, st: SiteState, pieces, oracle_post, cfg: Config, rng, res: Re
     }
     ok = [(p, m) for p, m in st.escrow if m.status == "ok"]
     for arm, (post, site) in models.items():
-        errs, lpds, inside = [], [], []
+        errs, lpds, inside, terrs = [], [], [], []
         for p, m in ok:
             mean, _ = post.predict(p, site)
+            if p.piece_id in st.truth:
+                terrs.append(abs(mean - st.truth[p.piece_id]))
             lo, hi = post.predict_interval(p, 0.9, k=4000, site=site)
             errs.append(abs(mean - m.measured_d))
             lpds.append(post.log_predictive(p, m.measured_d, site))
@@ -326,6 +346,7 @@ def _score(r: int, st: SiteState, pieces, oracle_post, cfg: Config, rng, res: Re
         res.scores.append({
             "round": r, "site": st.site, "arm": arm,
             "mae": float(np.mean(errs)), "lpd": float(np.mean(lpds)), "cov90": float(np.mean(inside)),
+            "mae_truth": float(np.mean(terrs)) if terrs else None,  # sim only: model error without noise
             "n_train": sum(1 for _ in st.data[arm]), "n_heldout": len(ok),
             "n_heldout_failed": sum(1 for _, m in st.escrow if m.status == "failed"),
         })

@@ -112,6 +112,9 @@ def sample_prior(process: str | list[ParamSpec], n: int, rng: np.random.Generato
     specs = _specs(process)
     out = np.empty((n, len(specs)))
     for j, s in enumerate(specs):
+        if s.prior_std > 10 * (s.hi - s.lo):  # effectively flat: uniform within bounds
+            out[:, j] = rng.uniform(s.lo, s.hi, n)
+            continue
         col = rng.normal(s.prior_mean, s.prior_std, n)
         bad = (col < s.lo) | (col > s.hi)
         while bad.any():

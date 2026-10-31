@@ -48,6 +48,7 @@ class ParticlePosterior:
         seed: int = 0,
         ess_frac: float = 0.5,
         mh_steps: int = 3,
+        between_site_sd: float | None = None,
     ):
         if isinstance(sites, str):
             sites = {sites: sites}
@@ -55,6 +56,9 @@ class ParticlePosterior:
         self.single = len(sites) == 1
         self.process = next(iter(sites.values())) if self.single else None
         self.pieces = pieces                   # piece_id -> Piece; Measurement carries only the id
+        # Hierarchical (multi-site only): each site gets its own copy of the shared
+        # parameters, drawn around one global value with sd = between_site_sd * prior std.
+        self.hier = between_site_sd if (between_site_sd and not self.single) else None
         self.specs, self.blocks = self._layout(sites)
         self.names = [s.name for s in self.specs]
         self.tags = [s.tag for s in self.specs]
@@ -63,6 +67,10 @@ class ParticlePosterior:
         self.ess_frac = ess_frac
         self.mh_steps = mh_steps
         self.theta = physics.sample_prior(self.specs, n, self.rng)  # [N, P]
+        if self.hier:
+            for g, c, tau in self._couplings:
+                lo, hi = self.specs[g].lo, self.specs[g].hi
+                self.theta[:, c] = np.clip(self.theta[:, g] + tau * self.rng.standard_normal(n), lo, hi)
         self.logw = np.full(n, -np.log(n))
         self._seen: list[Measurement] = []
         self._seen_batch: Batch | None = None
@@ -81,10 +89,21 @@ class ParticlePosterior:
         for s in physics.SHARED:
             shared_ix[s.name] = len(specs)
             specs.append(s)
+        # Per-site copies of the shared parameters (hierarchical only). Their own prior is
+        # flat within bounds; the coupling to the global value lives in _couplings.
+        local_ix: dict[str, dict[str, int]] = {site: {} for site in sites}
+        self._couplings: list[tuple[int, int, float]] = []   # (global col, site copy col, sd)
+        if self.hier:
+            for site in sites:
+                for s in physics.SHARED:
+                    local_ix[site][s.name] = len(specs)
+                    self._couplings.append((shared_ix[s.name], len(specs), self.hier * s.prior_std))
+                    specs.append(replace(s, name=f"{site}.{s.name}", prior_std=1e6, tag="site"))
         blocks = {}
         for site, proc in sites.items():
             it = iter(site_cols[site])
-            cols = [next(it) if s.tag == "site" else shared_ix[s.name] for s in physics.PARAMS[proc]]
+            cols = [next(it) if s.tag == "site" else local_ix[site].get(s.name, shared_ix[s.name])
+                    for s in physics.PARAMS[proc]]
             blocks[site] = (proc, np.array(cols))
         return specs, blocks
 
@@ -218,6 +237,8 @@ class ParticlePosterior:
         """Current tempered posterior: prior x extra priors x past data x new batch^phi."""
         with np.errstate(invalid="ignore", divide="ignore"):  # out-of-bounds proposals -> NaN, rejected
             lt = physics.log_prior(self.specs, theta)
+            for g, c, tau in self._couplings:
+                lt = lt - 0.5 * ((theta[:, c] - theta[:, g]) / tau) ** 2
             for cols, mu, prec, w in self._extra_priors.values():
                 lt = lt + w * self._gauss(theta, cols, mu, prec)
             if self._seen_batch:
