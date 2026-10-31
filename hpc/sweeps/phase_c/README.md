@@ -76,8 +76,25 @@ Full table: [`results/tuning_trust_seed16_slots6.md`](results/tuning_trust_seed1
 
 The same sweep with challenge and spawn on (main at 8777dae, [`results/tuning_trust_seed16_slots6_challenge_on.md`](results/tuning_trust_seed16_slots6_challenge_on.md)) picks the same values: bad trust 0.03, honest 0.92, net/iso under attack 0.97. So the choice holds for the secondary analysis as well.
 
-Provisional config for downstream work: [`hpc/phase_d/provisional_config.json`](../../phase_d/provisional_config.json). Nothing reads it automatically: `sim.calibrate` and `run.py` take the config from `prereg/prereg.yaml`. To use it before the prereg is filled in, copy `prereg.yaml`, put these values in its `config` section and pass the copy with `--prereg`. `discount`, `between_site_sd`, `n_particles` and `oracle_particles` in it are still the defaults until their stages finish.
+Provisional config for downstream work: [`hpc/phase_d/provisional_config.json`](../../phase_d/provisional_config.json). Nothing reads it automatically: `sim.calibrate` and `run.py` take the config from `prereg/prereg.yaml`. To use it before the prereg is filled in, copy `prereg.yaml`, put these values in its `config` section and pass the copy with `--prereg`. `n_particles` and `oracle_particles` in it are still the defaults until their stages finish; the knobs stage kept `discount` 0.2 and `between_site_sd` 0.25.
+
+### Knobs: discount 0.2, between_site_sd 0.25 (the defaults)
+
+Full table: [`results/tuning_knobs_seed16_slots6.md`](results/tuning_knobs_seed16_slots6.md). Same 40 seeds, at eta 5, trust_init 1.0, cred_floor 0.05:
+
+| discount | between_site_sd | bad sender's trust | honest trust | net/iso under attack (median) | iso − net honest, µm (SE) |
+|---|---|---|---|---|---|
+| 0.0 | 0.25 | 0.04 | 0.91 | 0.99 | 1.11 (0.47) |
+| 0.1 | 0.25 | 0.03 | 0.90 | 0.98 | 1.83 (0.48) |
+| **0.2** | **0.25** | **0.03** | **0.89** | **0.97** | **2.22 (0.47)** |
+| 0.4 | 0.25 | 0.03 | 0.90 | 1.03 | 2.20 (0.53) |
+| 0.2 | 0.1 | 0.007 | 0.87 | 0.94 | 1.97 (0.45) |
+| 0.2 | 0.5 | 0.19 | 0.93 | 0.98 | 2.35 (0.51) |
+| 0.2 | 1.0 | 0.73 | 0.93 | 1.02 | 1.16 (0.53) |
+
+- **discount 0** costs about half the networking benefit (1.1 vs 2.2 µm); 0.1-0.4 are within 1 SE of each other. 0.2 is the middle of that plateau.
+- **between_site_sd** trades detection against benefit. At 1.0 the bad site keeps trust 0.73: incoming beliefs are widened so much that disagreement no longer shows, and the benefit halves. 0.5 has the largest benefit (2.35 µm, within 1 SE of 0.25) but the bad sender keeps trust 0.19. 0.25 detects it (0.03) at no measurable cost in benefit. 0.1 detects best but trims the benefit and honest trust slightly.
 
 ### Not run yet
 
-Knobs (discount × between_site_sd), particles (`n_particles` × `mh_steps`), oracle (`oracle_particles`).
+Particles (`n_particles` × `mh_steps`), oracle (`oracle_particles`).
