@@ -1,0 +1,647 @@
+{
+ "plate_id": "resin-seed",
+ "site": "resin",
+ "seed": 101,
+ "pieces": [
+  {
+   "piece_id": "resin-seed-r0c0",
+   "kind": "hole",
+   "nominal_d": 1.9,
+   "slot": [
+    0,
+    0
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r0c1",
+   "kind": "pin",
+   "nominal_d": 4.9,
+   "slot": [
+    0,
+    1
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r0c2",
+   "kind": "pin",
+   "nominal_d": 1.5,
+   "slot": [
+    0,
+    2
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r0c3",
+   "kind": "pin",
+   "nominal_d": 4.1,
+   "slot": [
+    0,
+    3
+   ],
+   "arm": "heldout"
+  },
+  {
+   "piece_id": "resin-seed-r0c4",
+   "kind": "pin",
+   "nominal_d": 4.5,
+   "slot": [
+    0,
+    4
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r0c5",
+   "kind": "hole",
+   "nominal_d": 1.9,
+   "slot": [
+    0,
+    5
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r0c6",
+   "kind": "pin",
+   "nominal_d": 1.5,
+   "slot": [
+    0,
+    6
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r0c7",
+   "kind": "hole",
+   "nominal_d": 4.5,
+   "slot": [
+    0,
+    7
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r1c0",
+   "kind": "hole",
+   "nominal_d": 2.3,
+   "slot": [
+    1,
+    0
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r1c1",
+   "kind": "hole",
+   "nominal_d": 5.7,
+   "slot": [
+    1,
+    1
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r1c2",
+   "kind": "hole",
+   "nominal_d": 5.7,
+   "slot": [
+    1,
+    2
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r1c3",
+   "kind": "pin",
+   "nominal_d": 3.6,
+   "slot": [
+    1,
+    3
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r1c4",
+   "kind": "pin",
+   "nominal_d": 2.8,
+   "slot": [
+    1,
+    4
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r1c5",
+   "kind": "pin",
+   "nominal_d": 5.3,
+   "slot": [
+    1,
+    5
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r1c6",
+   "kind": "hole",
+   "nominal_d": 3.7,
+   "slot": [
+    1,
+    6
+   ],
+   "arm": "heldout"
+  },
+  {
+   "piece_id": "resin-seed-r1c7",
+   "kind": "hole",
+   "nominal_d": 5.3,
+   "slot": [
+    1,
+    7
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r2c0",
+   "kind": "hole",
+   "nominal_d": 6.6,
+   "slot": [
+    2,
+    0
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r2c1",
+   "kind": "pin",
+   "nominal_d": 7.0,
+   "slot": [
+    2,
+    1
+   ],
+   "arm": "heldout"
+  },
+  {
+   "piece_id": "resin-seed-r2c2",
+   "kind": "pin",
+   "nominal_d": 7.0,
+   "slot": [
+    2,
+    2
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r2c3",
+   "kind": "hole",
+   "nominal_d": 2.8,
+   "slot": [
+    2,
+    3
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r2c4",
+   "kind": "pin",
+   "nominal_d": 4.9,
+   "slot": [
+    2,
+    4
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r2c5",
+   "kind": "pin",
+   "nominal_d": 2.8,
+   "slot": [
+    2,
+    5
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r2c6",
+   "kind": "hole",
+   "nominal_d": 3.2,
+   "slot": [
+    2,
+    6
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r2c7",
+   "kind": "pin",
+   "nominal_d": 6.6,
+   "slot": [
+    2,
+    7
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r3c0",
+   "kind": "pin",
+   "nominal_d": 3.6,
+   "slot": [
+    3,
+    0
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r3c1",
+   "kind": "pin",
+   "nominal_d": 4.5,
+   "slot": [
+    3,
+    1
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r3c2",
+   "kind": "hole",
+   "nominal_d": 1.5,
+   "slot": [
+    3,
+    2
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r3c3",
+   "kind": "hole",
+   "nominal_d": 6.2,
+   "slot": [
+    3,
+    3
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r3c4",
+   "kind": "hole",
+   "nominal_d": 1.1,
+   "slot": [
+    3,
+    4
+   ],
+   "arm": "heldout"
+  },
+  {
+   "piece_id": "resin-seed-r3c5",
+   "kind": "pin",
+   "nominal_d": 6.2,
+   "slot": [
+    3,
+    5
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r3c6",
+   "kind": "hole",
+   "nominal_d": 1.5,
+   "slot": [
+    3,
+    6
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r3c7",
+   "kind": "pin",
+   "nominal_d": 7.0,
+   "slot": [
+    3,
+    7
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r4c0",
+   "kind": "pin",
+   "nominal_d": 3.2,
+   "slot": [
+    4,
+    0
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r4c1",
+   "kind": "hole",
+   "nominal_d": 4.9,
+   "slot": [
+    4,
+    1
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r4c2",
+   "kind": "hole",
+   "nominal_d": 2.3,
+   "slot": [
+    4,
+    2
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r4c3",
+   "kind": "pin",
+   "nominal_d": 4.0,
+   "slot": [
+    4,
+    3
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r4c4",
+   "kind": "pin",
+   "nominal_d": 5.7,
+   "slot": [
+    4,
+    4
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r4c5",
+   "kind": "hole",
+   "nominal_d": 4.0,
+   "slot": [
+    4,
+    5
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r4c6",
+   "kind": "pin",
+   "nominal_d": 4.0,
+   "slot": [
+    4,
+    6
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r4c7",
+   "kind": "pin",
+   "nominal_d": 5.8,
+   "slot": [
+    4,
+    7
+   ],
+   "arm": "heldout"
+  },
+  {
+   "piece_id": "resin-seed-r5c0",
+   "kind": "pin",
+   "nominal_d": 2.3,
+   "slot": [
+    5,
+    0
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r5c1",
+   "kind": "pin",
+   "nominal_d": 6.2,
+   "slot": [
+    5,
+    1
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r5c2",
+   "kind": "hole",
+   "nominal_d": 5.3,
+   "slot": [
+    5,
+    2
+   ],
+   "arm": "heldout"
+  },
+  {
+   "piece_id": "resin-seed-r5c3",
+   "kind": "pin",
+   "nominal_d": 6.6,
+   "slot": [
+    5,
+    3
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r5c4",
+   "kind": "hole",
+   "nominal_d": 7.0,
+   "slot": [
+    5,
+    4
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r5c5",
+   "kind": "hole",
+   "nominal_d": 4.5,
+   "slot": [
+    5,
+    5
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r5c6",
+   "kind": "pin",
+   "nominal_d": 5.7,
+   "slot": [
+    5,
+    6
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r5c7",
+   "kind": "hole",
+   "nominal_d": 3.2,
+   "slot": [
+    5,
+    7
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r6c0",
+   "kind": "hole",
+   "nominal_d": 6.6,
+   "slot": [
+    6,
+    0
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r6c1",
+   "kind": "pin",
+   "nominal_d": 3.2,
+   "slot": [
+    6,
+    1
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r6c2",
+   "kind": "hole",
+   "nominal_d": 3.6,
+   "slot": [
+    6,
+    2
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r6c3",
+   "kind": "hole",
+   "nominal_d": 5.3,
+   "slot": [
+    6,
+    3
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r6c4",
+   "kind": "pin",
+   "nominal_d": 1.9,
+   "slot": [
+    6,
+    4
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r6c5",
+   "kind": "pin",
+   "nominal_d": 7.3,
+   "slot": [
+    6,
+    5
+   ],
+   "arm": "heldout"
+  },
+  {
+   "piece_id": "resin-seed-r6c6",
+   "kind": "pin",
+   "nominal_d": 2.3,
+   "slot": [
+    6,
+    6
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r6c7",
+   "kind": "pin",
+   "nominal_d": 5.3,
+   "slot": [
+    6,
+    7
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r7c0",
+   "kind": "hole",
+   "nominal_d": 4.8,
+   "slot": [
+    7,
+    0
+   ],
+   "arm": "heldout"
+  },
+  {
+   "piece_id": "resin-seed-r7c1",
+   "kind": "hole",
+   "nominal_d": 3.6,
+   "slot": [
+    7,
+    1
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r7c2",
+   "kind": "hole",
+   "nominal_d": 7.0,
+   "slot": [
+    7,
+    2
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r7c3",
+   "kind": "hole",
+   "nominal_d": 2.8,
+   "slot": [
+    7,
+    3
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r7c4",
+   "kind": "pin",
+   "nominal_d": 1.9,
+   "slot": [
+    7,
+    4
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r7c5",
+   "kind": "hole",
+   "nominal_d": 4.0,
+   "slot": [
+    7,
+    5
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r7c6",
+   "kind": "hole",
+   "nominal_d": 6.2,
+   "slot": [
+    7,
+    6
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "resin-seed-r7c7",
+   "kind": "hole",
+   "nominal_d": 4.9,
+   "slot": [
+    7,
+    7
+   ],
+   "arm": "seed"
+  }
+ ]
+}
