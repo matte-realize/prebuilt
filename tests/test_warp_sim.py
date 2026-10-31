@@ -69,6 +69,20 @@ def test_noise_and_failures_match_reference():
         np.testing.assert_allclose(np.quantile(zg, qs), np.quantile(zr, qs), atol=0.05)
 
 
+def test_per_printer_failure_model_carries_over():
+    # calibrated printers (sim/calibrate.py) set their own failure diameters and width
+    ref = reference.make_world(SITES, 5)
+    ref["pla"].fail_d, ref["pla"].fail_width = {"pin": 2.5, "hole": 0.9}, 0.05
+    w = warp_sim.from_reference(ref, seed=5, orient_std=0.0)
+    k, plate = 2000, small_plate("pla")
+    g = w["pla"].sim.print_plates([w["pla"].index] * k, [plate] * k).measured.reshape(k, -1)
+    nominal = np.array([p.nominal_d for p in plate.pieces])
+    fail_d = np.array([{"pin": 2.5, "hole": 0.9}[p.kind] for p in plate.pieces])
+    p_fail = 1 / (1 + np.exp((nominal - fail_d) / 0.05))
+    se = np.sqrt(p_fail * (1 - p_fail) / k) + 1e-3
+    assert np.all(np.abs(np.isnan(g).mean(0) - p_fail) < 5 * se)
+
+
 def test_one_launch_matches_per_site_printers():
     sites = {f"s{i}": ("resin", "pla")[i % 2] for i in range(6)}
     w = warp_sim.make_world(sites, 3)
