@@ -12,6 +12,8 @@ failing to print.
 """
 from __future__ import annotations
 
+import zlib
+from collections import Counter
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -33,6 +35,11 @@ class SimPrinter:
     rng: np.random.Generator = field(repr=False)
     fail_d: dict[str, float] | None = None  # kind -> 50% failure diameter; None = FAIL_D[process]
     fail_width: float = FAIL_WIDTH
+    # Diagnostic: common random numbers across arms. When set, a piece's failure and
+    # noise draws depend only on (plate, kind, diameter, how many times this arm has
+    # already printed that geometry on the plate), so two arms printing the same
+    # candidates get the same draws. None = one shared stream (the default).
+    crn_seed: int | None = None
 
     def truth(self, plate: Plate) -> np.ndarray:
         """Noise-free diameters including unmodeled effects (for evaluation only)."""
@@ -45,18 +52,30 @@ class SimPrinter:
         sigma = physics.sigma(self.process, self.theta[None, :])[0]
         fail_d = self.fail_d or FAIL_D[self.process]
         out = []
+        seen: Counter = Counter()
         for p, di in zip(plate.pieces, d):
+            rng = self.rng
+            if self.crn_seed is not None:
+                geom = (p.arm, p.kind, round(p.nominal_d * 10))
+                rng = np.random.default_rng([self.crn_seed, zlib.crc32(plate.plate_id.encode()),
+                                             int(p.kind == "hole"), geom[2], seen[geom]])
+                seen[geom] += 1
             p_fail = 1 / (1 + np.exp((p.nominal_d - fail_d[p.kind]) / self.fail_width))
-            if self.rng.random() < p_fail:
+            if rng.random() < p_fail:
                 out.append(Measurement(p.piece_id, plate.plate_id, plate.site, None, "failed", "sim"))
             else:
-                y = float(di + sigma * self.rng.standard_normal())
+                y = float(di + sigma * rng.standard_normal())
                 out.append(Measurement(p.piece_id, plate.plate_id, plate.site, y, "ok", "sim"))
         return out
 
 
-def make_world(sites: dict[str, str], seed: int, shared_jitter: float = 0.2, radial_std: float = 0.02) -> dict[str, SimPrinter]:
-    """sites: site name -> process. Returns one SimPrinter per site."""
+def make_world(sites: dict[str, str], seed: int, shared_jitter: float = 0.2, radial_std: float = 0.02,
+               crn: bool = False) -> dict[str, SimPrinter]:
+    """sites: site name -> process. Returns one SimPrinter per site.
+
+    crn=True gives every arm common random numbers for print noise (diagnostic);
+    the hidden truth is the same either way.
+    """
     rng = np.random.default_rng(seed)
     shared = {s.name: rng.normal(s.prior_mean, s.prior_std) for s in physics.SHARED}
     printers = {}
@@ -66,4 +85,7 @@ def make_world(sites: dict[str, str], seed: int, shared_jitter: float = 0.2, rad
             if s.tag == "shared":
                 theta[j] = np.clip(shared[s.name] + shared_jitter * s.prior_std * rng.standard_normal(), s.lo, s.hi)
         printers[site] = SimPrinter(site, proc, theta, float(rng.normal(0, radial_std)), np.random.default_rng(rng.integers(2**32)))
+    if crn:
+        for i, p in enumerate(printers.values()):
+            p.crn_seed = int(np.random.default_rng([seed, 0xC4, i]).integers(2**31))
     return printers
