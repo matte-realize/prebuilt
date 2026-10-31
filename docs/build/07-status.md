@@ -93,6 +93,12 @@ The prereg field is now `predicted_range: {metric, round, range}`. `metric` is `
 
 Endpoint: `PREBUILT_LLM_URL` (OpenAI-compatible; default `http://localhost:8000/v1` for NIM on the DGX Spark), `PREBUILT_LLM_MODEL` (default `nvidia/llama-3.1-nemotron-70b-instruct`), and `NVIDIA_API_KEY` if needed. Not yet run against a live model. Use `--dry-run` to see the prompt without one.
 
+## Fallbacks (Oct 31)
+
+- `prereg.yaml` `fallback_tiers` commits which claims hold in tiers A–D before any print.
+- Tier B: `run.py --source real --sim-site pla` (or `resin`) runs that site on a simulated world fixed by the config seed; `Config.sim_sites` records it and locks it on resume. **T:** in a tier B run the checkpoint's simulated site has simulated seed data, so `sim.calibrate --state` must skip `res.config["sim_sites"]`.
+- Tier D and backup demo: `demo/tier-d/`, with charts, viewer pages and numbers from 20 seeds (DRAFT config). Finding for T's tuning: with a bad-faith site, networked error is 46 µm in round 1 (isolated 16) before trust drops, so `trust_init = 1.0` costs a full round.
+
 ## Not built yet (M)
 
 - Scanner on real scans: still to check with the paper target, then a test print. Synthetic stress test, 400 dpi, full plate, 3 scans each (RMS / max error, µm):
