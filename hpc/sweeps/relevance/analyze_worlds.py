@@ -1,9 +1,15 @@
 """Does it matter? Analyze worlds.jsonl (100 worlds x {normal, alone, liar} x 8 rounds)."""
-import json, math, sys
+import gzip, json, math, sys
 from collections import defaultdict
 import numpy as np
 
-rows = [json.loads(l) for l in open(sys.argv[1])]
+def _open(path):
+    """Results are committed gzipped (*.jsonl.gz); plain .jsonl works too."""
+    path = str(path)
+    return gzip.open(path, "rt") if path.endswith(".gz") else open(path)
+
+
+rows = [json.loads(l) for l in _open(sys.argv[1])]
 rng = np.random.default_rng(0)
 R = max(s["round"] for s in rows[0]["scores"])
 SEEDS = sorted({r["seed"] for r in rows})

@@ -8,10 +8,16 @@ named "measured". Every gain is paired per world: same world, same printers, one
 """
 from __future__ import annotations
 
-import json
+import gzip, json
 import math
 from collections import defaultdict
 from pathlib import Path
+
+def _open(path):
+    """Results are committed gzipped (*.jsonl.gz); plain .jsonl works too."""
+    path = str(path)
+    return gzip.open(path, "rt") if path.endswith(".gz") else open(path)
+
 
 import numpy as np
 import yaml
@@ -35,7 +41,7 @@ def ci(x, b=4000, seed=0):
 
 
 def load(path: Path):
-    runs = [json.loads(line) for line in path.open()]
+    runs = [json.loads(line) for line in _open(path)]
     R = max(s["round"] for s in runs[0]["scores"])
     C = defaultdict(dict)
     for run in runs:
@@ -58,7 +64,8 @@ def gain(better, base):
 
 
 def main() -> None:
-    C, R = load(HERE / "results" / "worlds.jsonl")
+    res = lambda name: next((p for p in (HERE / "results" / f"{name}.jsonl", HERE / "results" / f"{name}.jsonl.gz") if p.exists()), HERE / "results" / f"{name}.jsonl")
+    C, R = load(res("worlds"))
     seeds = sorted(C[("main", "normal")])
     arr = lambda cond, arm, m="mae_truth", r=HORIZON: np.array([C[("main", cond)][s]["curve"][(arm, m)][r - 1] for s in seeds])
     trust = defaultdict(list)
@@ -94,7 +101,7 @@ def main() -> None:
         # Slip-fit band widths from the prereg, the tolerance scale a part's fit actually depends on.
         "slip_band_um": {proc: round((v["slip"][1] - v["slip"][0]) * 1000) for proc, v in th.items()},
     }
-    reg = HERE / "results" / "regimes.jsonl"
+    reg = res("regimes")
     if reg.exists() and reg.stat().st_size:
         RC, RR = load(reg)
         ev["regimes"] = []
@@ -125,6 +132,20 @@ def main() -> None:
             if (cell, cond) in RC:
                 tr[f"{cell} | {cond}"] = [float(np.median([run["curve"][("networked", "mae_truth")][r] for run in RC[(cell, cond)].values()])) for r in range(RR)]
         ev["trust_start"] = tr
+    cons = res("consistency")
+    if cons.exists() and cons.stat().st_size:
+        runs = [json.loads(line) for line in _open(cons)]
+        cell = lambda cond, chk, site="resin": [1000 * np.mean([x["mae_truth"] for x in r["scores"] if x["arm"] == "networked" and x["round"] == 1 and x["site"] == site])
+                                                for r in runs if r["cond"] == cond and r["check"] == chk]
+        caught = [c for r in runs if r["cond"] == "liar" and r["check"] for c in r["checks"] if c["sender"] == "pla"]
+        honest = [c for r in runs if r["check"] for c in r["checks"] if not (r["cond"] == "liar" and c["sender"] == "pla")]
+        ev["consistency_check"] = {
+            "worlds": len({r["seed"] for r in runs}),
+            "liar_caught": sum(c["dropped"] for c in caught), "liar_notes": len(caught),
+            "honest_dropped": sum(c["dropped"] for c in honest), "honest_notes": len(honest),
+            "resin_round1_um": {"liar_no_check": float(np.median(cell("liar", False))), "liar_check": float(np.median(cell("liar", True))),
+                                "no_notes": float(np.median(cell("alone", False)))},
+        }
     out = ROOT / "viewer" / "evidence.json"
     out.write_text(json.dumps(ev, indent=1))
     print(f"wrote {out}")

@@ -2,11 +2,17 @@
 
     .venv/bin/python hpc/sweeps/relevance/analyze_consistency.py hpc/sweeps/relevance/results/consistency.jsonl
 """
-import json, math, sys
+import gzip, json, math, sys
 from collections import defaultdict
 import numpy as np
 
-runs = [json.loads(l) for l in open(sys.argv[1])]
+def _open(path):
+    """Results are committed gzipped (*.jsonl.gz); plain .jsonl works too."""
+    path = str(path)
+    return gzip.open(path, "rt") if path.endswith(".gz") else open(path)
+
+
+runs = [json.loads(l) for l in _open(sys.argv[1])]
 R = max(s["round"] for s in runs[0]["scores"])
 by = defaultdict(dict)
 for r in runs:

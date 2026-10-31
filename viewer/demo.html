@@ -490,7 +490,7 @@ function claims() {
   if (E) {
     const L = E.liar;
     h += `<div class="claim"><button class="top"><b class="t">A lying printer gets cut off</b><span class="tag sim">${E.worlds} sim worlds</span></button><div class="more">
-      <p>The other printer stops listening after one round (trust <strong>${Math.round(L.trust_by_round[1] * 100)}% → ${Math.round(L.trust_by_round[2] * 100)}%</strong>). The cost comes first: in round 1 the team's error jumps to <strong>${f1(L.round1_error_um)} µm</strong>, against ${f1(L.round1_error_um_no_notes)} µm with no notes. After that the damage is contained, but the honest notes' benefit is lost too.${trustNote()}</p>
+      <p>The other printer stops listening after one round (trust <strong>${Math.round(L.trust_by_round[1] * 100)}% → ${Math.round(L.trust_by_round[2] * 100)}%</strong>). The cost comes first: in round 1 the team's error jumps to <strong>${f1(L.round1_error_um)} µm</strong>, against ${f1(L.round1_error_um_no_notes)} µm with no notes. After that the damage is contained, but the honest notes' benefit is lost too.${trustNote()}${checkNote()}</p>
       ${ALL.liar ? `<div class="ctl"><span>Make the ${esc(liar)} lie</span><button class="tg danger" id="tgLie" role="switch" aria-checked="${SC === "liar"}" ${SC === "alone" ? "disabled" : ""} aria-label="Make one printer lie"></button></div>` : ""}</div></div>`;
     h += `<div class="claim"><button class="top"><b class="t">The guess ranges are honest</b><span class="tag sim">${E.worlds} sim worlds</span></button><div class="more">
       <p>Each guess comes with a 90% range. Across ${E.worlds} worlds about <strong>${E.coverage ? E.coverage.networked : 90}%</strong> of true sizes fell inside it${cov != null ? `; this run so far: ${cov}%` : ""}.</p></div></div>`;
@@ -519,6 +519,10 @@ function claims() {
   $("replay").onclick = () => replayAudit();
   if ($("tgShare")) $("tgShare").onclick = () => useScenario(SC === "alone" ? "normal" : "alone");
   if ($("tgLie")) $("tgLie").onclick = () => useScenario(SC === "liar" ? "normal" : "liar");
+}
+function checkNote() {
+  const c = E && E.consistency_check; if (!c) return "";
+  return ` <strong>A fix we tested:</strong> each printer checks incoming notes against its own data and sets aside wildly inconsistent ones. It caught ${c.liar_caught} of ${c.liar_notes} lying notes, wrongly dropped ${c.honest_dropped} of ${c.honest_notes} honest ones, and removed the round-1 damage (${f1(c.resin_round1_um.liar_no_check)} → ${f1(c.resin_round1_um.liar_check)} µm at the printer being lied to). Prototype, not in the registered run.`;
 }
 function trustNote() {
   const t = E && E.trust_start, a = t && t["trust 1.0 | liar"], b = t && t["trust 0.3 | liar"];
