@@ -1,0 +1,12 @@
+{
+  "rounds": 3,
+  "n_particles": 2000,
+  "oracle_particles": 2000,
+  "slots_per_arm": 6,
+  "seed_pieces": 16,
+  "eta": 5.0,
+  "cred_floor": 0.05,
+  "discount": 0.2,
+  "trust_init": 1.0,
+  "between_site_sd": 0.25
+}

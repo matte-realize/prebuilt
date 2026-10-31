@@ -118,9 +118,10 @@ def tuning(name: str) -> str:
            "honest trust: final trust between honest sites, in honest runs and from the bad site toward the honest one "
            "(higher is better); `<0.5` is the share of those links that ended below 0.5. "
            "net/iso under attack: honest site's networked over isolated mae_truth at the last round (1.0 = no harm). "
-           "Gap closed: honest runs, pooled, last round. Retired: agents retired per run, honest runs.", "",
-           "| config | bad trust (SE) | honest trust (SE) | honest <0.5 | net/iso under attack | iso - net honest, µm (SE) | gap closed [90% CI] | retired |",
-           "|---|---|---|---|---|---|---|---|"]
+           "Gap closed: honest runs, pooled, last round. ora < net: share of seeds, honest runs, last round, where the "
+           "oracle beats networked. Retired: agents retired per run, honest runs.", "",
+           "| config | bad trust (SE) | honest trust (SE) | honest <0.5 | net/iso under attack | iso - net honest, µm (SE) | gap closed [90% CI] | ora < net | retired |",
+           "|---|---|---|---|---|---|---|---|---|"]
     for label, conds in groups.items():
         bad_t, hon_t, harm, retired = [], [], [], []
         for cond, rs in conds.items():
@@ -145,7 +146,17 @@ def tuning(name: str) -> str:
             f"| {label} | {mean_se(bad_t)} | {mean_se(hon_t)} "
             f"| {np.mean(hon_t < 0.5):.2f} | {f'{np.median(harm):.2f} (mean {harm.mean():.2f})' if len(harm) else '-'} "
             f"| {um(diff.mean())} ({um(se(diff))}) | {pooled_gap(iso, net, ora):.2f} [{lo:.2f}, {hi:.2f}] "
-            f"| {np.mean(retired):.2f} |")
+            f"| {np.mean(ora < net):.2f} | {np.mean(retired):.2f} |")
+    if name.startswith(("tuning_particles", "tuning_oracle")):
+        data = {label: per_seed([{**r, "arm": label} for r in conds["honest"]])[label] for label, conds in groups.items()}
+        order = list(data)
+        lines = ["| config | round | ora < net | ora < iso |", "|---|---|---|---|"]
+        for label in order:
+            for r, a in sorted(data[label].items()):
+                lines.append(f"| {label} | {r} | {np.mean(a['oracle'] < a['networked']):.2f} "
+                             f"| {np.mean(a['oracle'] < a['isolated']):.2f} |")
+        out += ["", "Per round, honest runs:", "", table_arms(data, order), "", "Share of seeds where the oracle wins:", "",
+                "\n".join(lines)]
     return "\n".join(out)
 
 

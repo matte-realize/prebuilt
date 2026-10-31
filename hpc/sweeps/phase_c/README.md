@@ -50,6 +50,72 @@ The main cause was Monte Carlo mixing, not particle count: the 18-dim oracle got
 
 Privacy audit passed in 400/400 runs. Wall time per run: 7 s (4 pieces, 6 slots) to 52 s (56 pieces, 18 slots).
 
-## Not run yet
+## 2. Tuning sweep (16 seed pieces, 6 slots)
 
-`tuning.py` (stages `trust`, `knobs`, `particles`) and `hpc/nebius/run_phase_c.sh` are smoke-tested only (2 seeds, 1 round). The tuning sweep, frozen config and predicted range (deliverables 2-3) are still to do; the range waits on the oracle fix above.
+Run on the GCP VM from main at ce27b43 (challenge and spawn off, `same_agents`, scaled `oracle_mh_steps`), 40 seeds, 3 rounds, seeds 2000-2039. Raw rows are committed gzipped; `analyze.py` reads them directly.
+
+    .venv/bin/python hpc/sweeps/phase_c/tuning.py --stage trust --seed-pieces 16 --slots 6 --seeds 40 --workers 31
+
+### Trust: eta 5, trust_init 1.0, cred_floor 0.05
+
+Full table: [`results/tuning_trust_seed16_slots6.md`](results/tuning_trust_seed16_slots6.md). Last round, 40 seeds per condition:
+
+| eta, trust_init | bad sender's trust | honest trust | honest links < 0.5 | net/iso under attack (median) | iso − net honest, µm (SE) |
+|---|---|---|---|---|---|
+| 1, 1.0 | 0.25 | 0.97 | 0% | 1.94 | 1.81 (0.50) |
+| 2, 1.0 | 0.12 | 0.95 | 1% | 1.15 | 1.92 (0.50) |
+| **5, 1.0** | **0.03** | **0.89** | **6%** | **0.97** | **2.22 (0.47)** |
+| 5, 0.75 | 0.04 | 0.77 | 10% | 0.92 | 2.03 (0.50) |
+| 10, 1.0 | 0.02 | 0.83 | 11% | 0.94 | 1.81 (0.51) |
+| 20, 1.0 | 0.005 | 0.76 | 26% | 0.94 | 1.91 (0.61) |
+
+- **eta 5** is the smallest learning rate that stops a bad sender from hurting the honest site (networked/isolated under attack below 1). At eta 1-2 the bad site still makes the honest site's model 15-94% worse. Above 5, trust between honest sites starts collapsing: at eta 20 a quarter of honest links end below 0.5.
+- **trust_init 1.0** over 0.75: the honest links stay higher (0.89 vs 0.77) with the same protection. 0.5 starts honest links at the threshold, so 40% of them end below it.
+- **cred_floor 0.05**: makes no difference at eta 5 (0.02 and 0.05 give identical rows). 0.1 starts retiring agents (0.1 per run). 0.05 is the middle of the range that doesn't bind.
+- iso − net differs across configs by less than 1 SE, so the networking benefit doesn't decide the choice; protection against a bad site does.
+
+The same sweep with challenge and spawn on (main at 8777dae, [`results/tuning_trust_seed16_slots6_challenge_on.md`](results/tuning_trust_seed16_slots6_challenge_on.md)) picks the same values: bad trust 0.03, honest 0.92, net/iso under attack 0.97. So the choice holds for the secondary analysis as well.
+
+Provisional config for downstream work: [`hpc/phase_d/provisional_config.json`](../../phase_d/provisional_config.json). Nothing reads it automatically: `sim.calibrate` and `run.py` take the config from `prereg/prereg.yaml`. To use it before the prereg is filled in, copy `prereg.yaml`, put these values in its `config` section and pass the copy with `--prereg`. `n_particles` and `oracle_particles` in it are still the defaults until their stages finish; the knobs stage kept `discount` 0.2 and `between_site_sd` 0.25.
+
+### Knobs: discount 0.2, between_site_sd 0.25 (the defaults)
+
+Full table: [`results/tuning_knobs_seed16_slots6.md`](results/tuning_knobs_seed16_slots6.md). Same 40 seeds, at eta 5, trust_init 1.0, cred_floor 0.05:
+
+| discount | between_site_sd | bad sender's trust | honest trust | net/iso under attack (median) | iso − net honest, µm (SE) |
+|---|---|---|---|---|---|
+| 0.0 | 0.25 | 0.04 | 0.91 | 0.99 | 1.11 (0.47) |
+| 0.1 | 0.25 | 0.03 | 0.90 | 0.98 | 1.83 (0.48) |
+| **0.2** | **0.25** | **0.03** | **0.89** | **0.97** | **2.22 (0.47)** |
+| 0.4 | 0.25 | 0.03 | 0.90 | 1.03 | 2.20 (0.53) |
+| 0.2 | 0.1 | 0.007 | 0.87 | 0.94 | 1.97 (0.45) |
+| 0.2 | 0.5 | 0.19 | 0.93 | 0.98 | 2.35 (0.51) |
+| 0.2 | 1.0 | 0.73 | 0.93 | 1.02 | 1.16 (0.53) |
+
+- **discount 0** costs about half the networking benefit (1.1 vs 2.2 µm); 0.1-0.4 are within 1 SE of each other. 0.2 is the middle of that plateau.
+- **between_site_sd** trades detection against benefit. At 1.0 the bad site keeps trust 0.73: incoming beliefs are widened so much that disagreement no longer shows, and the benefit halves. 0.5 has the largest benefit (2.35 µm, within 1 SE of 0.25) but the bad sender keeps trust 0.19. 0.25 detects it (0.03) at no measurable cost in benefit. 0.1 detects best but trims the benefit and honest trust slightly.
+
+### Particles: n_particles 4000, mh_steps 6 (changed from 2000, 3)
+
+Full table: [`results/tuning_particles_seed16_slots6.md`](results/tuning_particles_seed16_slots6.md). Honest runs, same 40 seeds, round 3. Change in iso − net is paired by seed against 2000 particles, 3 MH steps:
+
+| n_particles, mh_steps | iso − net, µm (SE) | change vs 2000, 3 (SE) | isolated change | networked change | s per run |
+|---|---|---|---|---|---|
+| 1000, 3 | 2.51 (0.59) | +0.29 (0.50) | +0.44 | +0.15 | 6 |
+| **2000, 3 (old)** | **2.22 (0.47)** | - | - | - | 10 |
+| 4000, 3 | 2.42 (0.46) | +0.20 (0.34) | +0.15 | −0.05 | 18 |
+| 8000, 3 | 1.22 (0.41) | −1.00 (0.36) | −0.56 | +0.44 | 36 |
+| 1000, 6 | 1.41 (0.51) | −0.81 (0.47) | −0.37 | +0.44 | 8 |
+| 2000, 6 | 1.69 (0.43) | −0.54 (0.42) | −0.29 | +0.25 | 14 |
+| **4000, 6** | **1.44 (0.43)** | **−0.78 (0.40)** | **−0.57** | **+0.22** | **26** |
+| 8000, 6 | 1.65 (0.58) | −0.57 (0.55) | −0.26 | +0.30 | 50 |
+
+Every setting with better mixing (6 MH steps, or 8000 particles) shrinks iso − net by 0.5-1.0 µm, and always the same way: isolated gets better, networked slightly worse. So about a third of the 2.2 µm benefit at the old setting is sampler error in the isolated fit that incoming messages happen to correct, not information from the other site. With better mixing the benefit settles at 1.2-1.7 µm, still about 3 SE above zero.
+
+Recommendation: **n_particles 4000, mh_steps 6**. It sits on that plateau with margin (2000, 6 is there too, but only just). 26 s per simulated run is cheap, and on real rounds the fit time is negligible next to printing. `mh_steps` is not in the prereg's `config` section yet; `prereg.check.config_from` accepts any `Config` field, so adding `mh_steps: 6` there is enough. `oracle_mh_steps` scales with it (12 steps for the oracle).
+
+The trust and knobs stages ran at 2000, 3. A check of those choices at 4000, 6 is listed below.
+
+### Not run yet
+
+Oracle (`oracle_particles`).
