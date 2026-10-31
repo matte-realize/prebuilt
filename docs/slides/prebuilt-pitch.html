@@ -1,0 +1,363 @@
+<title>Prebuilt Pitch</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a stack of 16:9 slides drawn like inspection sheets (slate plate, steel-blue ground,
+   resin-amber marks); Present mode shows one slide fitted to the window. */
+:root {
+  --bg: #e9eef1;        /* workshop steel */
+  --sheet: #f8fafb;     /* slide paper */
+  --ink: #111a20;
+  --muted: #55636d;
+  --line: #cfd8de;
+  --plate: #24333c;     /* printed plate, slate */
+  --amber: #b86b00;     /* resin amber: held-out rings, flags */
+  --iso: #2a78d6; --net: #eb6834; --ora: #12936a;
+  --ok: #12936a;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0d1316; --sheet: #151e23; --ink: #e6ecef; --muted: #9babb5; --line: #2a3841;
+  --plate: #3b4f5b; --amber: #f0a43a; --iso: #3987e5; --net: #f07a48; --ora: #2fc28c; --ok: #2fc28c;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0d1316; --sheet: #151e23; --ink: #e6ecef; --muted: #9babb5; --line: #2a3841;
+  --plate: #3b4f5b; --amber: #f0a43a; --iso: #3987e5; --net: #f07a48; --ora: #2fc28c; --ok: #2fc28c;
+  color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font-family: var(--body); line-height: 1.45; }
+.deck { display: grid; gap: 28px; padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1200px; margin: 0 auto; }
+.bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.bar h1 { font: 600 15px/1.2 var(--display); letter-spacing: .08em; text-transform: uppercase; margin: 0; color: var(--muted); }
+.bar button { font: 500 14px var(--body); color: var(--ink); background: var(--sheet); border: 1px solid var(--line);
+  border-radius: 6px; padding: 8px 14px; cursor: pointer; }
+.bar button:hover { border-color: var(--muted); }
+button:focus-visible, .slide:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+.slide { container-type: inline-size; aspect-ratio: 16 / 9; background: var(--sheet); border: 1px solid var(--line);
+  border-radius: 4px; padding: 3.2cqw 4cqw; display: grid; grid-template-rows: auto auto 1fr; gap: 1.4cqw;
+  position: relative; overflow: hidden; min-width: 0; }
+.slide header { display: flex; justify-content: space-between; gap: 2cqw; font: 500 1.15cqw/1 var(--mono);
+  color: var(--muted); text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid var(--line); padding-bottom: 1cqw; }
+.slide h2 { font: 700 4.2cqw/1.02 var(--display); margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+.slide .body { font-size: 1.75cqw; min-height: 0; display: grid; align-content: start; gap: 1.6cqw; }
+.slide p { margin: 0; max-width: 62ch; }
+.note { display: none; }
+.lede { font: 500 2.5cqw/1.25 var(--body); text-wrap: balance; }
+.meta { color: var(--muted); font-size: 1.4cqw; }
+.mono { font-family: var(--mono); font-size: .85em; }
+.foot { color: var(--muted); font-size: 1.45cqw; border-top: 1px dashed var(--line); padding-top: 1.1cqw; max-width: none; }
+.flag { color: var(--amber); font-weight: 600; }
+
+.split { display: grid; grid-template-columns: 1.15fr 1fr; gap: 4cqw; align-items: center; }
+.stack { display: grid; gap: 1.4cqw; align-content: start; }
+.fig { margin: 0; display: grid; justify-items: center; }
+.fig.small .plate { max-width: 70%; }
+.plate { width: 100%; max-width: 32cqw; height: auto; }
+.plate .pl { fill: var(--plate); }
+.plate .cut, .plate .hole { fill: var(--sheet); }
+.plate .pin { fill: #d9e1e6; stroke: var(--sheet); stroke-width: .5; }
+.plate .ho { stroke: var(--amber); stroke-width: .9; }
+.plate .dot { fill: var(--sheet); opacity: .25; }
+.plate .lab { font: 3.1px var(--mono); fill: var(--muted); }
+
+.cols3, .cols2 { display: grid; gap: 2.4cqw; }
+.cols3 { grid-template-columns: repeat(3, 1fr); }
+.cols2 { grid-template-columns: repeat(2, 1fr); }
+.cell { border-top: 3px solid var(--ink); padding-top: 1.2cqw; display: grid; gap: .8cqw; align-content: start; }
+.big { font: 700 4.6cqw/1 var(--display); font-variant-numeric: tabular-nums; }
+.big small, .big-ok small { font: 500 1.6cqw var(--body); color: var(--muted); margin-left: .3em; }
+.big-ok { font: 700 5cqw/1 var(--display); color: var(--ok); margin: 0; }
+
+.boundary { display: grid; grid-template-columns: 1fr 1.1fr 1fr; gap: 2cqw; align-items: stretch; }
+.site { border: 1px solid var(--line); border-radius: 4px; padding: 1.4cqw; }
+.site h3 { font: 600 1.9cqw var(--display); margin: 0 0 .8cqw; }
+.site ul, .cross { margin: 0; padding-left: 1.2em; display: grid; gap: .5cqw; font-size: 1.5cqw; }
+.wall { border-left: 3px solid var(--amber); border-right: 3px solid var(--amber); padding: 1.2cqw 1.6cqw; display: grid; gap: .8cqw; align-content: start; }
+.wall > span { font: 600 1.2cqw var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--amber); }
+.a-iso { color: var(--iso); } .a-net { color: var(--net); } .a-ora { color: var(--ora); }
+
+.flow { margin: 0; padding-left: 1.6em; display: grid; gap: 1.1cqw; font-size: 1.7cqw; max-width: 70ch; }
+.flow li::marker { font: 600 1em var(--mono); color: var(--amber); }
+
+.timeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2cqw; position: relative; }
+.timeline > div { border-top: 3px solid var(--ink); padding-top: 1.1cqw; display: grid; gap: .6cqw; align-content: start; font-size: 1.5cqw; }
+.timeline > div:last-child { border-top-color: var(--amber); }
+.t { font: 600 1.25cqw var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+
+.slide:has(.chart) .body { grid-template-columns: 2.6fr 1fr; align-items: start; }
+.slide:has(.chart) .foot { grid-column: 1 / -1; }
+.chart { margin: 0; background: #fcfcfb; border-radius: 3px; padding: .4cqw; }
+.chart img { display: block; width: 100%; height: auto; }
+.nums { border-collapse: collapse; font: 1.6cqw var(--mono); font-variant-numeric: tabular-nums; width: 100%; }
+.nums th { font: 600 1.2cqw var(--mono); text-transform: uppercase; letter-spacing: .04em; text-align: right; padding: .5cqw .6cqw; border-bottom: 1px solid var(--line); }
+.nums td { text-align: right; padding: .6cqw; border-bottom: 1px solid var(--line); }
+.nums th:first-child, .nums td:first-child { text-align: left; color: var(--muted); }
+
+.receipt { margin: 0; font: 1.25cqw/1.5 var(--mono); background: var(--bg); border: 1px solid var(--line); border-radius: 4px;
+  padding: 1.4cqw; overflow: auto; white-space: pre; color: var(--ink); }
+.placeholder { border: 2px dashed var(--line); border-radius: 6px; padding: 3cqw; display: grid; place-items: center; min-height: 18cqw; color: var(--muted); }
+
+/* Phone and narrow windows: drop the 16:9 frame and use normal type. */
+@media (max-width: 720px) {
+  .slide { aspect-ratio: auto; padding: 20px 18px; gap: 12px; }
+  .slide header { font-size: 11px; padding-bottom: 8px; }
+  .slide h2 { font-size: 28px; }
+  .slide .body, .flow { font-size: 15px; gap: 14px; }
+  .lede { font-size: 19px; } .meta, .foot, .site ul, .cross, .timeline > div { font-size: 13px; }
+  .big { font-size: 34px; } .big small, .big-ok small { font-size: 13px; } .big-ok { font-size: 40px; }
+  .split, .cols3, .cols2, .boundary, .timeline, .slide:has(.chart) .body { grid-template-columns: 1fr; }
+  .plate { max-width: 300px; } .site h3 { font-size: 17px; } .wall > span, .t, .nums th { font-size: 11px; }
+  .nums { font-size: 14px; } .receipt { font-size: 11px; padding: 12px; } .placeholder { min-height: 120px; padding: 20px; }
+  .wall { border-left: 0; border-right: 0; border-top: 3px solid var(--amber); border-bottom: 3px solid var(--amber); }
+}
+
+/* Present: one slide, fitted to the window. */
+body.present { overflow: hidden; }
+body.present .deck { max-width: none; padding: 0; height: 100vh; display: grid; place-items: center; }
+body.present .bar { position: fixed; right: max(12px, env(safe-area-inset-right, 0px)); bottom: max(12px, env(safe-area-inset-bottom, 0px)); z-index: 2; opacity: .55; }
+body.present .bar:hover { opacity: 1; }
+body.present .bar h1 { display: none; }
+body.present .slide { display: none; width: min(100vw, calc(100vh * 16 / 9)); border-radius: 0; }
+body.present .slide.on { display: grid; }
+body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; bottom: 1.2cqw; font: 1.2cqw var(--mono); color: var(--amber); }
+@media (prefers-reduced-motion: no-preference) { .slide.on { animation: in .18s ease-out; } }
+@keyframes in { from { opacity: .4; } to { opacity: 1; } }
+
+.big-q { font: 600 2.2cqw/1.25 var(--display); color: var(--amber); max-width: 40ch; }
+.fig figcaption { font: 1.15cqw var(--mono); color: var(--muted); margin-top: .8cqw; text-align: center; }
+.demo { display: grid; grid-template-columns: 1fr 1fr; gap: 2cqw; align-items: start; }
+.demo svg { width: 100%; height: auto; display: block; }
+.demo .ctl { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 1cqw; align-items: center; }
+.demo button { font: 600 1.4cqw var(--body); color: var(--ink); background: var(--sheet); border: 1px solid var(--line);
+  border-radius: 6px; padding: .7cqw 1.4cqw; cursor: pointer; }
+.demo button[aria-pressed="true"] { border-color: var(--amber); color: var(--amber); }
+.demo .tiny { font: 11px var(--mono); fill: var(--muted); color: var(--muted); }
+.demo .ctl .tiny { font-size: 1.2cqw; }
+.demo .lbl { font: 600 17px var(--display); fill: var(--ink); }
+.demo .box { fill: var(--bg); stroke: var(--line); }
+.demo .wall-line { stroke: var(--amber); stroke-width: 3; stroke-dasharray: 6 5; }
+.demo .pkt rect { fill: var(--net); } .demo .pkt text { font: 600 11px var(--mono); fill: #fff; }
+.demo .pkt { opacity: 0; } .demo .pkt.bad rect { fill: #c2342b; }
+.demo .track { fill: var(--line); } .demo .trust { fill: var(--ora); transition: width .6s ease; }
+.demo .trust.low { fill: #c2342b; }
+.demo .axis { stroke: var(--line); } .demo .grid { stroke: var(--line); stroke-dasharray: 2 4; }
+.demo .ln { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.demo .ln.oracle { stroke-dasharray: 7 5; }
+.demo .tick { font: 11px var(--mono); fill: var(--muted); }
+.demo .end { font: 600 12px var(--body); }
+@media (max-width: 720px) { .demo { grid-template-columns: 1fr; } .demo button, .demo .ctl .tiny { font-size: 14px; } .big-q { font-size: 18px; } .fig figcaption { font-size: 11px; } }
+</style>
+
+<main class="deck">
+  <div class="bar">
+    <h1>Prebuilt · 3-minute pitch · 6 slides</h1>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button id="notes" type="button" aria-pressed="false">Speaker notes</button>
+      <button id="present" type="button">Present (→ ← Esc)</button>
+    </div>
+  </div>
+<section class="slide" id="s1" aria-label="Slide 1: Every shop re-learns its own printer">
+  <header><span class="kick">0:00–0:25 · The problem</span><span class="num">1 / 6</span></header>
+  <h2>Every shop re-learns its own printer</h2>
+  <div class="body"><div class="split">
+  <div class="stack">
+    <p class="lede">A 3D printer is only useful once you know how it misses: holes come out small, pins come out fat, edges drift.</p>
+    <p>Every site learns that from scratch, one test print at a time. Sites can't pool the data, because measurements expose process know-how and customer parts.</p>
+    <p class="big-q">Can printers learn from each other without sharing a single measurement?</p>
+  </div>
+  <figure class="fig"><svg viewBox="-6 -6 112 112" class="plate" role="img" aria-label="The seed test plate: pins and holes, 1 to 7 mm"><rect x="0" y="0" width="100" height="100" rx="1.2" class="pl"/><rect x="47" y="97.5" width="6" height="2.6" class="cut"/><rect x="3" y="3" width="4" height="4" class="cut"/><rect x="93" y="3" width="4" height="4" class="cut"/><rect x="3" y="93" width="4" height="4" class="cut"/><circle cx="25" cy="15" r="2.45" class="pin"/><circle cx="45" cy="15" r="2.05" class="pin ho"/><circle cx="75" cy="15" r="0.75" class="pin"/><circle cx="15" cy="25" r="1.15" class="hole"/><circle cx="75" cy="25" r="1.85" class="hole ho"/><circle cx="85" cy="25" r="2.65" class="hole"/><circle cx="25" cy="35" r="3.5" class="pin ho"/><circle cx="35" cy="45" r="0.75" class="hole"/><circle cx="45" cy="45" r="3.1" class="hole"/><circle cx="55" cy="45" r="0.55" class="hole ho"/><circle cx="85" cy="45" r="3.5" class="pin"/><circle cx="45" cy="55" r="2.0" class="pin"/><circle cx="55" cy="55" r="2.85" class="pin"/><circle cx="85" cy="55" r="2.9" class="pin ho"/><circle cx="25" cy="65" r="3.1" class="pin"/><circle cx="35" cy="65" r="2.65" class="hole ho"/><circle cx="55" cy="65" r="3.5" class="hole"/><circle cx="65" cy="65" r="2.25" class="hole"/><circle cx="25" cy="75" r="1.6" class="pin"/><circle cx="65" cy="75" r="3.65" class="pin ho"/><circle cx="75" cy="75" r="1.15" class="pin"/><circle cx="15" cy="85" r="2.4" class="hole ho"/><circle cx="25" cy="85" r="1.8" class="hole"/><circle cx="45" cy="85" r="1.4" class="hole"/></svg><figcaption>The test plate: pins and holes, 1–7 mm, read by an ordinary flatbed scanner.</figcaption></figure>
+</div></div>
+  <aside class="note">Hold up a printed plate if you have one. One sentence on why pooling is off the table.</aside>
+</section>
+<section class="slide" id="s2" aria-label="Slide 2: Two sites, one boundary, only beliefs cross">
+  <header><span class="kick">0:25–0:50 · What we built</span><span class="num">2 / 6</span></header>
+  <h2>Two sites, one boundary, only beliefs cross</h2>
+  <div class="body"><div class="boundary">
+  <div class="site"><h3>Resin printer · SLA</h3><ul><li>Prints test plates, scans them</li><li>Agents choose which pieces to print next</li><li>Every measurement stays here</li></ul></div>
+  <div class="wall"><span>what crosses</span>
+    <ul class="cross"><li>Mean and uncertainty of 3 process-agnostic parameters</li><li>Nothing else: checked against a schema and hash-chained on a receipt</li></ul>
+  </div>
+  <div class="site"><h3>PLA printer · FDM</h3><ul><li>Different machine, different physics</li><li>Same test plate, same agents</li><li>Every measurement stays here</li></ul></div>
+</div>
+<p class="foot">Each site fits a physics model of its own printer. Some error terms are shared across machines and even processes (small features shrink, edges drift), and that part is learned together. A third arm pools all raw data as the upper bound.</p></div>
+  <aside class="note">Point at the middle column: that's the whole interface. Three numbers and their uncertainty.</aside>
+</section>
+<section class="slide" id="s3" aria-label="Slide 3: Watch the network learn">
+  <header><span class="kick">0:50–1:40 · Demo</span><span class="num">3 / 6</span></header>
+  <h2>Watch the network learn</h2>
+  <div class="body"><div class="demo" id="demo">
+  <svg class="sites" viewBox="0 0 420 230" aria-label="Two sites exchanging belief summaries across a boundary">
+    <line x1="210" y1="14" x2="210" y2="216" class="wall-line"/>
+    <text x="210" y="226" class="tiny" text-anchor="middle">boundary</text>
+    <g id="siteA"><rect x="14" y="60" width="150" height="104" rx="6" class="box"/>
+      <text x="89" y="88" text-anchor="middle" class="lbl">Resin</text>
+      <text x="89" y="110" text-anchor="middle" class="tiny" id="platesA">seed plate</text>
+      <text x="89" y="146" text-anchor="middle" class="tiny">raw data stays</text></g>
+    <g id="siteB"><rect x="256" y="60" width="150" height="104" rx="6" class="box"/>
+      <text x="331" y="88" text-anchor="middle" class="lbl" id="nameB">PLA</text>
+      <text x="331" y="110" text-anchor="middle" class="tiny" id="platesB">seed plate</text>
+      <text x="331" y="146" text-anchor="middle" class="tiny">raw data stays</text></g>
+    <g id="pktAB" class="pkt"><rect x="-34" y="-11" width="68" height="22" rx="11"/><text y="4" text-anchor="middle">μ, σ ×3</text></g>
+    <g id="pktBA" class="pkt"><rect x="-34" y="-11" width="68" height="22" rx="11"/><text y="4" text-anchor="middle">μ, σ ×3</text></g>
+    <g id="trustG"><text x="210" y="40" text-anchor="middle" class="tiny">resin's trust in PLA</text>
+      <rect x="150" y="46" width="120" height="8" rx="4" class="track"/><rect x="150" y="46" width="120" height="8" rx="4" class="trust" id="trustBar"/>
+      <text x="278" y="54" class="tiny" id="trustTxt">1.00</text></g>
+  </svg>
+  <svg class="chart" id="chart" viewBox="0 0 420 230" aria-label="Held-out error by round for isolated, networked and oracle"></svg>
+  <div class="ctl">
+    <button type="button" id="play">▶ Play 3 rounds</button>
+    <button type="button" id="liar" aria-pressed="false">Make PLA lie</button>
+    <span class="tiny" id="cap">Simulation, frozen config. Noise-free held-out error at the resin and PLA sites, µm.</span>
+  </div>
+</div></div>
+  <aside class="note">Press Play: each round both sites print, then only the summaries cross; networked (orange) drops below isolated (blue) and lands on the oracle (green). Then press 'Make PLA lie': resin's error spikes in round 1, trust collapses to 0.01, and by round 3 it's back level with isolated. A liar costs one round.</aside>
+</section>
+<section class="slide" id="s4" aria-label="Slide 4: As good as pooling the data, without pooling it">
+  <header><span class="kick">1:40–2:15 · Results</span><span class="num">4 / 6</span></header>
+  <h2>As good as pooling the data, without pooling it</h2>
+  <div class="body"><div class="cols3">
+  <div class="cell"><span class="big">12%</span><p>lower model error than learning alone by round 3, in 75 of 100 simulated worlds. Pooling all raw data does no better (12%).</p></div>
+  <div class="cell"><span class="big">25%</span><p>when four sites each have little data: many sites that each know little is where sharing pays most.</p></div>
+  <div class="cell"><span class="big">0.01</span><p>trust left in a lying site after one round. The receipt audit passes in every run: nothing but the schema ever crossed.</p></div>
+</div>
+<p class="foot">Simulation with hidden truth, frozen config, paired per world (hpc/sweeps/relevance). The gain comes from the shared beliefs, not the agent auction. In absolute terms it's 1.6 µm at two sites, small next to scanner noise, which is why the real-printer claim is a committed prediction (next).</p></div>
+  <aside class="note">Say the honest size once: at two sites it's a couple of microns; the case for this grows with the number of sites.</aside>
+</section>
+<section class="slide" id="s5" aria-label="Slide 5: We wrote the prediction down before printing">
+  <header><span class="kick">2:15–2:40 · Science, not a demo</span><span class="num">5 / 6</span></header>
+  <h2>We wrote the prediction down before printing</h2>
+  <div class="body"><div class="timeline">
+  <div><span class="t">Simulation</span><p>Hidden-truth printers. Config tuned, then frozen.</p></div>
+  <div><span class="t">Pre-registered</span><p>Claims, metric, fit classes, failure rules and fallbacks, hashed onto both receipt chains.</p></div>
+  <div><span class="t">Seed plates</span><p>Simulator calibrated to the real printers. Predicted range committed before round 1.</p></div>
+  <div><span class="t">Real rounds</span><p>Does the real resin + PLA network land inside the prediction?</p></div>
+</div>
+<p class="foot">Every plate, measurement, bid and message is on a hash chain. Anyone can replay it and check that no raw data left a site.</p></div>
+  <aside class="note">If real rounds are in, put the real point on screen here instead of the timeline.</aside>
+</section>
+<section class="slide" id="s6" aria-label="Slide 6: Print anywhere, trust the part">
+  <header><span class="kick">2:40–3:00 · Next</span><span class="num">6 / 6</span></header>
+  <h2>Print anywhere, trust the part</h2>
+  <div class="body"><div class="split">
+  <div class="stack"><p class="lede">Any shop that can print a flat plate can join, learn faster, and keep its data.</p>
+  <p>Released today: the process-agnostic test plate, the flatbed scanner tool, and the hidden-truth multi-site printer simulator.</p>
+  <p class="meta mono">github.com/matte-realize/prebuilt</p></div>
+  <figure class="fig small"><svg viewBox="-6 -6 112 112" class="plate" role="img" aria-label="The seed test plate: pins and holes, 1 to 7 mm"><rect x="0" y="0" width="100" height="100" rx="1.2" class="pl"/><rect x="47" y="97.5" width="6" height="2.6" class="cut"/><rect x="3" y="3" width="4" height="4" class="cut"/><rect x="93" y="3" width="4" height="4" class="cut"/><rect x="3" y="93" width="4" height="4" class="cut"/><circle cx="25" cy="15" r="2.45" class="pin"/><circle cx="45" cy="15" r="2.05" class="pin ho"/><circle cx="75" cy="15" r="0.75" class="pin"/><circle cx="15" cy="25" r="1.15" class="hole"/><circle cx="75" cy="25" r="1.85" class="hole ho"/><circle cx="85" cy="25" r="2.65" class="hole"/><circle cx="25" cy="35" r="3.5" class="pin ho"/><circle cx="35" cy="45" r="0.75" class="hole"/><circle cx="45" cy="45" r="3.1" class="hole"/><circle cx="55" cy="45" r="0.55" class="hole ho"/><circle cx="85" cy="45" r="3.5" class="pin"/><circle cx="45" cy="55" r="2.0" class="pin"/><circle cx="55" cy="55" r="2.85" class="pin"/><circle cx="85" cy="55" r="2.9" class="pin ho"/><circle cx="25" cy="65" r="3.1" class="pin"/><circle cx="35" cy="65" r="2.65" class="hole ho"/><circle cx="55" cy="65" r="3.5" class="hole"/><circle cx="65" cy="65" r="2.25" class="hole"/><circle cx="25" cy="75" r="1.6" class="pin"/><circle cx="65" cy="75" r="3.65" class="pin ho"/><circle cx="75" cy="75" r="1.15" class="pin"/><circle cx="15" cy="85" r="2.4" class="hole ho"/><circle cx="25" cy="85" r="1.8" class="hole"/><circle cx="45" cy="85" r="1.4" class="hole"/></svg></figure>
+</div></div>
+  <aside class="note">End on the line. Stop talking.</aside>
+</section>
+</main>
+
+<script>
+(() => {
+  const slides = [...document.querySelectorAll('.slide')];
+  let i = Math.max(0, slides.findIndex(s => '#' + s.id === location.hash));
+  const show = n => {
+    i = Math.min(slides.length - 1, Math.max(0, n));
+    slides.forEach((s, k) => s.classList.toggle('on', k === i));
+  };
+  const present = on => {
+    document.body.classList.toggle('present', on);
+    document.getElementById('present').textContent = on ? 'Exit (Esc)' : 'Present (→ ← Esc)';
+    if (on) { show(i); document.documentElement.requestFullscreen?.().catch(() => {}); }
+    else { document.exitFullscreen?.().catch(() => {}); slides[i].scrollIntoView({ block: 'center' }); }
+  };
+  document.getElementById('present').addEventListener('click', () => present(!document.body.classList.contains('present')));
+  document.getElementById('notes').addEventListener('click', e => {
+    const on = document.body.classList.toggle('notes');
+    e.currentTarget.setAttribute('aria-pressed', String(on));
+  });
+  slides.forEach((s, k) => s.addEventListener('dblclick', () => { i = k; present(true); }));
+  document.addEventListener('keydown', e => {
+    if (!document.body.classList.contains('present')) return;
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); show(i + 1); }
+    else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Escape') present(false);
+  });
+  document.addEventListener('click', e => {
+    if (document.body.classList.contains('present') && e.target.closest('.slide')) show(i + 1);
+  });
+})();
+</script>
+
+<script>
+(() => {
+  const DATA = {"honest": {"isolated": [16.6, 15.3, 14.0], "networked": [14.9, 12.6, 12.1], "oracle": [14.9, 13.1, 13.0]}, "liar": {"isolated": [14.5, 13.2, 11.8], "networked": [82.2, 16.8, 12.7], "oracle": [13.9, 10.5, 10.3]}};
+  const COL = { isolated: 'var(--iso)', networked: 'var(--net)', oracle: 'var(--ora)' };
+  const chart = document.getElementById('chart'), NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, text) => { const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; };
+  let mode = 'honest', shown = 3, timer = null;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function draw() {
+    const d = DATA[mode], X0 = 46, X1 = 330, Y0 = 200, Y1 = 22;
+    const vals = Object.values(d).flat(), hi = mode === 'liar' ? 90 : 18, lo = mode === 'liar' ? 0 : 10;
+    const x = i => X0 + (X1 - X0) * i / 2, y = v => Y0 - (Y0 - Y1) * (Math.min(v, hi) - lo) / (hi - lo);
+    chart.replaceChildren();
+    const step = mode === 'liar' ? 20 : 2;
+    for (let v = lo; v <= hi; v += step) {
+      chart.append(el('line', { x1: X0, x2: X1, y1: y(v), y2: y(v), class: 'grid' }));
+      chart.append(el('text', { x: X0 - 8, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v));
+    }
+    [1, 2, 3].forEach((r, i) => chart.append(el('text', { x: x(i), y: Y0 + 18, 'text-anchor': 'middle', class: 'tick' }, 'round ' + r)));
+    chart.append(el('text', { x: X0 - 36, y: 14, class: 'tick' }, mode === 'liar' ? 'µm, resin site' : 'µm, both sites'));
+    const ends = [];
+    for (const arm of ['isolated', 'oracle', 'networked']) {
+      const pts = d[arm].slice(0, shown).map((v, i) => `${x(i)},${y(v)}`).join(' ');
+      if (shown > 1) chart.append(el('polyline', { points: pts, class: 'ln ' + arm, stroke: COL[arm] }));
+      d[arm].slice(0, shown).forEach((v, i) => chart.append(el('circle', { cx: x(i), cy: y(v), r: 5, fill: COL[arm], stroke: 'var(--sheet)', 'stroke-width': 2 })));
+      if (shown) ends.push([arm, y(d[arm][shown - 1]), d[arm][shown - 1]]);
+    }
+    ends.sort((a, b) => a[1] - b[1]);
+    let last = -1e9;
+    for (const [arm, yy, v] of ends) {           // direct labels, pushed apart so they never overlap
+      const yl = Math.max(yy, last + 15); last = yl;
+      chart.append(el('text', { x: x(shown - 1) + 12, y: yl + 4, class: 'end', fill: 'var(--ink)' }, `${arm} ${v}`));
+    }
+    const t = mode === 'liar' && shown >= 1 ? (shown >= 2 ? 0.01 : 1.0) : 1.0;
+    const bar = document.getElementById('trustBar');
+    bar.setAttribute('width', 120 * t); bar.classList.toggle('low', t < 0.5);
+    document.getElementById('trustTxt').textContent = t.toFixed(2);
+    document.getElementById('trustG').style.opacity = mode === 'liar' ? 1 : 0.35;
+    document.getElementById('nameB').textContent = mode === 'liar' ? 'PLA (lying)' : 'PLA';
+    const label = shown ? `round ${shown} printed` : 'seed plate';
+    document.getElementById('platesA').textContent = label;
+    document.getElementById('platesB').textContent = label;
+  }
+  function packets(onDone) {
+    const a = document.getElementById('pktAB'), b = document.getElementById('pktBA');
+    b.classList.toggle('bad', mode === 'liar');
+    if (reduce) return onDone();
+    const t0 = performance.now(), dur = 900;
+    (function frame(now) {
+      const k = Math.min(1, (now - t0) / dur);
+      a.setAttribute('transform', `translate(${100 + 220 * k},96)`); a.style.opacity = k < 1 ? 1 : 0;
+      b.setAttribute('transform', `translate(${320 - 220 * k},128)`); b.style.opacity = k < 1 ? 1 : 0;
+      k < 1 ? requestAnimationFrame(frame) : onDone();
+    })(t0);
+  }
+  function play() {
+    clearTimeout(timer); shown = 0; draw();
+    const next = () => { if (shown >= 3) return; packets(() => { shown += 1; draw(); timer = setTimeout(next, 700); }); };
+    timer = setTimeout(next, 400);
+  }
+  document.getElementById('play').addEventListener('click', play);
+  document.getElementById('liar').addEventListener('click', e => {
+    mode = mode === 'liar' ? 'honest' : 'liar';
+    e.currentTarget.setAttribute('aria-pressed', String(mode === 'liar'));
+    e.currentTarget.textContent = mode === 'liar' ? 'Make PLA honest' : 'Make PLA lie';
+    document.getElementById('cap').textContent = mode === 'liar'
+      ? 'PLA broadcasts confident, wrong beliefs. Resin site only, 10 worlds, noise-free held-out error, µm.'
+      : 'Simulation, frozen config. Noise-free held-out error at the resin and PLA sites, µm.';
+    play();
+  });
+  draw();
+  document.getElementById('demo').addEventListener('click', e => e.stopPropagation());  // don't advance slides
+})();
+</script>
