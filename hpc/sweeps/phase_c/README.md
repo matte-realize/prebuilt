@@ -142,6 +142,33 @@ Consequences: per-seed oracle gap closed sits near 1 with a wide spread (IQR rou
 | **5** | **0.05** | **0.90** | **5%** | **1.03** |
 | 10 | 0.03 | 0.84 | 11% | 1.00 |
 
+### Trust and knobs rerun at 4000 particles, 6 MH steps: no change
+
+Full grids at the prereg sampler, same seeds as the 2000/3 runs so differences are paired by seed: trust, 30 seeds (2000-2029), [`results/tuning_trust_seed16_slots6_p4000_mh6.md`](results/tuning_trust_seed16_slots6_p4000_mh6.md); knobs, 40 seeds, at eta 5, trust_init 1.0, cred_floor 0.05, [`results/tuning_knobs_seed16_slots6_p4000_mh6.md`](results/tuning_knobs_seed16_slots6_p4000_mh6.md). `tuning.py` now tags these sweep names with `_p<particles>_mh<steps>`.
+
+    .venv/bin/python hpc/sweeps/phase_c/tuning.py --stage trust --seed-pieces 16 --slots 6 --particles 4000 --mh-steps 6 --seeds 30 --workers 31
+    .venv/bin/python hpc/sweeps/phase_c/tuning.py --stage knobs --seed-pieces 16 --slots 6 --particles 4000 --mh-steps 6 --eta 5 --trust-init 1.0 --cred-floor 0.05 --seeds 40 --workers 31
+
+Paired difference against the prereg config, last round (SE):
+
+| config | bad sender's trust | honest trust | honest links < 0.5 | net/iso under attack (mean) | iso − net, µm |
+|---|---|---|---|---|---|
+| **eta 5, ti 1.0, floor 0.05** | **0.059** | **0.886** | **7%** | **1.19** | **1.19 (0.46)** |
+| eta 10 | −0.021 (0.005) | −0.065 (0.011) | +7% | −0.06 (0.03) | −0.10 (0.14) |
+| eta 2 | +0.086 (0.007) | +0.053 (0.011) | −5% | +0.43 (0.11) | −0.17 (0.12) |
+| trust_init 0.75 | +0.010 (0.011) | −0.111 (0.013) | +1% | +0.02 (0.05) | +0.10 (0.14) |
+| cred_floor 0.02 or 0.1 | 0 | 0 | 0 | 0 | 0 |
+| **discount 0.2** (knobs, 40 seeds) | **0.052** | **0.903** | **5%** | **1.16** | **1.44 (0.43)** |
+| discount 0.1 | 0 | −0.006 (0.002) | +1% | −0.04 (0.02) | +0.28 (0.16) |
+| discount 0.4 | 0 | 0 | 0 | −0.01 (0.02) | −0.17 (0.26) |
+| discount 0.0 | 0 | −0.016 (0.012) | +1% | −0.12 (0.07) | −0.14 (0.49) |
+
+- **eta 5** stays. eta 10 detects the bad sender slightly better but costs honest trust (6 SE) and doubles the honest links under 0.5; the networking benefit doesn't move. eta 2 lets the bad site make the honest site's networked model 61% worse than its isolated one (mean net/iso 1.61, against 1.19 at eta 5).
+- **trust_init 1.0** stays: 0.75 lowers honest trust by 0.11 with no gain in protection. **cred_floor** doesn't bind at eta 5 (identical rows), so 0.05 stays.
+- **discount 0.2** stays. 0.1 is the closest rival, +0.28 µm (1.7 SE), inside the 2 SE bar. At 2000/3, discount 0 halved the benefit; at 4000/6 discount 0 and 0.4 are within 1 SE of 0.2 and 0.1 is at 1.7 SE, so discount barely matters now.
+- Under attack the honest site's median networked/isolated is 1.03-1.05 at eta 5, against 0.97 at 2000/3. Every config with eta ≥ 5 sits at 1.0-1.08, so this is the sampler, not the eta choice: mild, not a failure.
+- iso − net at the prereg config, paired against the same seeds at 2000/3: −1.00 µm (0.48) on the trust seeds, −0.78 (0.40) on the knobs seeds. The same shrinkage the particles stage found.
+
 ## 3. Proposed config (for review; prereg.yaml not edited)
 
 Values for the `config` section of `prereg/prereg.yaml`. Main (1dbf284) already holds eta, cred_floor, trust_init and discount as below; the changes are `n_particles`, `oracle_particles` and a new `mh_steps` line.
