@@ -103,14 +103,14 @@ slide("Sim-to-real", "We wrote the prediction down first",
 slide("Result · simulation", "Networked matches the oracle",
       f"""<figure class="chart"><img src="data:image/png;base64,{CHART}" alt="Held-out error falls with pieces printed; networked tracks the oracle below isolated in every round."></figure>
 <table class="nums"><thead><tr><th>Round</th><th class="a-iso">Isolated</th><th class="a-net">Networked</th><th class="a-ora">Oracle</th></tr></thead>
-<tbody><tr><td>1</td><td>16.5</td><td>14.9</td><td>14.8</td></tr><tr><td>2</td><td>15.5</td><td>12.9</td><td>12.9</td></tr><tr><td>3</td><td>13.9</td><td>11.7</td><td>12.7</td></tr></tbody></table>
+<tbody><tr><td>1</td><td>16.6</td><td>14.9</td><td>14.9</td></tr><tr><td>2</td><td>15.3</td><td>12.6</td><td>13.1</td></tr><tr><td>3</td><td>14.0</td><td>12.1</td><td>13.0</td></tr></tbody></table>
 <p class="foot">Noise-free held-out MAE, µm, 20 seeds × 2 sites. <span class="flag">Frozen config, simulation only.</span> Real rounds and the committed range go here.</p>""",
       "Swap in the real-round markers and the committed prediction box on Sunday (eval.figures.headline --real).")
 
 slide("Robustness · simulation", "A lying site loses the room in one round",
       """<div class="cols2">
-  <div class="cell"><span class="big">46<small> µm</small></span><p>Networked error in round 1 when the PLA site broadcasts confident, wrong beliefs (isolated: 16 µm).</p></div>
-  <div class="cell"><span class="big">13.9<small> µm</small></span><p>Round 2: the bad sender's trust has collapsed and networked is back below isolated (15.6 µm).</p></div>
+  <div class="cell"><span class="big">82<small> µm</small></span><p>Networked error at the honest site in round 1 when the PLA site broadcasts confident, wrong beliefs (isolated: 15 µm).</p></div>
+  <div class="cell"><span class="big">12.7<small> µm</small></span><p>Round 3: the bad sender's trust has collapsed and the honest site is back level with isolated (11.8 µm, within noise).</p></div>
 </div>
 <p class="foot">10 seeds. Trust starts at 1.0, so the first round is the price of trusting by default; the frozen config sets where trust starts. <span class="flag">Scaling sweep (2–25 sites) goes here.</span></p>""",
       "Placeholder for the teammate's robustness and scaling figures.")

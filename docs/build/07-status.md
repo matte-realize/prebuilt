@@ -107,7 +107,7 @@ Endpoint: `PREBUILT_LLM_URL` (OpenAI-compatible; default `http://localhost:8000/
 
 - `prereg.yaml` `fallback_tiers` commits which claims hold in tiers A–D before any print.
 - Tier B: `run.py --source real --sim-site pla` (or `resin`) runs that site on a simulated world fixed by the config seed; `Config.sim_sites` records it and locks it on resume. **T:** in a tier B run the checkpoint's simulated site has simulated seed data, so `sim.calibrate --state` must skip `res.config["sim_sites"]`.
-- Tier D and backup demo: `demo/tier-d/`, with charts, viewer pages and numbers from 20 seeds (frozen config). Finding for T's tuning: with a bad-faith site, networked error is 46 µm in round 1 (isolated 16) before trust drops, so `trust_init = 1.0` costs a full round.
+- Tier D and backup demo: `demo/tier-d/`, with charts, viewer pages and numbers from 20 seeds (frozen config). Finding for T's tuning: with a bad-faith site, the honest site's networked error is 82 µm in round 1 (isolated 15) before trust drops, and only back level with isolated by round 3 (4000 particles, 6 MH steps), so `trust_init = 1.0` costs a full round.
 
 ## Real-run review fixes (Oct 31)
 
