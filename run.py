@@ -29,6 +29,8 @@ def main() -> None:
     ap.add_argument("--no-messages", action="store_true", help="ablation: cut the network")
     ap.add_argument("--seed-pieces", type=int, default=SEED_PIECES, help="sim sweep: calibration pieces on the seed plate (max 56)")
     ap.add_argument("--slots", type=int, default=Config.slots_per_arm, help="sim sweep: slots per arm per plate")
+    ap.add_argument("--lpd-clip", type=lambda v: None if v.lower() == "none" else float(v), default=Config.lpd_clip,
+                    help="per-piece held-out dLPD bound in nats for credit ('none' = unclipped)")
     ap.add_argument("--chains", default=None, help="directory for receipt chains (default: in memory)")
     ap.add_argument("--out", default=None, help="write results JSON here")
     ap.add_argument("--scans", default="scans", help="real only: directory the scanner saves into")
@@ -37,7 +39,7 @@ def main() -> None:
     if args.source == "real":
         from measure.real import RealPrinter
         cfg = Config(rounds=args.rounds, n_particles=args.particles, seed=args.seed,
-                     oracle_particles=args.oracle_particles)
+                     oracle_particles=args.oracle_particles, lpd_clip=args.lpd_clip)
         chains = args.chains or "receipts/real"
         res = run_experiment({s: RealPrinter(s, f"{args.scans}/{s}") for s in SITES}, SITES, cfg,
                              chain_dir=chains, checkpoint=f"{chains}/state.pkl")
@@ -57,7 +59,7 @@ def main() -> None:
         seed = args.seed + k
         cfg = Config(rounds=args.rounds, n_particles=args.particles, seed=seed, oracle_particles=args.oracle_particles,
                      bad_sites=tuple(args.bad_site), share_messages=not args.no_messages,
-                     seed_pieces=args.seed_pieces, slots_per_arm=args.slots)
+                     seed_pieces=args.seed_pieces, slots_per_arm=args.slots, lpd_clip=args.lpd_clip)
         chain_dir = f"{args.chains}/seed{seed}" if args.chains else None
         res = run_experiment(make_world(SITES, seed), SITES, cfg, chain_dir)
         rep = audit(list(res.chains.values()))

@@ -25,7 +25,7 @@ import numpy as np
 
 from agents import auction
 from agents.agents import AGENT_NAMES, propose
-from agents.credibility import Roster, update_senders
+from agents.credibility import Roster, delta_lpd, update_senders
 from agents.selection import greedy_batch
 from contracts import Measurement, Message, Piece, Printer
 from model.physics import SHARED
@@ -51,6 +51,10 @@ class Config:
     cred_floor: float = 0.05
     discount: float = 0.2
     trust_init: float = 1.0
+    # Per-piece bound (nats) on held-out dLPD in credit. With noise sigma, moving one
+    # prediction from a 2-sigma miss to a hit is worth 2 nats; bigger swings come from
+    # pieces both fits miss badly, where noise is amplified. None = unclipped.
+    lpd_clip: float | None = 2.0
     # Allowed site-to-site spread of the "shared" parameters, as a fraction of each
     # one's prior std. Added to every incoming message's variance, so two sites'
     # confident but slightly different beliefs don't fight.
@@ -264,24 +268,22 @@ def _ingest(plate, ms: list[Measurement], st: SiteState) -> None:
 
 # ---- credit, messages, scoring -----------------------------------------------
 
-def heldout_lpd(post: ParticlePosterior, escrow: Data, site: str | None = None) -> float:
-    ok = [(p, m) for p, m in escrow if m.status == "ok"]
-    if not ok:
-        return 0.0
-    return float(np.mean([post.log_predictive(p, m.measured_d, site) for p, m in ok]))
+def heldout_lpds(post: ParticlePosterior, escrow: Data, site: str | None = None) -> list[float]:
+    """Per-piece held-out LPD over the measured escrow pieces."""
+    return [post.log_predictive(p, m.measured_d, site) for p, m in escrow if m.status == "ok"]
 
 
 def _credit(r: int, st: SiteState, pieces, contrib: dict[str, str], cfg: Config, rng, res: Results) -> None:
     data = st.data["networked"]
     msgs = st.inbox
-    full = heldout_lpd(_fit(st, pieces, data, cfg, rng, msgs), st.escrow)
+    full = heldout_lpds(_fit(st, pieces, data, cfg, rng, msgs), st.escrow)
 
     dlpd = {}
     for agent in st.roster.cred:
         mine = {pid for pid, a in contrib.items() if a == agent}
         if mine:
             minus = [(p, m) for p, m in data if p.piece_id not in mine]
-            dlpd[agent] = full - heldout_lpd(_fit(st, pieces, minus, cfg, rng, msgs), st.escrow)
+            dlpd[agent] = delta_lpd(full, heldout_lpds(_fit(st, pieces, minus, cfg, rng, msgs), st.escrow), cfg.lpd_clip)
     retired = st.roster.step(dlpd, cfg.eta)
     res.credibility.append({"round": r, "site": st.site, **st.roster.cred, "dlpd": dlpd})
     for a in retired:
@@ -290,7 +292,7 @@ def _credit(r: int, st: SiteState, pieces, contrib: dict[str, str], cfg: Config,
     sender_dlpd = {}
     for sender in msgs:
         others = {k: v for k, v in msgs.items() if k != sender}
-        sender_dlpd[sender] = full - heldout_lpd(_fit(st, pieces, data, cfg, rng, others), st.escrow)
+        sender_dlpd[sender] = delta_lpd(full, heldout_lpds(_fit(st, pieces, data, cfg, rng, others), st.escrow), cfg.lpd_clip)
     st.trust = update_senders(st.trust, sender_dlpd, cfg.eta)
     for sender, t in st.trust.items():
         res.trust.append({"round": r, "receiver": st.site, "sender": sender, "trust": t, "dlpd": sender_dlpd.get(sender)})
