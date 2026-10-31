@@ -18,10 +18,10 @@ def _filled(tmp_path, with_range: bool):
     return path
 
 
-def test_committed_prereg_is_valid_but_incomplete():
+def test_committed_prereg_is_ready_for_seed():
     pr, sha = load()
     check_heldout(pr)
-    assert "config.eta" in missing(pr) and len(sha) == 64
+    assert missing(pr, "seed") == [] and len(sha) == 64
     assert config_from(pr, sha).same_agents  # unknown keys would raise
 
 

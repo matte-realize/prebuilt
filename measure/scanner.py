@@ -141,8 +141,8 @@ def measure_scan(img: np.ndarray, plate: Plate, mode: str, method: str = "scanne
         x0, x1 = int(cx - half), int(cx + half) + 1
         y0, y1 = int(cy - half), int(cy + half) + 1
         if x0 < 0 or y0 < 0 or x1 > g.shape[1] or y1 > g.shape[0]:
-            out.append(Measurement(p.piece_id, plate.plate_id, plate.site, None, "failed", method))
-            info.notes.append(f"{p.piece_id}: cell outside image")
+            out.append(Measurement(p.piece_id, plate.plate_id, plate.site, None, "failed", "scanner-miss"))
+            info.notes.append(f"{p.piece_id}: cell outside image (rescan with the whole plate in frame)")
             continue
         d, why, rnd = _measure_cell(g[y0:y1, x0:x1], mm2_per_px, p.nominal_d)
         if d is None:

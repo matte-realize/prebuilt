@@ -76,26 +76,32 @@ class PieceArrays:
 
 
 def predict_d(process: str, x: PieceArrays, theta: np.ndarray) -> np.ndarray:
-    """Noise-free predicted measured diameter, [N, M]."""
-    ix = index(process)
-    col = lambda name: theta[:, ix[name], None]  # [N, 1]
-    d, hole = x.d[None, :], x.is_hole[None, :]
+    """Noise-free predicted measured diameter, [N, M].
 
+    Every term is (a function of the particle) x (a function of the piece), so the
+    prediction is one matrix product of per-particle coefficients [N, K] and per-piece
+    features [K, M]. Same model as written out term by term:
+
+      resin: d (1 - shrink) +- 2 k_bleed Dp ln(E / Ec)            (+ pin, - hole)
+      pla:   hole d - 2 w_off - poly_k / d,  pin d + 2 w_off + flare
+      both:  + size_coef / d + pos_gx u + pos_gy v
+    """
+    ix = index(process)
+    col = lambda name: theta[:, ix[name]]  # [N]
+    d = x.d
+    sign = np.where(x.is_hole, -1.0, 1.0)  # [M]
     if process == "resin":
-        cure_depth = col("Dp") * np.log(RESIN_EXPOSURE / col("Ec"))
-        bleed = col("k_bleed") * cure_depth
-        scaled = d * (1 - col("shrink"))
-        out = np.where(hole, scaled - 2 * bleed, scaled + 2 * bleed)
+        bleed = col("k_bleed") * col("Dp") * np.log(RESIN_EXPOSURE / col("Ec"))
+        coef = [1 - col("shrink"), 2 * bleed]
+        feat = [d, sign]
     elif process == "pla":
-        hole_d = d - 2 * col("w_off") - col("poly_k") / d
-        pin_d = d + 2 * col("w_off") + col("flare")
-        out = np.where(hole, hole_d, pin_d)
+        coef = [np.ones(theta.shape[0]), 2 * col("w_off"), col("poly_k"), col("flare")]
+        feat = [d, sign, -x.is_hole.astype(float) / d, (~x.is_hole).astype(float)]
     else:
         raise ValueError(f"unknown process {process!r}")
-
-    out = out + col("size_coef") / d
-    out = out + col("pos_gx") * x.u[None, :] + col("pos_gy") * x.v[None, :]
-    return out
+    coef += [col("size_coef"), col("pos_gx"), col("pos_gy")]
+    feat += [1 / d, x.u, x.v]
+    return np.stack(coef, axis=1) @ np.stack(feat, axis=0)
 
 
 def sigma(process: str, theta: np.ndarray) -> np.ndarray:

@@ -1,16 +1,26 @@
-# Build: Status and Phase C Findings
+# Build: Status and Findings
 
-As of Sat Oct 31. T's Phase C sweep results: `hpc/sweeps/phase_c/README.md` (recommends 16 seed pieces, 6 slots per arm). M's Phase A and B tasks are built and tested (`.venv/bin/python -m pytest -q`, 34 tests).
+## Current state (Sat Oct 31, afternoon)
+
+- **Code:** all M and T tasks through Phase D are built. Tests: `.venv/bin/python -m pytest -q` (84 pass, 8 Warp tests skip without warp-lang). A 2000-particle, 3-round simulated experiment takes about 1.3 s.
+- **Prereg:** `python -m prereg.check` says *ready for seed*. Config frozen by T (eta 5, trust_init 1.0, cred_floor 0.05, discount 0.2, 2000 particles; challenge and spawn off). Only `predicted_range.range` remains; it's committed after the seed plates (Phase D).
+- **Design in force:** 16 seed pieces + 8 held-out, 6 slots per arm; the same agents choose pieces in all three arms; hierarchical oracle with scaled MH steps; primary metric isolated − networked in µm.
+- **Printer day:** [09-run-sheet.md](09-run-sheet.md). Backup demo for any tier: `demo/tier-d/`. Draft deck: `docs/slides/`.
+- **Open items:** [bottom of this page](#open-items-m).
+
+Details and history follow. T's Phase C sweep: `hpc/sweeps/phase_c/README.md`.
 
 ## What runs
 
 - `python -m prereg.check` checks `prereg/prereg.yaml`: the held-out manifest hash, and that every key under `config` is a real `Config` field. It lists blank fields and prints the file's sha256. `run.py --source real` builds its config from the prereg (CLI tuning flags apply to simulation only) and refuses to start with blanks. Without a predicted range it runs the seed plate only. It writes the prereg sha256 onto both receipt chains before each run of rounds.
 - `python -m plates.seed` writes seed plates (JSON + watertight STL) for both sites and `prereg/heldout.json`.
-- `python run.py --source sim --seeds 20` runs the full three-arm, two-site experiment on the NumPy reference simulator (`sim/reference.py`) and runs the privacy audit for every seed. About 3 s per seed at 1000 particles.
+- `python run.py --source sim --seeds 20` runs the full three-arm, two-site experiment on the NumPy reference simulator (`sim/reference.py`) and runs the privacy audit for every seed. About 0.8 s per seed at 1000 particles.
 - `python run.py --source real` drives the real printers. It writes plate files, asks for human approval, waits for `scans/<site>/<plate>-holes.png` and `-pins.png`, measures them, and checkpoints after every round (`receipts/real/state.pkl`). Rerun the same command to resume.
 - `python -m measure.rehearsal --rounds 2 --out /tmp/reh` rehearses the real loop without printers: `RealPrinter`, plate files, approval prompts, scan files, scanner, receipts, checkpoint and resume, with a simulated printer rendering the scans. Scanner vs. printed truth on synthetic scans: about 5 µm RMS, under 30 µm max, no false or missed failures.
 - `python -m measure.target plates/out/resin/resin-seed.json target.pdf` writes a 1:1 paper target for checking the scanner before any plate prints.
 - `python -m eval.audit receipts/real/resin.jsonl receipts/real/pla.jsonl` replays the receipt chains for the privacy check.
+- `python -m eval.figures.headline sim.json [--real real.json]` draws the headline chart; `python -m viewer.export ... --open` builds the demo page; `python docs/slides/make_deck.py` rebuilds the deck.
+- `python -m agents.hypothesis --checkpoint receipts/real/state.pkl [--dry-run]` runs the hypothesis agent between rounds.
 
 ## Phase C findings (for T's sweeps; decide before freezing config)
 
@@ -47,7 +57,7 @@ Run sweeps with `run.py --source sim --seeds 20 --out results.json`. In simulati
 
    Also not the cause: oracle particle count alone (`Config.oracle_particles`), the flat oracle, and unmodeled sim effects (radial term off, shared jitter off: the identical-data gap persisted with 3 MH steps). The oracle stays hierarchical (`Config.oracle_hierarchical`). **This deviates from the walkthrough's arm definitions; say so in the prereg.** T: rerun the seed-plate and tuning sweeps with the new default before drafting the predicted range. 20 seeds are too noisy to commit numbers from.
 5. **Between-site spread is a setting.** `Config.between_site_sd` (default 0.25 of prior std) widens every incoming message. Without it, near-noise-free sites with tight but different beliefs made the networked arm much worse (MAE 0.10 vs 0.001 mm) until trust collapsed. Pre-register it; don't tune it on real data.
-6. **η = 20 is too high.** Honest senders lose trust from noise in the leave-one-out difference: in one bad-site run the honest sender dropped to 0.25. Sweep η, `trust_init` and `cred_floor` together, scoring both "bad site loses trust" and "honest site keeps it".
+6. **η = 20 was too high** *(resolved: T froze η = 5)*. Honest senders lose trust from noise in the leave-one-out difference: in one bad-site run the honest sender dropped to 0.25. Sweep η, `trust_init` and `cred_floor` together, scoring both "bad site loses trust" and "honest site keeps it".
 7. **Held-out LPD can swing by tens of nats** when the model is wrong. **Decided: clip per piece.** Credit now averages per-piece LPD differences, each clipped to ±`Config.lpd_clip` nats (default 2.0; `--lpd-clip`, `None` reproduces the old numbers bit for bit), for both agent dLPD and sender leave-one-out dLPD (`agents.credibility.delta_lpd`). Why 2 nats: with measurement noise σ (0.03–0.04 mm), moving one prediction from error e₀ to e₁ is worth (e₀² − e₁²)/2σ², so turning a 2σ miss (about the 95th percentile of honest residuals) into a hit is worth 2 nats. Swings bigger than that come from pieces both fits miss badly, where the difference is shift × residual and amplifies noise. One piece now moves a round's dLPD by at most 2/n_heldout nats. Sim check (10 seeds, 16 seed pieces, 6 slots, η = 20, round 3): all honest, the clip never binds (max per-round |dLPD| 0.30 sender, 0.51 agent) and every number is unchanged. With pla bad, max |dLPD| drops from 16 to 1.5 (sender) and 64 to 1.9 (agent). pla still loses trust in all 10 seeds (min trust about 1e-13 instead of 1e-141), MAE against truth is the same within noise (networked 13.01 → 12.84 µm, isolated 15.54 → 15.60), and retirements go 45 → 43. The clip does **not** fix finding 6: honest senders still drop below 0.5 in 3–4 of 10 seeds, and those dLPDs are small (≤ 0.3 nats) times η = 20. That is η's job. `tuning.py --stage clip` sweeps the clip if needed.
 
 ## Replies to T (08-warp-posterior.md)
@@ -85,7 +95,7 @@ The prereg field is now `predicted_range: {metric, round, range}`. `metric` is `
 - Fit classes on measured clearance. Resin: press < 0 mm, slip 0.05–0.15, loose > 0.2. PLA: press < 0, slip 0.10–0.25, loose > 0.35. Resin scores few pairs (0–5 per round in sim), so the metric is thin there. We report it anyway rather than widen realistic thresholds.
 - `failed_plate_fraction: 0.5`. Agents deliberately probe small features near the failure limit, so many single failures are expected. A plate-level fault fails most pieces.
 - Challenge and spawn off for the claim (above).
-- **Left for T's tuning sweep:** `oracle_particles`, `eta`, `cred_floor`, `trust_init`, `discount`. Then `predicted_range.range` after Phase D.
+- Tuning values: frozen by T (see Current state). Then `predicted_range.range` after Phase D.
 
 ## Hypothesis agent (built Oct 31, exploratory)
 
@@ -93,18 +103,46 @@ The prereg field is now `predicted_range: {metric, round, range}`. `metric` is `
 
 Endpoint: `PREBUILT_LLM_URL` (OpenAI-compatible; default `http://localhost:8000/v1` for NIM on the DGX Spark), `PREBUILT_LLM_MODEL` (default `nvidia/llama-3.1-nemotron-70b-instruct`), and `NVIDIA_API_KEY` if needed. Not yet run against a live model. Use `--dry-run` to see the prompt without one.
 
-## Not built yet (M)
+## Fallbacks (Oct 31)
 
-- Scanner on real scans: still to check with the paper target, then a test print. Synthetic stress test, 400 dpi, full plate, 3 scans each (RMS / max error, µm):
+- `prereg.yaml` `fallback_tiers` commits which claims hold in tiers A–D before any print.
+- Tier B: `run.py --source real --sim-site pla` (or `resin`) runs that site on a simulated world fixed by the config seed; `Config.sim_sites` records it and locks it on resume. **T:** in a tier B run the checkpoint's simulated site has simulated seed data, so `sim.calibrate --state` must skip `res.config["sim_sites"]`.
+- Tier D and backup demo: `demo/tier-d/`, with charts, viewer pages and numbers from 20 seeds (frozen config). Finding for T's tuning: with a bad-faith site, networked error is 46 µm in round 1 (isolated 16) before trust drops, so `trust_init = 1.0` costs a full round.
 
-  | defect | holes | pins |
-  |---|---|---|
-  | clean | 1.9 / 8.7 | 4.7 / 15 |
-  | lighting gradient 30% / 60% | 4.2 / 13, 5.6 / 21 | 13 / 39, 22 / 80 |
-  | pin shadow 0.3 mm | n/a | **51 / 65** (bias −50, spread 8) |
-  | 150 dust specks | 5.8 / 22 | 9.1 / 57 |
-  | blur 3 px | **15 / 76** | 14 / 34 |
-  | JPEG q80, 300 dpi, noise 0.05 | under 7 / 16 | under 15 / 36 |
+## Real-run review fixes (Oct 31)
 
-  Fixes: a lighting gradient used to break fiducial detection on pin scans, so it now falls back to local thresholds. Shadows bias pins by a near-constant amount, so when `{plate}-caliper.csv` exists, `RealPrinter` subtracts the per-kind median scanner − caliper offset (`measure.manual.scanner_offsets`), and the caliper sample is now split evenly between pins and holes. **On the day:** always do the ~10 caliper checks per plate. Scan at 400 dpi or more, lossless (PNG), and in focus. Blur is the one defect the offset doesn't remove.
-- Slice-check the seed STLs in PreForm and the PLA slicer.
+An independent review of the real-printer path found these; all are fixed and tested:
+- **A crash mid-round broke both receipt chains on resume** (stale pickled seq/head), which made the privacy audit FAIL. Chains now continue from the file, and the run logs a `resume` entry. Test: crash in round 2, resume, chains verify and scores match an uninterrupted run exactly.
+- **Simulated printers replayed their noise after a resume** (tier B, rehearsal). Printer RNGs are now checkpointed.
+- **The caliper CSV crashed on blank rows, unknown slots or uppercase `OK`.** Bad rows are skipped with a warning.
+- **Held-out caliper values shaped the training offset.** Held-out pieces are no longer sampled or used for offsets.
+- **A veto was logged but the plate was still expected.** `veto <reason>` now skips the plate.
+- **A dropped plate and pieces the scan missed fed the printability agent's failure counts.** They're kept on the chain but never used as data (`NOT_DATA`).
+- **Reprints, vetoes and dropped plates are now on the chain** (`printer_event`).
+- **An unreadable scan now prompts a rescan** instead of crashing.
+- **Prereg failed-plate fraction and caliper settings now reach the run**, and resume locks them.
+
+Not changed: a crash during the seed plate (before the first checkpoint) re-logs the seed plate on a valid chain. `predicted_range.round` is documentation only.
+
+## Scanner stress test (synthetic)
+
+400 dpi, full plate, 3 scans each (RMS / max error, µm). Real scans are still to check with the paper target.
+
+| defect | holes | pins |
+|---|---|---|
+| clean | 1.9 / 8.7 | 4.7 / 15 |
+| lighting gradient 30% / 60% | 4.2 / 13, 5.6 / 21 | 13 / 39, 22 / 80 |
+| pin shadow 0.3 mm | n/a | **51 / 65** (bias −50, spread 8) |
+| 150 dust specks | 5.8 / 22 | 9.1 / 57 |
+| blur 3 px | **15 / 76** | 14 / 34 |
+| JPEG q80, 300 dpi, noise 0.05 | under 7 / 16 | under 15 / 36 |
+
+Fixes: a lighting gradient used to break fiducial detection on pin scans, so it now falls back to local thresholds. Shadows bias pins by a near-constant amount, so when `{plate}-caliper.csv` exists, `RealPrinter` subtracts the per-kind median scanner − caliper offset (`measure.manual.scanner_offsets`), and the caliper sample is now split evenly between pins and holes. **On the day:** always do the ~10 caliper checks per plate. Scan at 400 dpi or more, lossless (PNG), and in focus. Blur is the one defect the offset doesn't remove.
+
+## Open items (M)
+
+- **Physics priors are still placeholders** (`model/physics.py`: generic datasheet and slicer guesses; `RESIN_EXPOSURE = 25` mJ/cm²). Set the exposure from the real PreForm settings and sanity-check the priors before the seed plate; the calibration and the agents start from them.
+- **In the room:** slice-check the seed STLs (PreForm, PLA slicer), check the scanner on the paper target, then print (run sheet).
+- **Sign off** on the frozen config (task split contract 4). The open point is `trust_init = 1.0`: one round of damage from a bad-faith site.
+- **Live Nemotron test** of the hypothesis agent, once an endpoint is available.
+- **Optional:** log the hand fit checks as a CSV and score them against predicted fit classes; secondary simulation analysis with challenge and spawn on.

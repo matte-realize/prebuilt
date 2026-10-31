@@ -269,9 +269,10 @@ class ParticlePosterior:
         for site, (x, y) in batch.items():
             proc, cols = self.blocks[site]
             th = theta[:, cols]
-            mu = physics.predict_d(proc, x, th)            # [N, M]
-            s = physics.sigma(proc, th)[:, None]           # [N, 1]
-            ll += (-0.5 * ((y[None, :] - mu) / s) ** 2 - np.log(s) - 0.5 * LOG2PI).sum(axis=1)
+            r = y[None, :] - physics.predict_d(proc, x, th)  # [N, M] residuals
+            s = physics.sigma(proc, th)                      # [N]
+            m = r.shape[1]
+            ll += -0.5 * np.einsum("ij,ij->i", r, r) / s**2 - m * np.log(s) - 0.5 * m * LOG2PI
         return ll
 
     @staticmethod
@@ -296,7 +297,11 @@ class ParticlePosterior:
     def _next_step(self, ll: np.ndarray, remaining: float) -> float:
         """Largest tempering step <= remaining that keeps ESS above target."""
         target = self.ess_frac * self.n
-        ess_at = lambda t: 1.0 / np.sum(np.exp(2 * self._normalize(self.logw + t * ll)))
+
+        def ess_at(t: float) -> float:  # (sum w)^2 / sum w^2, one exp, no normalization pass
+            a = self.logw + t * ll
+            e = np.exp(a - a.max())
+            return float(e.sum() ** 2 / (e @ e))
         if ess_at(remaining) >= target:
             return remaining
         lo, hi = 0.0, remaining

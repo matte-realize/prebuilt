@@ -16,13 +16,31 @@ MM_PER_IN = 25.4
 
 
 def load_caliper_csv(path: str, plate: Plate) -> list[Measurement]:
+    """Caliper checks for one plate. Rows that can't be used are skipped with a printed warning
+    instead of stopping the run mid-round (blank rows, unknown slots, unreadable numbers)."""
     by_slot = {p.slot: p for p in plate.pieces}
     out = []
-    with open(path) as f:
-        for row in csv.DictReader(f):
-            p = by_slot[(int(row["row"]), int(row["col"]))]
-            status = row.get("status", "ok").strip() or "ok"
-            d = float(row["measured_d"]) if status == "ok" and row["measured_d"].strip() else None
+    with open(path, newline="") as f:
+        for n, row in enumerate(csv.DictReader(f), start=2):
+            cells = {k.strip().lower(): (v or "").strip() for k, v in row.items() if k}
+            if not any(cells.values()):
+                continue
+            try:
+                p = by_slot[(int(cells.get("row", "")), int(cells.get("col", "")))]
+            except (KeyError, ValueError):
+                print(f"  {path} line {n}: no piece at row={cells.get('row')!r} col={cells.get('col')!r}, skipped")
+                continue
+            status = cells.get("status", "").lower() or "ok"
+            d = None
+            if status == "ok":
+                try:
+                    d = float(cells.get("measured_d", ""))
+                except ValueError:
+                    print(f"  {path} line {n}: measured_d {cells.get('measured_d')!r} isn't a number, skipped")
+                    continue
+            elif status != "failed":
+                print(f"  {path} line {n}: status {status!r} should be ok or failed, skipped")
+                continue
             out.append(Measurement(p.piece_id, plate.plate_id, plate.site, d, "ok" if d is not None else "failed", "caliper"))
     return out
 
@@ -44,11 +62,11 @@ def scanner_offsets(scanner: list[Measurement], caliper: list[Measurement], plat
     shadows, nearly constant across pieces (spread 8-15 um). Kinds with fewer
     than `min_pairs` checks are left uncorrected.
     """
-    kind = {p.piece_id: p.kind for p in plate.pieces}
+    kind = {p.piece_id: p.kind for p in plate.pieces if p.arm != "heldout"}  # held-out: scoring only
     s = {m.piece_id: m.measured_d for m in scanner if m.status == "ok"}
     diffs: dict[str, list[float]] = {}
     for m in caliper:
-        if m.status == "ok" and m.piece_id in s:
+        if m.status == "ok" and m.piece_id in s and m.piece_id in kind:
             diffs.setdefault(kind[m.piece_id], []).append(s[m.piece_id] - m.measured_d)
     return {k: float(np.median(v)) for k, v in diffs.items() if len(v) >= min_pairs}
 
@@ -62,12 +80,14 @@ def apply_offsets(scanner: list[Measurement], offsets: dict[str, float], plate: 
 
 def sample_for_caliper(plate: Plate, k: int = 10, seed: int = 0) -> list[tuple[int, int]]:
     """Random slots to caliper-check (walkthrough: about 10 per plate), split evenly
-    between pins and holes so each kind gets enough checks for scanner_offsets."""
+    between pins and holes so each kind gets enough checks for scanner_offsets. Held-out
+    pieces are left out: their measurements must not shape the training data."""
     rng = np.random.default_rng(seed)
     out = []
-    kinds = sorted({p.kind for p in plate.pieces})
+    train = [p for p in plate.pieces if p.arm != "heldout"]
+    kinds = sorted({p.kind for p in train})
     for i, kind in enumerate(kinds):
-        pool = [p.slot for p in plate.pieces if p.kind == kind]
+        pool = [p.slot for p in train if p.kind == kind]
         n = min(len(pool), k // len(kinds) + (i < k % len(kinds)))
         out += [pool[j] for j in rng.choice(len(pool), size=n, replace=False)]
     return sorted(out)

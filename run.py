@@ -38,6 +38,18 @@ def check_resume(checkpoint: str, cfg: Config) -> None:
         raise SystemExit(f"{checkpoint} was started with different settings (started, now): {diff}")
 
 
+def real_printers(cfg: Config, scans: str) -> dict:
+    """Printers for a real run: RealPrinter per site, except cfg.sim_sites, which print on a
+    simulated world (sim.reference.make_world, fixed by cfg.seed) for fallback tier B."""
+    from measure.real import RealPrinter
+    from sim.reference import make_world
+    world = make_world(SITES, cfg.seed) if cfg.sim_sites else {}
+    return {s: world[s] if s in cfg.sim_sites else
+            RealPrinter(s, f"{scans}/{s}", failed_plate_fraction=cfg.failed_plate_fraction,
+                        caliper_checks=cfg.caliper_checks, caliper_min_pairs=cfg.caliper_min_pairs)
+            for s in SITES}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--source", choices=["sim", "real"], required=True)
@@ -58,10 +70,11 @@ def main() -> None:
     ap.add_argument("--out", default=None, help="write results JSON here")
     ap.add_argument("--prereg", default="prereg/prereg.yaml", help="pre-registration file (real: config; both: fit classes)")
     ap.add_argument("--scans", default="scans", help="real only: directory the scanner saves into")
+    ap.add_argument("--sim-site", action="append", default=[],
+                    help="real only, fallback tier B: this site is simulated (repeatable; at least one site stays real)")
     args = ap.parse_args()
 
     if args.source == "real":
-        from measure.real import RealPrinter
         from prereg.check import check_heldout, config_from, fit_thresholds, load, missing
         prereg, sha = load(args.prereg)
         check_heldout(prereg)
@@ -70,15 +83,23 @@ def main() -> None:
             raise SystemExit("prereg incomplete, fill in before printing:\n  " + "\n  ".join(gaps))
         late = missing(prereg, "round1")
         # Real runs take every setting from the prereg; CLI tuning flags are for simulation.
-        cfg = config_from(prereg, sha, rounds=0 if late else None)
+        unknown = set(args.sim_site) - set(SITES)
+        if unknown or len(set(args.sim_site)) == len(SITES):
+            raise SystemExit(f"--sim-site must name some but not all of {sorted(SITES)}")
+        meas = prereg.get("measurement") or {}
+        cfg = config_from(prereg, sha, rounds=0 if late else None, sim_sites=tuple(sorted(set(args.sim_site))),
+                          failed_plate_fraction=prereg["failed_plate_fraction"],
+                          caliper_checks=meas.get("caliper_checks_per_plate"),
+                          caliper_min_pairs=meas.get("caliper_offset_min_pairs"))
         if late:
             print("predicted range not committed yet: running the seed plate only. "
                   "Commit the range, then rerun to resume at round 1.")
         print(f"prereg sha256 {sha}")
         chains = args.chains or "receipts/real"
         check_resume(f"{chains}/state.pkl", cfg)
-        printers = {s: RealPrinter(s, f"{args.scans}/{s}", failed_plate_fraction=prereg["failed_plate_fraction"])
-                    for s in SITES}
+        printers = real_printers(cfg, args.scans)
+        if cfg.sim_sites:
+            print(f"fallback tier B: {', '.join(cfg.sim_sites)} simulated (world seed {cfg.seed}), the rest real")
         res = run_experiment(printers, SITES, cfg,
                              chain_dir=chains, checkpoint=f"{chains}/state.pkl")
         res.scores = with_fit(res.scores, res.predictions, fit_thresholds(prereg), SITES)

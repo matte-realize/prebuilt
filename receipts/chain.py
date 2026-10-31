@@ -49,6 +49,17 @@ class ReceiptChain:
             for e in self.entries():
                 self._seq, self._head = e["seq"] + 1, e["hash"]
 
+    def __setstate__(self, state: dict) -> None:
+        """On unpickling (resuming a checkpoint), continue from the file, not the pickled head:
+        a crash after the checkpoint may have appended entries that the pickle doesn't know."""
+        self.__dict__.update(state)
+        self.unsaved_tail = 0  # entries written after the checkpoint, by an interrupted attempt
+        if self.path is not None and self.path.exists():
+            saved = self._seq
+            for e in self.entries():
+                self._seq, self._head = e["seq"] + 1, e["hash"]
+            self.unsaved_tail = self._seq - saved
+
     def head(self) -> str:
         return self._head
 

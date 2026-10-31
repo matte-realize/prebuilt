@@ -11,23 +11,23 @@ This replaces the per-phase M/T assignments in [02-friday-night.md](02-friday-ni
 |---|---|---|---|
 | Contracts, receipts, physics models, NumPy posterior | M | `contracts.py`, `receipts/`, `model/` | Done (Phase A) |
 | Pre-registration values | M + T | `prereg/` | Kickoff, together |
-| Piece library, plate generator, seed STLs | M | `plates/` | Done; seed plate cut to 16 + 8 held-out (Phase C). Slice-check on both printers still to do |
+| Piece library, plate generator, seed STLs | M | `plates/` | Done; seed plate cut to 16 + 8 held-out (Phase C). Slice-check in the room |
 | Agents, auction, credibility | M | `agents/` | Done, including challenge round and spawn/retire (position template only; see 07-status.md) |
 | Message schema and boundary enforcement | M | `network/` | Done |
-| Three arms (isolated, networked, oracle) | M | `arms/` | Done; oracle definition open (see 07-status.md) |
-| Scanner pipeline, caliper entry | M | `measure/` | First pass done on synthetic scans; paper target next |
+| Three arms (isolated, networked, oracle) | M | `arms/` | Done (same agents in every arm; see 07-status.md) |
+| Scanner pipeline, caliper entry, real loop, rehearsal | M | `measure/` | Done on synthetic scans; paper target in the room |
 | Privacy audit replay | M | `eval/audit.py` | Done |
 | Hypothesis agent (Nemotron, async) | M | `agents/hypothesis.py` | Built; needs a live Nemotron endpoint |
-| Warp multi-site simulator (`Printer`) | T | `sim/` | Phase B |
-| Domain randomization, unmodeled effects | T | `sim/` | Phase B |
-| Warp/GPU port of the posterior | T | `model/posterior_warp.py` | Phase B–C |
+| Warp multi-site simulator (`Printer`) | T | `sim/warp_sim.py` | Done |
+| Domain randomization, unmodeled effects | T | `sim/warp_sim.py` | Done |
+| Warp/GPU port of the posterior | T | `model/posterior_warp.py` | Done |
 | Batched experiment runner (many sites × seeds per launch) | T | `sim/batch.py` | Phase C |
 | Nebius setup, job scripts, result storage | T | `hpc/` | Fri night |
-| Many-seed runs; tune and freeze η, floor, slot split | T (M signs off) | `hpc/` | Phase C |
-| Sim calibration to seed data; predicted range (Phase D) | T | `sim/calibrate.py` | Sat ~11:30 |
+| Many-seed runs; tune and freeze η, floor, slot split | T (M signs off) | `hpc/sweeps/` | Frozen in the prereg; M sign-off pending |
+| Sim calibration to seed data; predicted range (Phase D) | T | `sim/calibrate.py` | Built; runs after the seed plates |
 | Robustness, scaling, ablation sweeps | T | `hpc/sweeps/` | Sat afternoon and night |
 | Held-out scoring, metrics | M | `eval/metrics.py` | Done (fit-class accuracy waits on prereg thresholds) |
-| Figures | T (sweeps), M (real rounds) | `eval/figures/` | Sat night |
+| Figures | T (sweeps), M (real rounds) | `eval/figures/` | Headline chart built; real-round figures Sunday |
 
 ## Handoff contracts
 
