@@ -82,7 +82,7 @@ def test_interval_with_no_defined_values():
 def test_prediction_survives_a_site_failing_every_heldout_piece(synthetic):
     fits = copy.deepcopy(synthetic[2])
     fits.sites["pla"].fail_draws[:, :2] = 50.0  # every piece fails at pla
-    row = calibrate._run_one((0, dict(rounds=1, n_particles=300, slots_per_arm=4, seed_pieces=8), fits))
+    row = calibrate.run_seed(0, fits, dict(rounds=1, n_particles=300, slots_per_arm=4, seed_pieces=8))
     assert math.isfinite(row["iso_minus_net_um"][1])  # resin alone
 
 

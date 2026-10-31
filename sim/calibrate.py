@@ -336,8 +336,19 @@ def plot_residuals(fit: SiteFit, data: Data, path: Path) -> None:
 
 # ---- prediction ----------------------------------------------------------------
 
-def _run_one(job: tuple[int, dict, Calibration]) -> dict:
-    seed, cfg_kw, calib = job
+_WORKER: tuple[Calibration, dict] | None = None  # set once per pool worker, so draws aren't re-sent per seed
+
+
+def _init_worker(calib: Calibration, cfg_kw: dict) -> None:
+    global _WORKER
+    _WORKER = calib, cfg_kw
+
+
+def _run_worker(seed: int) -> dict:
+    return run_seed(seed, *_WORKER)
+
+
+def run_seed(seed: int, calib: Calibration, cfg_kw: dict) -> dict:
     rng = np.random.default_rng([seed, 0xD])
     world = calib.world(int(rng.integers(len(calib))), rng)
     res = run_experiment(world, SITES, Config(**cfg_kw, seed=seed))
@@ -361,9 +372,9 @@ def _interval(v: list[float]) -> dict[str, float | None]:
 
 
 def predict(calib: Calibration, cfg_kw: dict, seeds: range, workers: int) -> dict:
-    jobs = [(s, cfg_kw, calib) for s in seeds]
-    with get_context("spawn").Pool(workers) as pool:  # fork is unsafe once Warp has started threads
-        rows = pool.map(_run_one, jobs, chunksize=1)
+    # spawn: fork is unsafe once Warp has started threads
+    with get_context("spawn").Pool(workers, initializer=_init_worker, initargs=(calib, cfg_kw)) as pool:
+        rows = pool.map(_run_worker, seeds, chunksize=1)
     rounds = sorted(rows[0]["gap"])
     return {key: {r: _interval([row[key][r] for row in rows]) for r in rounds}
             for key in ("gap", "gap_truth", "iso_minus_net_um")}
