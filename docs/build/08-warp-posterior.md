@@ -68,11 +68,30 @@ Hardware: RTX 5060 Laptop GPU, Warp 1.18. Workload: 60 measurements in 3 chunks,
 
 The NumPy loop times are estimated: 8 members were timed and the result scaled to 64. NumPy times moved by up to 30% between runs because the machine was shared (see below), so read the speedups as rough.
 
+### H100
+
+Hardware: Nebius `gpu-h100-sxm` VM, 1 × H100 80GB HBM3, 16 vCPUs (NumPy runs on these), Warp 1.18, idle GPU. Same command and workload, commit 227f483, 2026-10-31. Raw output in `hpc/bench_posterior_h100.txt`.
+
+| particles | NumPy update | Warp update | speedup | NumPy predict ×200 | Warp ×200, one call per piece | Warp ×200, batched |
+|---|---|---|---|---|---|---|
+| 2,000 | 0.023 s | 0.016 s | 1.4x | 0.013 s | 0.067 s | 0.0005 s |
+| 20,000 | 0.207 s | 0.022 s | 9.3x | 0.116 s | 0.090 s | 0.0006 s |
+| 200,000 | 2.87 s | 0.048 s | 60x | 1.63 s | 0.180 s | 0.0021 s |
+
+64 posteriors in one batch, update plus predict:
+
+| particles | NumPy loop (est.) | Warp batch | speedup |
+|---|---|---|---|
+| 2,000 | 3.13 s | 0.079 s | 39x |
+| 20,000 | 29.4 s | 0.350 s | 84x |
+
+NumPy loop times are estimated the same way (8 members timed, scaled to 64). Warp itself is about 12x faster than on the laptop GPU at 200k particles and in the 20k batch, which matches the float64 note below.
+
 ## Known gaps
 
-- **The benchmark ran on a shared GPU.** Another job (`python -m mirage.dynamics --train`) was using the GPU the whole time. Each wait for the GPU cost about 1.6 ms, so the Warp numbers are pessimistic, especially one-piece-at-a-time predict. Rerun on an idle GPU or on Nebius for clean numbers.
+- **The benchmark ran on a shared GPU.** Another job (`python -m mirage.dynamics --train`) was using the GPU the whole time. Each wait for the GPU cost about 1.6 ms, so the Warp numbers are pessimistic, especially one-piece-at-a-time predict. The H100 tables above are from an idle GPU.
 - **Single small posteriors gain nothing.** At 2k particles, per-call overhead cancels out the speedup. Calling `predict`, `log_predictive` or `predict_interval` one piece at a time is limited by GPU round trips. Bulk work should go through `PosteriorBatch`.
-- **Everything is in float64.** At 200k particles, the Metropolis and likelihood kernels dominate, and laptop GPUs are slow at float64. An H100 should do much better. There is no float32 mode.
+- **Everything is in float64.** At 200k particles, the Metropolis and likelihood kernels dominate, and laptop GPUs are slow at float64. The H100 run confirms it: the 200k update drops from 0.58 s to 0.048 s. There is no float32 mode.
 - **Results match NumPy statistically, not exactly.** The random number streams differ, and the tempering search is a grid search instead of bisection. Both searches assume ESS falls as the step grows.
 - **The physics is duplicated.** The kernels repeat `model/physics.py`. The tests catch drift, but a physics change means updating the kernels too.
 - **`model/posterior.py` was changed on this branch.** The refactor is behavior-preserving and in its own commit, but the file is Matthew's and contract 2 says not to change it alone. He needs to OK it before merge, or that commit gets dropped.
@@ -86,4 +105,3 @@ The NumPy loop times are estimated: 8 members were timed and the result scaled t
 ## Next
 
 - Wire `PosteriorBatch` into `sim/batch.py` for the Phase C many-seed runs.
-- Rerun the benchmark on an H100 and update the tables above.
