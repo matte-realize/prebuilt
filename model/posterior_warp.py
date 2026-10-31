@@ -11,8 +11,9 @@ widest member and kernels stop at each member's own parameter count.
 `ParticlePosterior` is a view of one member with the reference API, so agents
 and arms can take either implementation.
 
-Layout, prior draws and measurement grouping come from the NumPy reference, so
-for the same seed both start from identical particles. The kernel physics
+Layout, prior draws, measurement grouping and the message-prior rules come
+from `model.posterior.Layout`, so for the same seed both start from identical
+particles and accept the same inputs. The kernel physics
 mirrors `model/physics.py`; tests/test_posterior_warp.py checks the two
 against each other, so change them together.
 
@@ -237,10 +238,10 @@ def k_search_init(t: Target, active: A1I, lo: A1F, hi: A1F, full: A1I):
 
 
 @wp.kernel
-def k_grid_partial(logw: A2F, ll: A2F, lo: A1F, hi: A1F, active: A1I, n: int, pm: A3F, p1: A3F, p2: A3F, chunk: int):
+def k_grid_partial(logw: A2F, ll: A2F, lo: A1F, hi: A1F, active: A1I, full: A1I, n: int, pm: A3F, p1: A3F, p2: A3F, chunk: int):
     """Chunk sums for the ESS of logw + t_k * ll at GRID evenly spaced steps t_k in (lo, hi]."""
     b, k, c = wp.tid()
-    if active[b] == 0:
+    if active[b] == 0 or full[b] != 0:
         return
     tk = lo[b] + (hi[b] - lo[b]) * F(k + 1) / GRID_F
     i0 = c * chunk
@@ -250,23 +251,27 @@ def k_grid_partial(logw: A2F, ll: A2F, lo: A1F, hi: A1F, active: A1I, n: int, pm
         m = wp.max(m, logw[b, i] + tk * ll[b, i])
     s1 = F(0.0)
     s2 = F(0.0)
-    for i in range(i0, i1):
-        e = F(wp.exp(wp.float32(logw[b, i] + tk * ll[b, i] - m)))  # float32 is plenty for an ESS threshold
-        s1 += e
-        s2 += e * e
+    if m > NEG_INF:
+        for i in range(i0, i1):
+            e = F(wp.exp(wp.float32(logw[b, i] + tk * ll[b, i] - m)))  # float32 is plenty for an ESS threshold
+            s1 += e
+            s2 += e * e
     pm[b, k, c] = m
     p1[b, k, c] = s1
     p2[b, k, c] = s2
 
 
 @wp.kernel
-def k_grid_ess(pm: A3F, p1: A3F, p2: A3F, nc: int, active: A1I, ess: A2F):
+def k_grid_ess(pm: A3F, p1: A3F, p2: A3F, nc: int, active: A1I, full: A1I, ess: A2F):
     b, k = wp.tid()
-    if active[b] == 0:
+    if active[b] == 0 or full[b] != 0:
         return
     m = NEG_INF
     for c in range(nc):
         m = wp.max(m, pm[b, k, c])
+    if m == NEG_INF:
+        ess[b, k] = F(0.0)
+        return
     s1 = F(0.0)
     s2 = F(0.0)
     for c in range(nc):
@@ -280,7 +285,7 @@ def k_grid_ess(pm: A3F, p1: A3F, p2: A3F, nc: int, active: A1I, ess: A2F):
 def k_grid_pick(ess: A2F, target: F, active: A1I, first: int, lo: A1F, hi: A1F, full: A1I):
     """Narrow (lo, hi] to the gap after the largest grid step that keeps ESS >= target."""
     b = wp.tid()
-    if active[b] == 0:
+    if active[b] == 0 or full[b] != 0:
         return
     best = int(-1)
     for k in range(GRID):
@@ -591,33 +596,31 @@ def _seed32(seed: int | tuple[int, ...]) -> int:
 
 
 class _Member:
-    """Host-side state of one posterior: layout (from the reference), data, extra priors."""
+    """Host-side state of one posterior: layout (shared with the reference), data, extra priors."""
 
-    def __init__(self, sites, pieces, n, seed, ess_frac, mh_steps, between_site_sd):
-        ref = reference.ParticlePosterior(sites, pieces, n=n, seed=seed, ess_frac=ess_frac,
-                                          mh_steps=mh_steps, between_site_sd=between_site_sd)
-        self.theta0 = ref.theta              # initial draws, identical to the reference
-        ref.theta = ref.logw = None          # only the layout and grouping helpers are kept
-        self.ref = ref
+    def __init__(self, sites, pieces, n, seed, between_site_sd):
+        self.layout = reference.Layout(sites, between_site_sd)
+        self.theta0 = self.layout.sample_prior(n, np.random.default_rng(seed))  # same draws as the reference
+        self.pieces = pieces
         self.seed = seed
         self.seen = self._records({})
         self.extra: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray, float]] = {}
 
     @property
     def p(self) -> int:
-        return len(self.ref.specs)
+        return len(self.layout.specs)
 
     def records(self, ms: list[Measurement]) -> dict[str, np.ndarray]:
-        return self._records(self.ref._batch(ms))
+        return self._records(self.layout.group(ms, self.pieces))
 
     def _records(self, batch) -> dict[str, np.ndarray]:
-        parts = [_obs_records(self.ref.blocks[site], x, y) for site, (x, y) in batch.items()]
+        parts = [_obs_records(self.layout.blocks[site], x, y) for site, (x, y) in batch.items()]
         return _concat(parts) if parts else _obs_records(("resin", np.zeros(0, int)), None, None)
 
     def quad(self) -> tuple[np.ndarray, np.ndarray]:
         """-0.5 x'Ax + b'x for the couplings plus every extra prior (constants dropped)."""
         a, bv = np.zeros((self.p, self.p)), np.zeros(self.p)
-        for g, c, tau in self.ref._couplings:
+        for g, c, tau in self.layout.couplings:
             e = np.zeros(self.p)
             e[c], e[g] = 1.0, -1.0
             a += np.outer(e, e) / tau**2
@@ -673,6 +676,8 @@ class PosteriorBatch:
         between_site_sd: float | None | Sequence[float | None] = None,
         device: str | None = None,
     ):
+        if isinstance(sites, (str, Mapping)):
+            raise TypeError("sites is one entry per member: wrap a single posterior's sites in a list")
         b = len(sites)
         if len(seeds) != b:
             raise ValueError("one seed per member")
@@ -683,7 +688,7 @@ class PosteriorBatch:
         self.device = wp.get_device(device)
         self.n, self.b = n, b
         self.ess_frac, self.mh_steps = ess_frac, mh_steps
-        self.members = [_Member(s, pc, n, sd, ess_frac, mh_steps, h) for s, pc, sd, h in zip(sites, pieces, seeds, bsd)]
+        self.members = [_Member(s, pc, n, sd, h) for s, pc, sd, h in zip(sites, pieces, seeds, bsd)]
         self.p = max(m.p for m in self.members)
         self.chunk = max(64, math.isqrt(n))  # particles per thread in reductions; ~sqrt(n) balances both levels
         self.nc = -(-n // self.chunk)          # chunks per member
@@ -695,7 +700,7 @@ class PosteriorBatch:
             theta[i, :, : m.p] = m.theta0
             m.theta0 = None
             for k, attr in (("mean", "prior_mean"), ("std", "prior_std"), ("lo", "lo"), ("hi", "hi")):
-                spec[k][i, : m.p] = [getattr(s, attr) for s in m.ref.specs]
+                spec[k][i, : m.p] = [getattr(s, attr) for s in m.layout.specs]
 
         arr = lambda a, dt=F: wp.array(np.ascontiguousarray(a), dtype=dt, device=self.device)
         zeros = lambda shape, dt=F: wp.zeros(shape, dtype=dt, device=self.device)
@@ -745,8 +750,8 @@ class PosteriorBatch:
         items = ms_per_member.items() if isinstance(ms_per_member, Mapping) else enumerate(ms_per_member)
         new: list[dict[str, np.ndarray] | None] = [None] * self.b
         for i, ms in items:
-            ok = [m for m in ms if m.status == "ok" and m.measured_d is not None]
-            if ok:  # failures are printability outcomes, scored elsewhere
+            ok = reference.usable(ms)
+            if ok:
                 new[i] = self.members[i].records(ok)
         active = np.array([r is not None for r in new], np.int32)
         if not active.any():
@@ -793,9 +798,12 @@ class PosteriorBatch:
 
     def ess(self) -> np.ndarray:
         """Effective sample size per member, [B]."""
-        mask = self._arr(np.ones(self.b), wp.int32)
-        self._lse_rows(self.logw_d, self.ll_d, self.zero_coef_d, self.rowb_d, mask)
+        self._lse_rows(self.logw_d, self.ll_d, self.zero_coef_d, self.rowb_d, self._arr(np.ones(self.b), wp.int32))
         return self.ess_d.numpy().copy()
+
+    def _ess_one(self, i: int) -> float:
+        self._lse_rows(self.logw_d, self.ll_d, self.zero_coef_d, self.rowb_d, self._mask(i))
+        return float(self.ess_d[i : i + 1].numpy()[0])
 
     # ---- per-member operations used by the view ----------------------------
 
@@ -805,15 +813,16 @@ class PosteriorBatch:
         return self._arr(m, wp.int32)
 
     def _query(self, i: int, pieces, site: str | None) -> dict[str, np.ndarray]:
-        ref = self.members[i].ref
-        site = site or ref._only_site()
+        layout = self.members[i].layout
+        site = site or layout.only_site()
         x = pieces if isinstance(pieces, PieceArrays) else PieceArrays.from_pieces(pieces)
-        return _obs_records(ref.blocks[site], x, None)
+        return _obs_records(layout.blocks[site], x, None)
 
     def _components(self, rec: dict[str, np.ndarray], rowb: np.ndarray):
         q = len(rowb)
         mu, s = self._zeros((q, self.n)), self._zeros((q, self.n))
-        self._launch(k_predict, (q, self.n), [self.theta_d, self._obs_struct(rec), self._arr(rowb, wp.int32), mu, s])
+        ob, qb = self._obs_struct(rec, rowb)
+        self._launch(k_predict, (q, self.n), [self.theta_d, ob, qb, mu, s])
         return mu, s
 
     def _moments(self, rec, rowb: np.ndarray):
@@ -822,7 +831,7 @@ class PosteriorBatch:
         block = max(1, (1 << 23) // (3 * self.nc))  # rows per pass: partial sums stay under 64 MB
         for k in range(0, len(rowb), block):
             sl = slice(k, k + block)
-            q, qb = self._obs_struct({key: v[sl] for key, v in rec.items()}), self._arr(rowb[sl], wp.int32)
+            q, qb = self._obs_struct({key: v[sl] for key, v in rec.items()}, rowb[sl])
             rows = len(rowb[sl])
             part, res = self._zeros((rows, self.nc, 3)), self._zeros((2, rows))
             self._launch(k_moments_partial, (rows, self.nc), [self.theta_d, q, qb, self.logw_d, self.n, part, self.chunk])
@@ -890,12 +899,17 @@ class PosteriorBatch:
         self._launch(k_lse_final, self.b, [self.pm_d, self.p1_d, self.p2_d, self.nc, rowb, mask, self.lse_d, self.ess_d])
 
     def _next_step(self, active, target) -> None:
-        """Largest tempering step <= remaining that keeps ESS above target (grid search, GRID-ary)."""
+        """Largest tempering step <= remaining that keeps ESS above target (grid search, GRID-ary).
+
+        Members whose full remaining step is fine (the common case) do no work after
+        the first round. The later launches still go out: checking on the host costs
+        a sync, which measured slower than the empty launches.
+        """
         self._launch(k_search_init, self.b, [self.t, active, self.lo_d, self.hi_d, self.full_d])
         for r in range(SEARCH_ROUNDS):
-            self._launch(k_grid_partial, (self.b, GRID, self.nc), [self.logw_d, self.ll_d, self.lo_d, self.hi_d, active,
+            self._launch(k_grid_partial, (self.b, GRID, self.nc), [self.logw_d, self.ll_d, self.lo_d, self.hi_d, active, self.full_d,
                                                                    self.n, self.gm_d, self.g1_d, self.g2_d, self.chunk])
-            self._launch(k_grid_ess, (self.b, GRID), [self.gm_d, self.g1_d, self.g2_d, self.nc, active, self.gess_d])
+            self._launch(k_grid_ess, (self.b, GRID), [self.gm_d, self.g1_d, self.g2_d, self.nc, active, self.full_d, self.gess_d])
             self._launch(k_grid_pick, self.b, [self.gess_d, target, active, int(r == 0), self.lo_d, self.hi_d, self.full_d])
 
     def _normalize(self, mask) -> None:
@@ -934,7 +948,7 @@ class PosteriorBatch:
         qa, qb = np.zeros((self.b, self.p, self.p)), np.zeros((self.b, self.p))
         has = np.zeros(self.b, np.int32)
         for i, m in enumerate(self.members):
-            if m.ref._couplings or m.extra:
+            if m.layout.couplings or m.extra:
                 a, bv = m.quad()
                 qa[i, : m.p, : m.p], qb[i, : m.p], has[i] = a, bv, 1
         self.t.qa, self.t.qb, self.t.has_quad = self._arr(qa), self._arr(qb), self._arr(has, wp.int32)
@@ -950,16 +964,19 @@ class PosteriorBatch:
                 recs.append(new[i])
             k += ns + nn
         recs.append(_PAD)  # Warp arrays are never empty
-        self.ob = self._obs_struct(_concat(recs))
+        self.ob, _ = self._obs_struct(_concat(recs))
         self.t.seen_lo, self.t.seen_hi, self.t.new_lo, self.t.new_hi = (self._arr(r, wp.int32) for r in bounds)
 
-    def _obs_struct(self, rec: dict[str, np.ndarray]) -> Obs:
+    def _obs_struct(self, rec: dict[str, np.ndarray], rowb: np.ndarray | None = None):
+        """Obs with column views into two packed uploads, plus the row -> member array."""
+        q = len(rec["d"])
+        ints = np.column_stack([rec["proc"], rec["hole"], np.zeros(q) if rowb is None else rowb, rec["cols"]])
+        ints = self._arr(ints.astype(np.int32), wp.int32)
+        floats = self._arr(np.column_stack([rec[k] for k in ("d", "u", "v", "y")]))
         ob = Obs()
-        for k in ("proc", "cols", "hole"):
-            setattr(ob, k, self._arr(rec[k], wp.int32))
-        for k in ("d", "u", "v", "y"):
-            setattr(ob, k, self._arr(rec[k]))
-        return ob
+        ob.proc, ob.hole, ob.cols = ints[:, 0], ints[:, 1], ints[:, 3:]
+        ob.d, ob.u, ob.v, ob.y = (floats[:, j] for j in range(4))
+        return ob, ints[:, 2]
 
 
 
@@ -993,19 +1010,32 @@ class ParticlePosterior:
 
     def _bind(self, batch: PosteriorBatch, i: int) -> None:
         self.batch, self.i = batch, i
-        ref = batch.members[i].ref
-        self.sites, self.single, self.process = ref.sites, ref.single, ref.process
-        self.pieces, self.hier = ref.pieces, ref.hier
-        self.specs, self.blocks, self.names, self.tags = ref.specs, ref.blocks, ref.names, ref.tags
+        mem = batch.members[i]
+        self.layout, self.pieces = mem.layout, mem.pieces
+        self.sites, self.single, self.process, self.hier = mem.layout.sites, mem.layout.single, mem.layout.process, mem.layout.hier
+        self.specs, self.blocks, self.names, self.tags = mem.layout.specs, mem.layout.blocks, mem.layout.names, mem.layout.tags
         self.n, self.ess_frac, self.mh_steps = batch.n, batch.ess_frac, batch.mh_steps
+
+    # theta and logw live on the GPU. Reading returns a host copy, so in-place edits
+    # of the returned array do nothing; assign a whole array to write it back.
 
     @property
     def theta(self) -> np.ndarray:
-        return self.batch.theta_d.numpy()[self.i, :, : len(self.specs)].copy()
+        return self.batch.theta_d[self.i].numpy()[:, : len(self.specs)]
+
+    @theta.setter
+    def theta(self, value: np.ndarray) -> None:
+        row = np.zeros((self.n, self.batch.p))
+        row[:, : len(self.specs)] = value
+        self.batch.theta_d[self.i].assign(row)
 
     @property
     def logw(self) -> np.ndarray:
-        return self.batch.logw_d.numpy()[self.i].copy()
+        return self.batch.logw_d[self.i].numpy()
+
+    @logw.setter
+    def logw(self, value: np.ndarray) -> None:
+        self.batch.logw_d[self.i].assign(np.asarray(value, float))
 
     # ---- Model protocol -------------------------------------------------
 
@@ -1020,9 +1050,7 @@ class ParticlePosterior:
     # ---- extra predictive outputs --------------------------------------
 
     def predict_interval(self, piece: Piece, q: float = 0.9, k: int = 20000, site: str | None = None) -> tuple[float, float]:
-        draws = self.batch._interval_draws(self.i, self.batch._query(self.i, [piece], site), k)
-        lo, hi = np.quantile(draws, [(1 - q) / 2, (1 + q) / 2])
-        return float(lo), float(hi)
+        return reference.interval(self.batch._interval_draws(self.i, self.batch._query(self.i, [piece], site), k), q)
 
     def log_predictive(self, piece: Piece, y: float, site: str | None = None) -> float:
         """Log predictive density of an observed diameter (held-out LPD)."""
@@ -1034,7 +1062,7 @@ class ParticlePosterior:
         rec = self.batch._query(self.i, pieces, site)
         m = len(rec["y"])
         if m == 0:
-            proc, cols = self.blocks[site or self.batch.members[self.i].ref._only_site()]
+            proc, cols = self.blocks[site or self.layout.only_site()]
             return np.zeros((self.n, 0)), physics.sigma(proc, self.theta[:, cols])
         mu, s = self.batch._components(rec, np.full(m, self.i))
         return mu.numpy().T.copy(), s.numpy()[0].copy()
@@ -1043,11 +1071,9 @@ class ParticlePosterior:
 
     def summary(self, tag: str = "shared") -> tuple[dict[str, tuple[float, float]], np.ndarray, list[str]]:
         """Weighted mean/variance per parameter with `tag`, plus their covariance."""
-        cols = [j for j, t in enumerate(self.tags) if t == tag]
+        cols = self.layout.tag_cols(tag)
         mean, cov = self.batch._summary(self.i)
-        mean, cov = mean[cols], cov[np.ix_(cols, cols)]
-        sel = [self.names[j] for j in cols]
-        return {nm: (float(mean[i]), float(cov[i, i])) for i, nm in enumerate(sel)}, cov, sel
+        return self.layout.summary_dict(cols, mean[cols], cov[np.ix_(cols, cols)])
 
     def set_prior_from_summary(
         self, means: dict[str, float], cov: np.ndarray, weight: float, key: str = "default"
@@ -1057,17 +1083,8 @@ class ParticlePosterior:
         Same semantics as the reference: `weight` is the tempering exponent from
         sender credibility, `key` is the sender, only shared parameters accepted.
         """
-        ix = {nm: j for j, nm in enumerate(self.names)}
-        for nm in means:
-            if nm not in ix or self.tags[ix[nm]] != "shared":
-                raise ValueError(f"{nm} is not a shared parameter and cannot come from another site")
-        new = None
-        if weight > 0 and means:
-            cols = np.array([ix[nm] for nm in means])
-            prec = np.linalg.inv(cov + 1e-12 * np.eye(len(cols)))
-            new = (cols, np.array(list(means.values()), float), prec, weight)
-        self.batch._set_prior(self.i, key, new)
+        self.batch._set_prior(self.i, key, self.layout.shared_factor(means, cov, weight))
 
     def ess(self) -> float:
-        return float(self.batch.ess()[self.i])
+        return self.batch._ess_one(self.i)
 

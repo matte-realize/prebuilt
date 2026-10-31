@@ -110,3 +110,24 @@ def test_predictive_agrees_within_monte_carlo_error(case):
     assert np.sqrt((z**2).mean(0)).max() < 2.5, z
     # And the agreement is tight in absolute terms: well under the measurement noise.
     assert np.abs(diff[:, 0]).max() < 0.2 * ref[..., 1].mean()
+
+
+def test_batch_rejects_single_member_sites():
+    with pytest.raises(TypeError):
+        gpu.PosteriorBatch(ORACLE, {}, [1, 2], n=100)
+    with pytest.raises(TypeError):
+        gpu.PosteriorBatch("resin", {}, [1], n=100)
+
+
+def test_theta_and_logw_assignment_writes_back():
+    batch = gpu.PosteriorBatch(["resin", "pla"], {}, [1, 2], n=500)
+    post, other = batch[0], batch[1]
+    before = other.theta
+    theta = post.theta
+    theta[:, 0] += 0.01
+    post.theta = theta
+    logw = np.log(np.linspace(1.0, 2.0, 500))
+    post.logw = logw - np.log(np.exp(logw).sum())
+    np.testing.assert_array_equal(post.theta, theta)
+    np.testing.assert_allclose(np.exp(post.logw).sum(), 1.0)
+    np.testing.assert_array_equal(other.theta, before)  # writes stay inside the member
