@@ -30,7 +30,13 @@ def render_scan(
     noise: float = 0.01,
     margin_mm: float = 8.0,
     seed: int = 0,
+    gradient: float = 0.0,      # illumination falls off linearly by this fraction across the bed
+    vignette: float = 0.0,      # extra fractional fall-off at the corners
+    shadow_mm: float = 0.0,     # pins only: shadow cast on the plate, offset this far from each pin
+    dust: int = 0,              # number of dust specks / scratches
+    jpeg: int = 0,              # JPEG quality (0 = lossless)
 ) -> np.ndarray:
+    """Defaults give a clean scan. The other knobs add real-scanner defects for stress tests."""
     px_per_mm = dpi / 25.4
     size = int((spec.PLATE + 2 * margin_mm) * px_per_mm)
     c_px = np.array([size / 2, size / 2])
@@ -72,6 +78,15 @@ def render_scan(
     nx, nw, nd = spec.NOTCH
     paint(lambda x, y: (abs(x - nx) <= nw / 2) & (y <= nd), (nx - nw / 2, -1, nx + nw / 2, nd), hole_level)
 
+    if shadow_mm > 0 and mode == "pins":
+        for p in plate.pieces:
+            if p.kind == "pin":
+                cx, cy = spec.slot_center(*p.slot)
+                r = true_d[p.piece_id] / 2
+                sx, sy = cx + shadow_mm, cy - shadow_mm
+                paint(lambda x, y, sx=sx, sy=sy, r=r: (x - sx) ** 2 + (y - sy) ** 2 <= r * r,
+                      (sx - r, sy - r, sx + r, sy + r), 0.5 * pl)
+
     for p in plate.pieces:
         if p.kind == "hole" or mode == "pins":
             cx, cy = spec.slot_center(*p.slot)
@@ -81,7 +96,22 @@ def render_scan(
                 continue
             paint(lambda x, y, cx=cx, cy=cy, r=r: (x - cx) ** 2 + (y - cy) ** 2 <= r * r, (cx - r, cy - r, cx + r, cy + r), level)
 
+    rng = np.random.default_rng(seed)
+    for _ in range(dust):
+        x, y = rng.uniform(0, size, 2)
+        if rng.random() < 0.7:  # speck
+            cv2.circle(img, (int(x), int(y)), int(rng.integers(1, 4)), float(rng.choice([0.0, 1.0])), -1)
+        else:                   # hair / scratch
+            a, n = rng.uniform(0, math.pi), rng.uniform(20, 150)
+            cv2.line(img, (int(x), int(y)), (int(x + n * math.cos(a)), int(y + n * math.sin(a))),
+                     float(rng.choice([0.0, 1.0])), 1)
     if blur_px > 0:
         img = cv2.GaussianBlur(img, (0, 0), blur_px)
-    img = img + noise * np.random.default_rng(seed).standard_normal(img.shape)
-    return np.clip(img * 255, 0, 255).astype(np.uint8)
+    if gradient or vignette:
+        yy, xx = np.mgrid[0:size, 0:size] / size
+        img = img * (1 - gradient * xx) * (1 - vignette * ((xx - 0.5) ** 2 + (yy - 0.5) ** 2) * 2)
+    img = img + noise * rng.standard_normal(img.shape)
+    out = np.clip(img * 255, 0, 255).astype(np.uint8)
+    if jpeg:
+        out = cv2.imdecode(cv2.imencode(".jpg", out, [cv2.IMWRITE_JPEG_QUALITY, jpeg])[1], cv2.IMREAD_GRAYSCALE)
+    return out

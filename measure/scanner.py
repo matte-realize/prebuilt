@@ -44,9 +44,24 @@ def _to_float(img: np.ndarray) -> np.ndarray:
 
 
 def _find_fiducials(bright: np.ndarray) -> list[np.ndarray]:
-    """Centroids (px) of square, equal-size, bright blobs forming a right isosceles triangle."""
+    """Centroids (px) of square, equal-size, bright blobs forming a right isosceles triangle.
+
+    Global Otsu first; under uneven lighting it can miss, so fall back to local thresholds.
+    """
     u8 = (bright * 255).astype(np.uint8)
     _, bw = cv2.threshold(u8, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    err = None
+    for block in (None, *(int(f * min(u8.shape)) | 1 for f in (0.08, 0.15, 0.3))):
+        if block is not None:
+            bw = cv2.adaptiveThreshold(u8, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, block, -10)
+        try:
+            return _fiducial_triangle(bw)
+        except ValueError as e:
+            err = e
+    raise err
+
+
+def _fiducial_triangle(bw: np.ndarray) -> list[np.ndarray]:
     n, lab, stats, cents = cv2.connectedComponentsWithStats(bw, connectivity=8)
     h, w = bw.shape
     squares = []
