@@ -41,17 +41,17 @@ def timed(fn) -> float:
     return time.perf_counter() - t
 
 
-def bench_single(cls, n: int, repeats: int, batched_predict: bool = False) -> tuple[float, float]:
+def bench_single(cls, n: int, repeats: int) -> tuple[float, float, float | None]:
+    """Median seconds: update, per-piece predict, batched predict (Warp only) on the same fit."""
     pieces, chunks, held = workload("resin", 1)
-    up, pr = [], []
+    up, pr, bp = [], [], []
     for r in range(repeats):
         post = cls("resin", pieces, n=n, seed=r)
         up.append(timed(lambda: [post.update(c) for c in chunks]))
-        if batched_predict:
-            pr.append(timed(lambda: post.batch.predict([held])))
-        else:
-            pr.append(timed(lambda: [post.predict(p) for p in held]))
-    return statistics.median(up), statistics.median(pr)
+        pr.append(timed(lambda: [post.predict(p) for p in held]))
+        if hasattr(post, "batch"):
+            bp.append(timed(lambda: post.batch.predict([held])))
+    return statistics.median(up), statistics.median(pr), statistics.median(bp) if bp else None
 
 
 def bench_batch(b: int, n: int, repeats: int, numpy_members: int) -> tuple[float, float]:
@@ -94,9 +94,8 @@ def main() -> None:
     print("|---|---|---|---|---|---|---|")
     for n in args.particles:
         reps = 1 if n >= 100000 else args.repeats
-        nu, npr = bench_single(reference.ParticlePosterior, n, reps)
-        gu, gpr = bench_single(gpu.ParticlePosterior, n, reps)
-        _, gbp = bench_single(gpu.ParticlePosterior, n, reps, batched_predict=True)
+        nu, npr, _ = bench_single(reference.ParticlePosterior, n, reps)
+        gu, gpr, gbp = bench_single(gpu.ParticlePosterior, n, reps)
         print(f"| {n:,} | {nu:.3f} s | {gu:.3f} s | {nu / gu:.1f}x | {npr:.3f} s | {gpr:.3f} s | {gbp:.4f} s |")
 
     if args.batch:

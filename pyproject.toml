@@ -6,7 +6,7 @@ dependencies = ["numpy>=1.26", "pyyaml>=6"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
-warp = ["warp-lang>=1.18"]  # sim/warp_sim.py; needs a CUDA GPU for the batched sim
+warp = ["warp-lang>=1.18"]  # sim/warp_sim.py; fast on a CUDA GPU, also runs on CPU
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
