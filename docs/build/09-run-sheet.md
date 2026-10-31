@@ -51,7 +51,12 @@ py run.py --source real
    - `no feature (did not print?)`: the piece really is missing. That's fine, it's a printability outcome.
    - `blob touches cell edge (fused?)`: look at the piece. If it's a scanner problem (dust, hair), rescan and rerun.
    - Scanner vs caliper `mae` above ~0.05 mm: rescan (focus, flatness) before going on.
-7. **Fit checks** (walkthrough): try 2–3 pin/hole pairs by hand and note press, slip or loose in your notebook with the slot numbers. There's no code for this yet; it validates the fit-class thresholds.
+7. **Fit checks** (walkthrough): push 2–3 printed pins into printed holes from the same plate and write what you feel to `scans/<site>/<plate_id>-fitcheck.csv`:
+   ```
+   pin_row,pin_col,hole_row,hole_col,fit
+   2,1,5,2,slip
+   ```
+   `fit` is press, slip or loose. After any round, `py -m eval.fitcheck` compares them with each arm's predicted class and the scanner-implied class.
 
 **Failed plate:** if more than 50% of a plate's pieces fail (`failed_plate_fraction`), the run says so. It moves the scans to `<plate_id>.failed1-*` and waits for scans of a reprint of the same plate file. If the reprint also fails, that plate is dropped from the round (prereg failure rule). A seed plate that fails twice on one printer means one real site plus simulated sites (03-saturday checkpoints).
 

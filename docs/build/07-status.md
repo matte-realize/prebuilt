@@ -145,4 +145,5 @@ Fixes: a lighting gradient used to break fiducial detection on pin scans, so it 
 - **In the room:** slice-check the seed STLs (PreForm, PLA slicer), check the scanner on the paper target, then print (run sheet).
 - **Sign off** on the frozen config (task split contract 4). The open point is `trust_init = 1.0`: one round of damage from a bad-faith site.
 - **Live Nemotron test** of the hypothesis agent, once an endpoint is available.
-- **Optional:** log the hand fit checks as a CSV and score them against predicted fit classes; secondary simulation analysis with challenge and spawn on.
+- Hand fit checks: `eval/fitcheck.py` scores `{plate}-fitcheck.csv` rows against each arm's predicted class and the scanner-implied class (run sheet step 4.7).
+- **Optional:** secondary simulation analysis with challenge and spawn on.
