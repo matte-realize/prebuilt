@@ -4,6 +4,7 @@ As of Sat Oct 31. T's Phase C sweep results: `hpc/sweeps/phase_c/README.md` (rec
 
 ## What runs
 
+- `python -m prereg.check` checks `prereg/prereg.yaml`: the held-out manifest hash, and that every key under `config` is a real `Config` field. It lists blank fields and prints the file's sha256. `run.py --source real` builds its config from the prereg (CLI tuning flags apply to simulation only) and refuses to start with blanks. Without a predicted range it runs the seed plate only. It writes the prereg sha256 onto both receipt chains before each run of rounds.
 - `python -m plates.seed` writes seed plates (JSON + watertight STL) for both sites and `prereg/heldout.json`.
 - `python run.py --source sim --seeds 20` runs the full three-arm, two-site experiment on the NumPy reference simulator (`sim/reference.py`) and runs the privacy audit for every seed. About 3 s per seed at 1000 particles.
 - `python run.py --source real` drives the real printers. It writes plate files, asks for human approval, waits for `scans/<site>/<plate>-holes.png` and `-pins.png`, measures them, and checkpoints after every round (`receipts/real/state.pkl`). Rerun the same command to resume.

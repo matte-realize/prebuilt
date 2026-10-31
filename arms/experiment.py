@@ -81,6 +81,7 @@ class Config:
     spawn_threshold: int = 2         # unmet-needs entries (own + incoming, cumulative) that wake a template
     unmet_z: float = 2.0             # |z| of a residual trend that goes in the unmet-needs log
     seed: int = 0
+    prereg_sha256: str | None = None  # real runs: hash of prereg/prereg.yaml, written to the chains
 
 
 @dataclass
@@ -133,6 +134,9 @@ def run_experiment(
         state["next_round"] = 1
         _save(checkpoint, state)
 
+    if cfg.prereg_sha256 and state["next_round"] <= cfg.rounds:
+        for st in sites.values():  # the prereg in force for the rounds this call runs
+            st.chain.append("prereg", {"sha256": cfg.prereg_sha256, "from_round": state["next_round"]})
     for r in range(state["next_round"], cfg.rounds + 1):
         oracle_post = _fit_oracle(sites, pieces, cfg, rng)
         plates, contribs = {}, {}

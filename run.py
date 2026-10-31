@@ -35,13 +35,25 @@ def main() -> None:
                     help="per-piece held-out dLPD bound in nats for credit ('none' = unclipped)")
     ap.add_argument("--chains", default=None, help="directory for receipt chains (default: in memory)")
     ap.add_argument("--out", default=None, help="write results JSON here")
+    ap.add_argument("--prereg", default="prereg/prereg.yaml", help="real only: pre-registration file")
     ap.add_argument("--scans", default="scans", help="real only: directory the scanner saves into")
     args = ap.parse_args()
 
     if args.source == "real":
         from measure.real import RealPrinter
-        cfg = Config(rounds=args.rounds, n_particles=args.particles, seed=args.seed,
-                     oracle_particles=args.oracle_particles, lpd_clip=args.lpd_clip)
+        from prereg.check import check_heldout, config_from, load, missing
+        prereg, sha = load(args.prereg)
+        check_heldout(prereg)
+        gaps = missing(prereg, "seed")
+        if gaps:
+            raise SystemExit("prereg incomplete, fill in before printing:\n  " + "\n  ".join(gaps))
+        late = missing(prereg, "round1")
+        # Real runs take every setting from the prereg; CLI tuning flags are for simulation.
+        cfg = config_from(prereg, sha, rounds=0 if late else None)
+        if late:
+            print("predicted range not committed yet: running the seed plate only. "
+                  "Commit the range, then rerun to resume at round 1.")
+        print(f"prereg sha256 {sha}")
         chains = args.chains or "receipts/real"
         res = run_experiment({s: RealPrinter(s, f"{args.scans}/{s}") for s in SITES}, SITES, cfg,
                              chain_dir=chains, checkpoint=f"{chains}/state.pkl")
