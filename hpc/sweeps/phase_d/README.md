@@ -40,3 +40,15 @@ Why the tail: leftover trust. Harm correlates with the liar's final trust at 0.6
 Side effect: the round 1 lie also distorts the honest site's agent credibility. The top agent holds 0.76-0.78 at rounds 2-3 against 0.26-0.27 without the attack (which agent varies by seed). It doesn't correlate with the harm (0.03-0.08), but it doesn't recover within 3 rounds either. The lying site's own credibility is unchanged, as expected, because only its outgoing message is corrupted.
 
 Tier D said the honest site was "not harmed by round 3" from 10 seeds (resin, −0.9 ± 1.3 µm vs isolated). At 200 seeds that direction gives +0.4 ± 0.6 µm, consistent with it; the other direction (pla honest), which tier D didn't run, is +3.1 ± 2.9 µm.
+
+## 2. Ablation
+
+**All of the networking gain comes from the messages.** Cutting the network (`--no-messages`) leaves the networked arm within 0.1-0.3 µm of isolated (CI includes 0), while networked beats isolated by 1.6-1.8 µm in every round. The agent auction on its own adds nothing measurable. Two sites, the same 200 seeds as the honest robustness runs. Full table: [`results/ablation.md`](results/ablation.md).
+
+| round | isolated | no messages | networked | oracle (reference) | iso − net | iso − no messages | oracle − net |
+|---|---|---|---|---|---|---|---|
+| 1 | 15.12 | 14.85 | 13.38 | 13.70 | 1.75 ± 0.45 | 0.27 ± 0.37 | 0.33 ± 0.41 |
+| 2 | 13.77 | 13.64 | 12.12 | 12.48 | 1.64 ± 0.51 | 0.13 ± 0.46 | 0.36 ± 0.43 |
+| 3 | 12.82 | 12.62 | 11.12 | 11.53 | 1.70 ± 0.48 | 0.20 ± 0.41 | 0.41 ± 0.45 |
+
+The oracle stays a reference, not an upper bound: it trails networked by 0.3-0.4 µm (CI includes 0), as in the Phase C oracle stage.

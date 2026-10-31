@@ -50,10 +50,11 @@ def axes(ax) -> None:
     ax.set_axisbelow(True)
 
 
-def line(ax, x, rows, color, ls="-", label=None, marker="o", mfc=None):
+def line(ax, x, rows, color, ls="-", label=None, marker="o", mfc=None, band=True):
     m = np.array([ci(r)[0] for r in rows])
     h = np.array([ci(r)[1] for r in rows])
-    ax.fill_between(x, m - h, m + h, color=color, alpha=0.14, lw=0)
+    if band:
+        ax.fill_between(x, m - h, m + h, color=color, alpha=0.14, lw=0)
     # filled markers get a surface ring; hollow ones (mfc=SURFACE) keep a colored edge
     ax.plot(x, m, color=color, ls=ls, lw=2, marker=marker, ms=8, mfc=mfc or color, mew=2,
             mec=SURFACE if mfc is None else color)
@@ -136,8 +137,8 @@ def ablation() -> list[Path]:
         a_.set_xlim(rounds[0] - 0.2, rounds[-1] + 1.0)
         a_.set_xlabel("round")
     for name, (rows, c, ls) in arms.items():
-        line(ax, rounds, rows, c, ls, label=name)
-    ax.set_ylabel("held-out MAE, µm (mean ± 95% CI)")
+        line(ax, rounds, rows, c, ls, label=name, band=False)  # unpaired bands overlap; paired CIs are on the right
+    ax.set_ylabel("held-out MAE, µm (mean over seeds)")
     ax.set_title(f"noise-free held-out error, both sites, {len(seeds)} seeds", loc="left", fontsize=11, color=INK)
     iso = arms["isolated"][0]
     for name in ("no messages", "networked", "oracle (reference)"):
