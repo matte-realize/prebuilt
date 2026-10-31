@@ -7,3 +7,4 @@ receipts/*.jsonl
 scans/
 receipts/real/
 .claude/worktrees/
+viewer/out/

@@ -122,6 +122,7 @@ class Results:
     config: dict
     challenges: list[dict] = field(default_factory=list)  # one row per flag
     spawned: list[dict] = field(default_factory=list)
+    predictions: list[dict] = field(default_factory=list)  # one row per (round, site, arm, held-out piece); viewer only
 
 
 def run_experiment(
@@ -506,6 +507,11 @@ def _score(r: int, st: SiteState, pieces, oracle_post, cfg: Config, rng, res: Re
             errs.append(abs(mean - m.measured_d))
             lpds.append(post.log_predictive(p, m.measured_d, site))
             inside.append(lo <= m.measured_d <= hi)
+            res.predictions.append({
+                "round": r, "site": st.site, "arm": arm, "piece_id": p.piece_id, "kind": p.kind,
+                "nominal_d": p.nominal_d, "measured_d": m.measured_d, "mean": float(mean),
+                "lo": float(lo), "hi": float(hi), "truth": st.truth.get(p.piece_id),
+            })
         res.scores.append({
             "round": r, "site": st.site, "arm": arm,
             "mae": float(np.mean(errs)), "lpd": float(np.mean(lpds)), "cov90": float(np.mean(inside)),
