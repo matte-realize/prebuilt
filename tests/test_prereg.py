@@ -1,7 +1,7 @@
 import yaml
 
 from arms.experiment import oracle_mh_steps
-from prereg.check import PREREG, check_heldout, config_from, load, missing
+from prereg.check import PREREG, check_heldout, config_from, load, missing, sim_config
 
 SITES = {"resin": "resin", "pla": "pla"}
 
@@ -32,6 +32,18 @@ def test_registered_oracle_mh_steps():
     # The prereg's deviation oracle_mh_steps states 14; the Warp posterior needs < 16.
     pr, sha = load()
     assert oracle_mh_steps(SITES, config_from(pr, sha)) == 14
+
+
+def test_sim_config_follows_prereg():
+    pr, sha = load()
+    registered = config_from(pr, sha)
+    cfg = sim_config(pr, seed=3)
+    assert (cfg.n_particles, cfg.mh_steps, cfg.oracle_particles, cfg.eta) == \
+        (registered.n_particles, registered.mh_steps, registered.oracle_particles, registered.eta)
+    assert cfg.seed == 3 and cfg.prereg_sha256 is None
+    small = sim_config(pr, n_particles=300, lpd_clip=None)
+    assert (small.n_particles, small.oracle_particles, small.lpd_clip) == (300, None, None)
+    assert sim_config(pr, n_particles=300, oracle_particles=500).oracle_particles == 500
 
 
 def test_filled_prereg_builds_config_and_gates_round1(tmp_path):

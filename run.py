@@ -14,11 +14,13 @@ import numpy as np
 
 from agents.agents import DORMANT_NAMES
 from arms.experiment import Config, run_experiment
-from plates.seed import SEED_PIECES
 from eval.audit import audit
 from eval.metrics import oracle_gap_closed, summarize, with_fit
 
 SITES = {"resin": "resin", "pla": "pla"}
+# CLI flag (argparse dest) -> Config field, for sim runs.
+SIM_FLAGS = {"rounds": "rounds", "particles": "n_particles", "oracle_particles": "oracle_particles",
+             "mh_steps": "mh_steps", "seed_pieces": "seed_pieces", "slots": "slots_per_arm", "lpd_clip": "lpd_clip"}
 
 
 def check_resume(checkpoint: str, cfg: Config) -> None:
@@ -53,18 +55,21 @@ def real_printers(cfg: Config, scans: str) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--source", choices=["sim", "real"], required=True)
-    ap.add_argument("--rounds", type=int, default=3)
+    # Sim settings default to the prereg's `config` section (SUPPRESS = not given, keep the prereg's).
+    keep = argparse.SUPPRESS
+    ap.add_argument("--rounds", type=int, default=keep)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--seeds", type=int, default=1, help="sim only: number of seeds")
-    ap.add_argument("--particles", type=int, default=2000)
-    ap.add_argument("--oracle-particles", type=int, default=None, help="oracle arm particles (default: --particles)")
+    ap.add_argument("--particles", type=int, default=keep)
+    ap.add_argument("--oracle-particles", type=int, default=keep, help="oracle arm particles (default: prereg, or --particles if given)")
+    ap.add_argument("--mh-steps", type=int, default=keep, help="sim sweep: MH steps per resample (the oracle's scale from it)")
     ap.add_argument("--bad-site", action="append", default=[], help="sim only: site that broadcasts bad beliefs")
     ap.add_argument("--no-messages", action="store_true", help="ablation: cut the network")
     ap.add_argument("--challenge", action="store_true", help="secondary analysis: run the challenge round (networked arm)")
     ap.add_argument("--spawn", action="store_true", help="secondary analysis: dormant agents can wake (networked arm)")
-    ap.add_argument("--seed-pieces", type=int, default=SEED_PIECES, help="sim sweep: calibration pieces on the seed plate (max 56)")
-    ap.add_argument("--slots", type=int, default=Config.slots_per_arm, help="sim sweep: slots per arm per plate")
-    ap.add_argument("--lpd-clip", type=lambda v: None if v.lower() == "none" else float(v), default=Config.lpd_clip,
+    ap.add_argument("--seed-pieces", type=int, default=keep, help="sim sweep: calibration pieces on the seed plate (max 56)")
+    ap.add_argument("--slots", type=int, default=keep, help="sim sweep: slots per arm per plate")
+    ap.add_argument("--lpd-clip", type=lambda v: None if v.lower() == "none" else float(v), default=keep,
                     help="per-piece held-out dLPD bound in nats for credit ('none' = unclipped)")
     ap.add_argument("--chains", default=None, help="directory for receipt chains (default: in memory)")
     ap.add_argument("--out", default=None, help="write results JSON here")
@@ -111,18 +116,21 @@ def main() -> None:
                 json.dump(res.scores, f, indent=1)
         return
 
-    from prereg.check import fit_thresholds, load
+    from prereg.check import fit_thresholds, load, sim_config
     from sim.reference import make_world
 
-    thresholds = fit_thresholds(load(args.prereg)[0])  # fit-class accuracy once the prereg has them
+    prereg = load(args.prereg)[0]
+    thresholds = fit_thresholds(prereg)  # fit-class accuracy once the prereg has them
+    given = {f: getattr(args, a) for a, f in SIM_FLAGS.items() if hasattr(args, a)}
+    if args.challenge:
+        given["challenge"] = True
+    if args.spawn:
+        given["dormant"] = tuple(DORMANT_NAMES)
     gaps = defaultdict(list)
     all_rows = []
     for k in range(args.seeds):
         seed = args.seed + k
-        cfg = Config(rounds=args.rounds, n_particles=args.particles, seed=seed, oracle_particles=args.oracle_particles,
-                     bad_sites=tuple(args.bad_site), share_messages=not args.no_messages,
-                     seed_pieces=args.seed_pieces, slots_per_arm=args.slots, lpd_clip=args.lpd_clip,
-                     challenge=args.challenge, dormant=tuple(DORMANT_NAMES) if args.spawn else ())
+        cfg = sim_config(prereg, **given, seed=seed, bad_sites=tuple(args.bad_site), share_messages=not args.no_messages)
         chain_dir = f"{args.chains}/seed{seed}" if args.chains else None
         res = run_experiment(make_world(SITES, seed), SITES, cfg, chain_dir)
         res.scores = with_fit(res.scores, res.predictions, thresholds, SITES)

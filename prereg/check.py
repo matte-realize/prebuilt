@@ -74,6 +74,15 @@ def config_from(prereg: dict, sha256: str, **overrides):
     return Config(**cfg, prereg_sha256=sha256)
 
 
+def sim_config(prereg: dict, **overrides):
+    """Config for a simulated run: the prereg's `config` section, so sim numbers match what is
+    registered. `overrides` win, even None (lpd_clip=None = unclipped). Overriding n_particles
+    alone also moves the oracle's, as in Config. No prereg hash: that marks a real run."""
+    if "n_particles" in overrides:
+        overrides.setdefault("oracle_particles", None)
+    return dataclasses.replace(config_from(prereg, None), **overrides)
+
+
 def fit_thresholds(prereg: dict) -> dict | None:
     """process -> fit-class thresholds, or None until every threshold is filled in."""
     fc = prereg.get("fit_classes_mm") or {}

@@ -3,7 +3,7 @@
 ## Current state (Sat Oct 31, afternoon)
 
 - **Code:** all M and T tasks through Phase D are built. Tests: `.venv/bin/python -m pytest -q` (84 pass, 8 Warp tests skip without warp-lang). A 2000-particle, 3-round simulated experiment takes about 1.3 s.
-- **Prereg:** `python -m prereg.check` says *ready for seed*. Config frozen by T (eta 5, trust_init 1.0, cred_floor 0.05, discount 0.2, 2000 particles; challenge and spawn off). Only `predicted_range.range` remains; it's committed after the seed plates (Phase D).
+- **Prereg:** `python -m prereg.check` says *ready for seed*. Config frozen by T (eta 5, trust_init 1.0, cred_floor 0.05, discount 0.2, 4000 particles, 6 MH steps; challenge and spawn off). `run.py --source sim` and `viewer.export` take the same config from the prereg. Only `predicted_range.range` remains; it's committed after the seed plates (Phase D).
 - **Design in force:** 16 seed pieces + 8 held-out, 6 slots per arm; the same agents choose pieces in all three arms; hierarchical oracle with scaled MH steps; primary metric isolated − networked in µm.
 - **Printer day:** [09-run-sheet.md](09-run-sheet.md). Backup demo for any tier: `demo/tier-d/`. Draft deck: `docs/slides/`.
 - **Open items:** [bottom of this page](#open-items-m).

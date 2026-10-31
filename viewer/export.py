@@ -18,23 +18,26 @@ import sys
 import tempfile
 from pathlib import Path
 
-from arms.experiment import ARMS, Config, run_experiment
+from arms.experiment import ARMS, run_experiment
 from eval.audit import audit
 from eval.metrics import oracle_gap_closed
 from model import physics
 from network.protocol import deserialize
-from plates.seed import SEED_PIECES
 
 HERE = Path(__file__).parent
 SITES = {"resin": "resin", "pla": "pla"}
 
 
 def run_sim(args) -> dict:
+    from prereg.check import load as load_prereg
+    from prereg.check import sim_config
     from sim.reference import make_world
 
-    cfg = Config(rounds=args.rounds, n_particles=args.particles, seed=args.seed,
-                 bad_sites=tuple(args.bad_site), share_messages=not args.no_messages,
-                 seed_pieces=args.seed_pieces, slots_per_arm=args.slots)
+    flags = {"rounds": "rounds", "particles": "n_particles", "mh_steps": "mh_steps",
+             "seed_pieces": "seed_pieces", "slots": "slots_per_arm"}
+    given = {f: getattr(args, a) for a, f in flags.items() if hasattr(args, a)}
+    cfg = sim_config(load_prereg(args.prereg)[0], **given, seed=args.seed,
+                     bad_sites=tuple(args.bad_site), share_messages=not args.no_messages)
     with tempfile.TemporaryDirectory() as d:
         ckpt = f"{d}/state.pkl"
         run_experiment(make_world(SITES, args.seed), SITES, cfg, checkpoint=ckpt)
@@ -129,13 +132,17 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--source", choices=["sim"], default="sim")
     ap.add_argument("--checkpoint", help="state.pkl of a real or rehearsal run (skips the sim)")
-    ap.add_argument("--rounds", type=int, default=3)
+    # Sim settings default to the prereg's `config` section (SUPPRESS = not given, keep the prereg's).
+    keep = argparse.SUPPRESS
+    ap.add_argument("--prereg", default="prereg/prereg.yaml", help="sim: pre-registration the config comes from")
+    ap.add_argument("--rounds", type=int, default=keep)
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--particles", type=int, default=2000)
+    ap.add_argument("--particles", type=int, default=keep)
+    ap.add_argument("--mh-steps", type=int, default=keep)
     ap.add_argument("--bad-site", action="append", default=[])
     ap.add_argument("--no-messages", action="store_true")
-    ap.add_argument("--seed-pieces", type=int, default=SEED_PIECES)
-    ap.add_argument("--slots", type=int, default=Config.slots_per_arm)
+    ap.add_argument("--seed-pieces", type=int, default=keep)
+    ap.add_argument("--slots", type=int, default=keep)
     ap.add_argument("--out", default=str(HERE / "out" / "index.html"))
     ap.add_argument("--open", action="store_true", help="open the page in the browser")
     args = ap.parse_args()
