@@ -17,7 +17,7 @@ This replaces the per-phase M/T assignments in [02-friday-night.md](02-friday-ni
 | Three arms (isolated, networked, oracle) | M | `arms/` | Done; oracle definition open (see 07-status.md) |
 | Scanner pipeline, caliper entry | M | `measure/` | First pass done on synthetic scans; paper target next |
 | Privacy audit replay | M | `eval/audit.py` | Done |
-| Hypothesis agent (Nemotron, async) | M | `agents/hypothesis.py` | Sat night, exploratory |
+| Hypothesis agent (Nemotron, async) | M | `agents/hypothesis.py` | Built; needs a live Nemotron endpoint |
 | Warp multi-site simulator (`Printer`) | T | `sim/` | Phase B |
 | Domain randomization, unmodeled effects | T | `sim/` | Phase B |
 | Warp/GPU port of the posterior | T | `model/posterior_warp.py` | Phase B–C |

@@ -87,9 +87,14 @@ The prereg field is now `predicted_range: {metric, round, range}`. `metric` is `
 - Challenge and spawn off for the claim (above).
 - **Left for T's tuning sweep:** `oracle_particles`, `eta`, `cred_floor`, `trust_init`, `discount`. Then `predicted_range.range` after Phase D.
 
+## Hypothesis agent (built Oct 31, exploratory)
+
+`python -m agents.hypothesis --checkpoint receipts/real/state.pkl [--dry-run]`, run between rounds (async, walkthrough Sat night). For each site it summarizes the networked model's residuals on the site's own data: standardized residuals binned by kind and 1 mm size, trend z against radial distance, row, column, 1/d and hole vs. pin, failed sizes, and the unmet-needs log. It asks a Nemotron endpoint for at most 3 candidate effects, each with up to 6 test pieces. It validates the JSON reply, snaps the pieces onto the library grid, and appends the result to `{site}-hypotheses.jsonl` next to the checkpoint. That's a separate receipt chain, so it never touches a live run's chains. It doesn't enter the auction. The prompt holds aggregates only, no piece IDs or diameters (tested).
+
+Endpoint: `PREBUILT_LLM_URL` (OpenAI-compatible; default `http://localhost:8000/v1` for NIM on the DGX Spark), `PREBUILT_LLM_MODEL` (default `nvidia/llama-3.1-nemotron-70b-instruct`), and `NVIDIA_API_KEY` if needed. Not yet run against a live model. Use `--dry-run` to see the prompt without one.
+
 ## Not built yet (M)
 
-- Hypothesis agent.
 - Scanner on real scans: still to check with the paper target, then a test print. Synthetic stress test, 400 dpi, full plate, 3 scans each (RMS / max error, µm):
 
   | defect | holes | pins |
