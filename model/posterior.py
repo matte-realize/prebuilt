@@ -39,45 +39,28 @@ def _logsumexp(a: np.ndarray, axis: int | None = None) -> np.ndarray:
 Batch = dict[str, tuple[PieceArrays, np.ndarray]]  # site -> (pieces, measured diameters)
 
 
-class ParticlePosterior:
-    def __init__(
-        self,
-        sites: str | dict[str, str],
-        pieces: dict[str, Piece],
-        n: int = 4000,
-        seed: int = 0,
-        ess_frac: float = 0.5,
-        mh_steps: int = 3,
-        between_site_sd: float | None = None,
-    ):
+class Layout:
+    """Sites, parameter specs and theta columns of one posterior.
+
+    Shared with the GPU port (model/posterior_warp.py) so both implementations
+    lay out parameters, draw the prior and group measurements the same way.
+    """
+
+    def __init__(self, sites: str | dict[str, str], between_site_sd: float | None = None):
         if isinstance(sites, str):
             sites = {sites: sites}
         self.sites = sites                     # site name -> process
         self.single = len(sites) == 1
         self.process = next(iter(sites.values())) if self.single else None
-        self.pieces = pieces                   # piece_id -> Piece; Measurement carries only the id
         # Hierarchical (multi-site only): each site gets its own copy of the shared
         # parameters, drawn around one global value with sd = between_site_sd * prior std.
         self.hier = between_site_sd if (between_site_sd and not self.single) else None
-        self.specs, self.blocks = self._layout(sites)
+        self.specs, self.blocks, self.couplings = self._columns(sites)
         self.names = [s.name for s in self.specs]
         self.tags = [s.tag for s in self.specs]
-        self.rng = np.random.default_rng(seed)
-        self.n = n
-        self.ess_frac = ess_frac
-        self.mh_steps = mh_steps
-        self.theta = physics.sample_prior(self.specs, n, self.rng)  # [N, P]
-        if self.hier:
-            for g, c, tau in self._couplings:
-                lo, hi = self.specs[g].lo, self.specs[g].hi
-                self.theta[:, c] = np.clip(self.theta[:, g] + tau * self.rng.standard_normal(n), lo, hi)
-        self.logw = np.full(n, -np.log(n))
-        self._seen: list[Measurement] = []
-        self._seen_batch: Batch | None = None
-        self._extra_priors: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray, float]] = {}
 
-    def _layout(self, sites: dict[str, str]):
-        """Column layout. blocks[site] = (process, theta columns in PARAMS[process] order)."""
+    def _columns(self, sites: dict[str, str]):
+        """blocks[site] = (process, theta columns in PARAMS[process] order)."""
         specs, site_cols = [], {}
         for site, proc in sites.items():
             site_cols[site] = []
@@ -90,14 +73,14 @@ class ParticlePosterior:
             shared_ix[s.name] = len(specs)
             specs.append(s)
         # Per-site copies of the shared parameters (hierarchical only). Their own prior is
-        # flat within bounds; the coupling to the global value lives in _couplings.
+        # flat within bounds; the coupling to the global value lives in couplings.
         local_ix: dict[str, dict[str, int]] = {site: {} for site in sites}
-        self._couplings: list[tuple[int, int, float]] = []   # (global col, site copy col, sd)
+        couplings: list[tuple[int, int, float]] = []   # (global col, site copy col, sd)
         if self.hier:
             for site in sites:
                 for s in physics.SHARED:
                     local_ix[site][s.name] = len(specs)
-                    self._couplings.append((shared_ix[s.name], len(specs), self.hier * s.prior_std))
+                    couplings.append((shared_ix[s.name], len(specs), self.hier * s.prior_std))
                     specs.append(replace(s, name=f"{site}.{s.name}", prior_std=1e6, tag="site"))
         blocks = {}
         for site, proc in sites.items():
@@ -105,14 +88,95 @@ class ParticlePosterior:
             cols = [next(it) if s.tag == "site" else local_ix[site].get(s.name, shared_ix[s.name])
                     for s in physics.PARAMS[proc]]
             blocks[site] = (proc, np.array(cols))
-        return specs, blocks
+        return specs, blocks, couplings
+
+    def sample_prior(self, n: int, rng: np.random.Generator) -> np.ndarray:
+        """Initial particles [n, P]: prior draws, site copies drawn around the global value."""
+        theta = physics.sample_prior(self.specs, n, rng)
+        for g, c, tau in self.couplings:
+            lo, hi = self.specs[g].lo, self.specs[g].hi
+            theta[:, c] = np.clip(theta[:, g] + tau * rng.standard_normal(n), lo, hi)
+        return theta
+
+    def only_site(self) -> str:
+        if not self.single:
+            raise ValueError("multi-site posterior: pass site=")
+        return next(iter(self.sites))
+
+    def group(self, ms: list[Measurement], pieces: dict[str, Piece]) -> Batch:
+        groups: dict[str, list[Measurement]] = {}
+        for m in ms:
+            site = self.only_site() if self.single else m.site
+            groups.setdefault(site, []).append(m)
+        return {
+            site: (PieceArrays.from_pieces([pieces[m.piece_id] for m in g]), np.array([m.measured_d for m in g]))
+            for site, g in groups.items()
+        }
+
+    def shared_factor(self, means: dict[str, float], cov: np.ndarray, weight: float):
+        """Validated (cols, mean, precision, weight) for a message prior, or None if it adds nothing."""
+        ix = {nm: j for j, nm in enumerate(self.names)}
+        for nm in means:
+            if nm not in ix or self.tags[ix[nm]] != "shared":
+                raise ValueError(f"{nm} is not a shared parameter and cannot come from another site")
+        if not (weight > 0 and means):
+            return None
+        cols = np.array([ix[nm] for nm in means])
+        prec = np.linalg.inv(cov + 1e-12 * np.eye(len(cols)))
+        return cols, np.array(list(means.values())), prec, weight
+
+    def tag_cols(self, tag: str) -> list[int]:
+        return [j for j, t in enumerate(self.tags) if t == tag]
+
+    def summary_dict(self, cols: list[int], mean: np.ndarray, cov: np.ndarray):
+        """summary() output from the mean [k] and covariance [k, k] of `cols`."""
+        sel = [self.names[j] for j in cols]
+        return {nm: (float(mean[i]), float(cov[i, i])) for i, nm in enumerate(sel)}, cov, sel
+
+
+def usable(ms: list[Measurement]) -> list[Measurement]:
+    """Measurements that carry a diameter; failures are printability outcomes, scored elsewhere."""
+    return [m for m in ms if m.status == "ok" and m.measured_d is not None]
+
+
+def interval(draws: np.ndarray, q: float) -> tuple[float, float]:
+    lo, hi = np.quantile(draws, [(1 - q) / 2, (1 + q) / 2])
+    return float(lo), float(hi)
+
+
+class ParticlePosterior:
+    def __init__(
+        self,
+        sites: str | dict[str, str],
+        pieces: dict[str, Piece],
+        n: int = 4000,
+        seed: int = 0,
+        ess_frac: float = 0.5,
+        mh_steps: int = 3,
+        between_site_sd: float | None = None,
+    ):
+        self.layout = Layout(sites, between_site_sd)
+        self.sites, self.single, self.process = self.layout.sites, self.layout.single, self.layout.process
+        self.hier = self.layout.hier
+        self.pieces = pieces                   # piece_id -> Piece; Measurement carries only the id
+        self.specs, self.blocks, self._couplings = self.layout.specs, self.layout.blocks, self.layout.couplings
+        self.names, self.tags = self.layout.names, self.layout.tags
+        self.rng = np.random.default_rng(seed)
+        self.n = n
+        self.ess_frac = ess_frac
+        self.mh_steps = mh_steps
+        self.theta = self.layout.sample_prior(n, self.rng)  # [N, P]
+        self.logw = np.full(n, -np.log(n))
+        self._seen: list[Measurement] = []
+        self._seen_batch: Batch | None = None
+        self._extra_priors: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray, float]] = {}
 
     # ---- Model protocol -------------------------------------------------
 
     def update(self, ms: list[Measurement]) -> None:
-        ok = [m for m in ms if m.status == "ok" and m.measured_d is not None]
+        ok = usable(ms)
         if not ok:
-            return  # failures are printability outcomes, scored elsewhere
+            return
         batch = self._batch(ok)
 
         phi = 0.0  # fraction of the new batch's likelihood already absorbed
@@ -139,9 +203,7 @@ class ParticlePosterior:
     def predict_interval(self, piece: Piece, q: float = 0.9, k: int = 20000, site: str | None = None) -> tuple[float, float]:
         mu, s = self.predictive_components([piece], site)
         idx = self.rng.choice(self.n, size=k, p=np.exp(self.logw))
-        draws = mu[idx, 0] + s[idx] * self.rng.standard_normal(k)
-        lo, hi = np.quantile(draws, [(1 - q) / 2, (1 + q) / 2])
-        return float(lo), float(hi)
+        return interval(mu[idx, 0] + s[idx] * self.rng.standard_normal(k), q)
 
     def log_predictive(self, piece: Piece, y: float, site: str | None = None) -> float:
         """Log predictive density of an observed diameter (held-out LPD)."""
@@ -161,14 +223,13 @@ class ParticlePosterior:
 
     def summary(self, tag: str = "shared") -> tuple[dict[str, tuple[float, float]], np.ndarray, list[str]]:
         """Weighted mean/variance per parameter with `tag`, plus their covariance."""
-        cols = [j for j, t in enumerate(self.tags) if t == tag]
+        cols = self.layout.tag_cols(tag)
         sub = self.theta[:, cols]
         w = np.exp(self.logw)
         mean = w @ sub
         dev = sub - mean
         cov = (dev * w[:, None]).T @ dev
-        sel = [self.names[j] for j in cols]
-        return {nm: (float(mean[i]), float(cov[i, i])) for i, nm in enumerate(sel)}, cov, sel
+        return self.layout.summary_dict(cols, mean, cov)
 
     def set_prior_from_summary(
         self, means: dict[str, float], cov: np.ndarray, weight: float, key: str = "default"
@@ -180,19 +241,13 @@ class ParticlePosterior:
         message from the same sender replaces the older one instead of
         double counting. Only shared-tagged parameters are accepted.
         """
-        ix = {nm: j for j, nm in enumerate(self.names)}
-        for nm in means:
-            if nm not in ix or self.tags[ix[nm]] != "shared":
-                raise ValueError(f"{nm} is not a shared parameter and cannot come from another site")
+        new = self.layout.shared_factor(means, cov, weight)
         old = self._extra_priors.pop(key, None)
         if old is not None:
             self.logw = self.logw - old[3] * self._gauss(self.theta, *old[:3])
-        if weight > 0 and means:
-            cols = np.array([ix[nm] for nm in means])
-            mu = np.array(list(means.values()))
-            prec = np.linalg.inv(cov + 1e-12 * np.eye(len(cols)))
-            self._extra_priors[key] = (cols, mu, prec, weight)
-            self.logw = self.logw + weight * self._gauss(self.theta, cols, mu, prec)
+        if new is not None:
+            self._extra_priors[key] = new
+            self.logw = self.logw + weight * self._gauss(self.theta, *new[:3])
         self.logw = self._normalize(self.logw)
         if self.ess() < self.ess_frac * self.n:
             self._resample()
@@ -204,19 +259,10 @@ class ParticlePosterior:
         return float(1.0 / np.sum(np.exp(2 * self.logw)))
 
     def _only_site(self) -> str:
-        if not self.single:
-            raise ValueError("multi-site posterior: pass site=")
-        return next(iter(self.sites))
+        return self.layout.only_site()
 
     def _batch(self, ms: list[Measurement]) -> Batch:
-        groups: dict[str, list[Measurement]] = {}
-        for m in ms:
-            site = self._only_site() if self.single else m.site
-            groups.setdefault(site, []).append(m)
-        return {
-            site: (PieceArrays.from_pieces([self.pieces[m.piece_id] for m in g]), np.array([m.measured_d for m in g]))
-            for site, g in groups.items()
-        }
+        return self.layout.group(ms, self.pieces)
 
     def _loglik(self, batch: Batch, theta: np.ndarray) -> np.ndarray:
         ll = np.zeros(theta.shape[0])
