@@ -1,6 +1,6 @@
 # Phase D dry run
 
-Rehearsal of the Saturday hand-off (seed plate -> Phase D -> commit range -> round 1) on a checkpoint from the real loop, run 2026-10-31 on the laptop (16 cores, RTX 5060 8 GB) at the prereg config (4000 particles, 6 MH steps). Everything works end to end after one fix in `sim/calibrate.py` (below). Round 1 waits about **5 minutes** on Phase D if the laptop is otherwise idle, and 20 if the Phase C sweeps are still running.
+Rehearsal of the Saturday hand-off (seed plate -> Phase D -> commit range -> round 1) on a checkpoint from the real loop, run 2026-10-31 on the laptop (16 cores, RTX 5060 8 GB) at the prereg config (4000 particles, 6 MH steps). Everything works end to end after one fix in `sim/calibrate.py` (below). Round 1 waits about **3-5 minutes** on Phase D with the GPU path, whether or not other jobs are running; the CPU path takes 4.5 minutes idle but 20 under load.
 
 ## Commands for the real day
 
@@ -10,11 +10,13 @@ From the repo root, `py` = `.venv/bin/python`.
 
        py run.py --source real
 
-2. Stop other jobs on the machine (sweeps, other sessions' runs). Commit or discard local changes first: `prediction.json` records the git hash and a dirty flag.
+2. Commit or discard local changes first: `prediction.json` records the git hash and a dirty flag. Stopping other jobs helps but isn't required on the GPU path.
 
 3. Phase D:
 
-       py -m sim.calibrate --state receipts/real/state.pkl --seeds 200 --workers 6 --out hpc/phase_d/out
+       py -m sim.calibrate --state receipts/real/state.pkl --seeds 200 --workers 6 --gpu-batch 17 --out hpc/phase_d/out
+
+   No GPU (Warp or CUDA missing): drop `--gpu-batch 17` for the CPU path. Use one path only: every rerun (e.g. with `--exclude-failed`) keeps the same flags, so the committed range comes from one path.
 
    In `out/summary.md`, check the "Failed seed pieces" list. Any that are scanner misses rather than print failures: rerun with `--exclude-failed <piece_id> ...` (the fit is 20 s, the prediction the rest). Pieces listed as "not measured" (a cell outside the scan) are already left out.
    Check `out/residuals_<site>.png` and that every R-hat in the summary is under 1.05.
@@ -60,7 +62,7 @@ Wall time, 200 seeds unless noted.
 
 The 7.5 min in the README was measured under some load; on an idle laptop it is closer to 4.5 min. Both paths give the same numbers on every rerun: CPU reproduced to the last digit at both loads, and GPU at two batch sizes.
 
-**Use the CPU path on the real day.** CPU and GPU give slightly different ranges from the same seeds and worlds (GPU [-3.24, 5.16] vs CPU [-3.94, 4.59]), because their Metropolis moves draw different random numbers. Both are valid, but only one can be the committed number, and CPU is the reference the README and Phase C use. The GPU saves about 1 minute when quiet. It only helps much when the CPU is busy, and the answer to that is stopping the other jobs.
+**Use the GPU path on the real day.** It is never slower, and under load it was 4.5× faster even with another job using 87% of the GPU, so round 1 doesn't depend on what else is running. CPU and GPU give slightly different ranges from the same seeds and worlds (GPU [-3.24, 5.16] vs CPU [-3.94, 4.59]), because their Metropolis moves draw different random numbers. Both are valid; commit the range from one path, and `prediction.json` records which (the command includes `--gpu-batch`). The GPU path is newer: it reuses `sim.batch` and `model.posterior_warp`, which are tested against the NumPy reference, but its own test only checks that it runs and returns the same shape of results as CPU.
 
 ## Bugs found
 
@@ -90,4 +92,4 @@ The 7.5 min in the README was measured under some load; on an idle laptop it is 
 
    Then `hpc/phase_d/rehearse.py` passes `failed_plate_fraction=cfg.failed_plate_fraction, caliper_checks=cfg.caliper_checks, caliper_min_pairs=cfg.caliper_min_pairs`, and run sheet step 0.3 can point at `py -m hpc.phase_d.rehearse --out /tmp/reh`.
 
-3. **Not a bug, but watch it**: Phase D wall time depends on machine load (4.4 vs 20 min above). Step 2 of the real-day list exists for that reason.
+3. **Not a bug, but watch it**: CPU Phase D wall time depends on machine load (4.4 vs 20 min above). The GPU path is the answer; on CPU, stop other jobs first.
