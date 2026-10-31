@@ -21,6 +21,7 @@ from __future__ import annotations
 import math
 import os
 import pickle
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 
 import numpy as np
@@ -124,6 +125,8 @@ class SiteState:
     flags: list = field(default_factory=list)            # this round: (Flag, judged_by result) pairs
     unmet: dict[str, int] = field(default_factory=dict)  # template -> unmet-needs entries seen, own + incoming
     unmet_out: list[dict] = field(default_factory=list)  # this round's own entries, to broadcast
+    # Builds every fit (ParticlePosterior's constructor signature); set by run_experiment.
+    posterior: Callable[..., ParticlePosterior] = field(default=ParticlePosterior, repr=False)
 
 
 @dataclass
@@ -145,11 +148,14 @@ def run_experiment(
     cfg: Config | None = None,
     chain_dir: str | None = None,
     checkpoint: str | None = None,
+    posterior: Callable[..., ParticlePosterior] = ParticlePosterior,
 ) -> Results:
     """Run (or, if `checkpoint` exists, resume) an experiment.
 
     With `checkpoint`, the full state is pickled after the seed plates and after
     every round, so a crash mid-Saturday loses at most the round in progress.
+    `posterior` builds every fit; sweeps pass a GPU or batched implementation
+    with the same API (handoff contracts 2 and 3).
     """
     cfg = cfg or Config()
     state = _load(checkpoint) if checkpoint and os.path.exists(checkpoint) else None
@@ -164,6 +170,8 @@ def run_experiment(
             if s in state.get("printer_rng", {}) and hasattr(printers[s], "rng"):
                 printers[s].rng = state["printer_rng"][s]  # simulated printers continue their noise stream
     sites, pieces, res, rng = state["sites"], state["pieces"], state["res"], state["rng"]
+    for st in sites.values():
+        st.posterior = posterior
 
     if state["next_round"] == 0:
         _print_all({s: seed_plate(s, cfg.seed_pieces) for s in sites}, printers, sites, pieces)
@@ -254,7 +262,7 @@ def _rng_seed(rng: np.random.Generator) -> int:
 
 
 def _fit(st: SiteState, pieces, data: Data, cfg: Config, rng, messages: dict[str, Message] | None = None) -> ParticlePosterior:
-    post = ParticlePosterior(st.process, pieces, n=cfg.n_particles, seed=_rng_seed(rng), mh_steps=cfg.mh_steps)
+    post = st.posterior(st.process, pieces, n=cfg.n_particles, seed=_rng_seed(rng), mh_steps=cfg.mh_steps)
     for sender, msg in (messages or {}).items():
         means, cov = protocol.likelihood_factor(msg)
         if means:
@@ -277,10 +285,11 @@ def oracle_mh_steps(processes: dict[str, str], cfg: Config) -> int:
 
 def _fit_oracle(sites: dict[str, SiteState], pieces, cfg: Config, rng, keep=lambda p: True) -> ParticlePosterior:
     processes = {s: st.process for s, st in sites.items()}
-    post = ParticlePosterior(processes, pieces,
-                             n=cfg.oracle_particles or cfg.n_particles, seed=_rng_seed(rng),
-                             mh_steps=oracle_mh_steps(processes, cfg),
-                             between_site_sd=cfg.between_site_sd if cfg.oracle_hierarchical else None)
+    make = next(iter(sites.values())).posterior  # every site holds the run's factory
+    post = make(processes, pieces,
+                n=cfg.oracle_particles or cfg.n_particles, seed=_rng_seed(rng),
+                mh_steps=oracle_mh_steps(processes, cfg),
+                between_site_sd=cfg.between_site_sd if cfg.oracle_hierarchical else None)
     post.update([m for st in sites.values() for p, m in st.data[cfg.oracle_data] if keep(p)])
     return post
 
