@@ -71,7 +71,7 @@ py run.py --source real
 
 1. `py run.py --source real` again. It resumes after the seed plate and logs the new prereg hash on both chains.
 2. Each round: approve, print, scan, calipers, Enter (step 4). The auction, credit and messages run on their own after measurement.
-3. Between rounds (optional, exploratory): `py -m agents.hypothesis --checkpoint receipts/real/state.pkl` (needs the Nemotron endpoint; `--dry-run` without one).
+3. Between rounds (optional, exploratory): `py -m agents.hypothesis --checkpoint receipts/real/state.pkl`. It needs a Nemotron endpoint: on Brev run `agents/serve_nemotron.sh`, forward port 8000, check with `py -m agents.hypothesis --ping`. Use `--dry-run` without one.
 4. At the end: `py run.py --source real --out real.json` once more, which prints the summary and writes the scores. Then:
    - `py -m eval.audit receipts/real/resin.jsonl receipts/real/pla.jsonl` (privacy audit, must PASS)
    - `py -m eval.figures.headline sim.json --real real.json` (slide 6; `sim.json` is a `run.py --source sim --seeds N --out` run)
