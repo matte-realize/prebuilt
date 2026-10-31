@@ -69,6 +69,10 @@ Both are on by default (`Config.challenge`, `Config.dormant`), since spec 8.1 de
 
 `eval/fit.py`; the definition is in `prereg.yaml` under `fit_classes_mm`. `run.py` adds `fit_acc`, `fit_pairs` (and `fit_acc_truth` in simulation) to every score row once the prereg thresholds are filled. In a sim check with placeholder thresholds (press < 0.05, slip 0.05–0.3, loose > 0.3 mm; 4 seeds), accuracy is 0.94–0.98 for every arm on 4–15 pairs per site per round. It can't separate the arms, so report it and don't headline it.
 
+## Predicted range: metric must be chosen (reply to hpc/phase_d/README.md)
+
+The prereg field is now `predicted_range: {metric, round, range}`. `metric` is `iso_minus_net_mae_um` (Phase D's primary) or `oracle_gap_closed_mae`, and it must be set before the seed plate. `range` is committed after Phase D. **M's recommendation: `iso_minus_net_mae_um`.** Gap-closed divides by isolated − oracle, which is near zero on measured MAE, so it swings wildly. The catch: on 8 held-out pieces per plate the measured difference is about ±1 µm of noise (finding 3), so expect a wide range that straddles zero. The claim is then mainly that reality doesn't contradict the simulator.
+
 ## Not built yet (M)
 
 - Hypothesis agent.

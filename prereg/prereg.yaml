@@ -2,7 +2,7 @@
 #
 # null = not yet decided. `python -m prereg.check` lists what's missing and prints
 # this file's sha256. `run.py --source real` refuses to start until every field is
-# filled (predicted_range may stay null for the seed plate only), builds its
+# filled (predicted_range.range may stay null for the seed plate only), builds its
 # Config from the `config` section below, and writes the sha256 onto both receipt
 # chains. Commit the filled file, record the commit hash, and don't edit after.
 
@@ -12,8 +12,8 @@ claims:
     between isolated sites and the pooled-data oracle on held-out error, with no
     raw data crossing a site boundary.
   sim_to_real_range: >-
-    The oracle-gap-closed measured on the real two-site setup falls inside
-    predicted_range, committed from simulation after seed calibration and
+    The measured value of predicted_range.metric on the real two-site setup
+    falls inside predicted_range.range, committed from simulation after seed calibration and
     before round 1. This is the real-printer claim. Phase C (07-status finding 3)
     shows measurement noise (~0.03 mm) hides a ~0.003 mm model-error difference
     on 8 held-out pieces per plate, so we do not claim to detect network_vs_oracle
@@ -109,9 +109,17 @@ heldout:
   slots: [[0, 3], [1, 6], [2, 1], [3, 4], [4, 7], [5, 2], [6, 5], [7, 0]]   # same slots on every plate
 
 metrics: [heldout_MAE, heldout_LPD, fit_class_acc, interval_coverage_90, oracle_gap_closed]
-primary_metric: oracle_gap_closed   # on held-out MAE, per round, pooled over both sites
+primary_metric: predicted_range.metric   # held-out MAE, pooled over both sites
 
-predicted_range_oracle_gap_closed: [null, null]   # committed after Phase D, before round 1
+# The sim-to-real prediction (hpc/phase_d/README.md). `metric` is chosen now, before the seed
+# plate; `range` (5-95% interval over calibrated sim seeds) is committed after Phase D,
+# before round 1. Phase D reports both candidates per round:
+#   iso_minus_net_mae_um   isolated - networked held-out MAE on measured diameters, um (Phase D primary)
+#   oracle_gap_closed_mae  (iso - net) / (iso - oracle) on measured MAE (walkthrough's metric)
+predicted_range:
+  metric: null
+  round: 3                     # the round the prediction is scored on
+  range: [null, null]
 
 failure_rules: >-
   Failed pieces are printability outcomes. Held-out failures are reported and

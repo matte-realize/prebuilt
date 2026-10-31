@@ -15,7 +15,8 @@ import yaml
 
 PREREG = Path(__file__).resolve().parent / "prereg.yaml"
 # The predicted range is committed after seed calibration (Phase D), so the seed plate may run without it.
-LATE = {"predicted_range_oracle_gap_closed"}
+LATE = ("predicted_range.range",)
+METRICS = ("iso_minus_net_mae_um", "oracle_gap_closed_mae")
 
 
 def load(path: str | Path = PREREG) -> tuple[dict, str]:
@@ -42,7 +43,10 @@ def missing(prereg: dict, stage: str = "seed") -> list[str]:
 
     walk(prereg, "")
     if stage == "seed":
-        out = [p for p in out if p.split(".")[0] not in LATE]
+        out = [p for p in out if not p.startswith(LATE)]
+    metric = (prereg.get("predicted_range") or {}).get("metric")
+    if metric is not None and metric not in METRICS:
+        out.append(f"predicted_range.metric (unknown {metric!r}; one of {', '.join(METRICS)})")
     return out
 
 
