@@ -141,7 +141,7 @@ Fixes: a lighting gradient used to break fiducial detection on pin scans, so it 
 
 ## Open items (M)
 
-- **Physics priors are still placeholders** (`model/physics.py`: generic datasheet and slicer guesses; `RESIN_EXPOSURE = 25` mJ/cm²). Set the exposure from the real PreForm settings and sanity-check the priors before the seed plate; the calibration and the agents start from them.
+- **Priors vs real printers.** The models don't need exact slicer or exposure settings; the seed plate learns them, and the priors are deliberately wide (`model/physics.py` docstring). What can't be tested in simulation is whether a real printer lies inside them. `eval.prior_check` runs after the seed plate. In sim it flags a printer outside the prior 8/8 times and never fires on a normal one (0/8). It catches a 1% PLA XY scale error (no such term in the model) only 1/8 times from 16 pieces, because the other terms absorb most of it.
 - **In the room:** slice-check the seed STLs (PreForm, PLA slicer), check the scanner on the paper target, then print (run sheet).
 - **Sign off** on the frozen config (task split contract 4). The open point is `trust_init = 1.0`: one round of damage from a bad-faith site.
 - **Live Nemotron test** of the hypothesis agent, once an endpoint is available.

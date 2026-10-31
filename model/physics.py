@@ -5,8 +5,13 @@ order of `PARAMS[process]`, and the result is [N, M] for M pieces. Each
 parameter is tagged "shared" (process-agnostic, may cross a site boundary as a
 posterior summary) or "site" (never leaves the site).
 
-PLACEHOLDER PRIORS: the numbers below are generic datasheet / slicer guesses.
-Replace them with the actual resin datasheet and slicer settings at kickoff.
+Priors are generic and deliberately wide: the models don't need a printer's exact
+settings, because the seed plate learns them. They allow roughly -0.35..0 mm on resin
+holes, -0.1..+0.27 mm on resin pins, -0.63..+0.09 mm on PLA holes and up to +0.5 mm on
+PLA pins (1st-99th percentile), with hard bounds well beyond. RESIN_EXPOSURE only sets
+the scale of the learned Ec, since bleed depends on ln(E / Ec). What the priors can't
+guarantee is that a real printer lies inside them; `python -m eval.prior_check` checks
+that on the real seed data (and `run.py --source real` runs it after the seed plate).
 """
 from __future__ import annotations
 
@@ -26,7 +31,7 @@ SHARED = [
 ]
 
 # Resin: Jacobs working curve Cd = Dp * ln(E / Ec); lateral bleed scales with Cd.
-RESIN_EXPOSURE = 25.0  # mJ/cm^2, from print settings (placeholder)
+RESIN_EXPOSURE = 25.0  # mJ/cm^2, nominal; only sets the scale of the learned Ec
 RESIN = [
     ParamSpec("Dp", 0.15, 0.04, 0.03, 0.4, "site"),       # mm, penetration depth
     ParamSpec("Ec", 7.0, 2.0, 1.0, 20.0, "site"),         # mJ/cm^2, critical exposure (< E)

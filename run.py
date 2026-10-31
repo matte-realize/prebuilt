@@ -107,6 +107,10 @@ def main() -> None:
             print(f"fallback tier B: {', '.join(cfg.sim_sites)} simulated (world seed {cfg.seed}), the rest real")
         res = run_experiment(printers, SITES, cfg,
                              chain_dir=chains, checkpoint=f"{chains}/state.pkl")
+        if late:  # seed plate only: does each real printer sit inside what the model can represent?
+            from eval.prior_check import check_state, report
+            with open(f"{chains}/state.pkl", "rb") as f:
+                print("\nseed plate check (eval.prior_check):\n" + report(check_state(pickle.load(f))))
         res.scores = with_fit(res.scores, res.predictions, fit_thresholds(prereg), SITES)
         print(summarize(res.scores))
         rep = audit(list(res.chains.values()))

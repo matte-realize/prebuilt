@@ -57,6 +57,7 @@ py run.py --source real
 
 ## 5. After the seed plates: hand off to T (~11:00–11:30)
 
+0. Read the **seed plate check** the run prints at the end (`eval.prior_check`). `ok` per site means the printer sits inside what the model can represent. A parameter "at its bound" means the real printer is outside the prior: widen that prior in `model/physics.py` and tell T **before** Phase D (the frozen config doesn't include priors, but the prediction depends on them). A residual trend points at a missing term; note it for the slides.
 1. Commit nothing from `scans/` or `receipts/real/` (git-ignored, site data). Give T the checkpoint `receipts/real/state.pkl` directly, or the `scans/<site>/<site>-seed-measurements.json` files.
 2. T runs Phase D: `py -m sim.calibrate --state receipts/real/state.pkl --seeds 200 --out hpc/phase_d/out` (see `hpc/phase_d/README.md`). T fills `predicted_range.range` in `prereg/prereg.yaml` and commits it. Record the commit hash.
 3. `py -m prereg.check --stage round1` must say ready.
