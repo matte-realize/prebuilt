@@ -5,7 +5,10 @@
 import argparse
 import json
 import math
+import os
+import pickle
 from collections import defaultdict
+from dataclasses import asdict
 
 import numpy as np
 
@@ -14,6 +17,18 @@ from eval.audit import audit
 from eval.metrics import oracle_gap_closed, summarize
 
 SITES = {"resin": "resin", "pla": "pla"}
+
+
+def check_resume(checkpoint: str, cfg: Config) -> None:
+    """Refuse to resume a real run under a different config than the one it started with."""
+    if not os.path.exists(checkpoint):
+        return
+    with open(checkpoint, "rb") as f:
+        started = pickle.load(f)["res"].config
+    now = json.loads(json.dumps(asdict(cfg)))  # tuples -> lists, as on the receipt chain
+    diff = {k: (started.get(k), v) for k, v in now.items() if json.loads(json.dumps(started.get(k))) != v}
+    if diff:
+        raise SystemExit(f"{checkpoint} was started with a different config (started, now): {diff}")
 
 
 def main() -> None:
@@ -43,6 +58,7 @@ def main() -> None:
         from measure.real import RealPrinter
         cfg = Config(**frozen, seed=args.seed)
         chains = args.chains or "receipts/real"
+        check_resume(f"{chains}/state.pkl", cfg)
         res = run_experiment({s: RealPrinter(s, f"{args.scans}/{s}") for s in SITES}, SITES, cfg,
                              chain_dir=chains, checkpoint=f"{chains}/state.pkl")
         print(summarize(res.scores))
