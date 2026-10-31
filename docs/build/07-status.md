@@ -139,10 +139,23 @@ Not changed: a crash during the seed plate (before the first checkpoint) re-logs
 
 Fixes: a lighting gradient used to break fiducial detection on pin scans, so it now falls back to local thresholds. Shadows bias pins by a near-constant amount, so when `{plate}-caliper.csv` exists, `RealPrinter` subtracts the per-kind median scanner − caliper offset (`measure.manual.scanner_offsets`), and the caliper sample is now split evenly between pins and holes. **On the day:** always do the ~10 caliper checks per plate. Scan at 400 dpi or more, lossless (PNG), and in focus. Blur is the one defect the offset doesn't remove.
 
+## Held-out count: stays at 8 (Oct 31)
+
+T's draft range showed a single real run comes out positive (networked beats isolated on measured error) only about 60% of the time. We tested whether more held-out pieces per plate would fix that (100 paired worlds, prereg config at 2000 particles). Share of single runs with isolated − networked > 0:
+
+| held-out per plate | measured, round 3 | measured, rounds 1–3 pooled | noise-free, round 3 |
+|---|---|---|---|
+| 8 | 69% | 63% | 70% |
+| 16 | 66% | 72% | 68% |
+| 24 | 66% | 67% | 74% |
+
+No design helps beyond noise (±5%). Even with perfect measurement, networked wins in only ~70% of worlds: the benefit of sharing varies from one printer pair to the next, so measurement isn't the bottleneck. Kept 8; no plate change. For the slides: the one real run is one draw from that spread, which is why the claim is that the measured value lands in the predicted range, not that networked must win.
+
 ## Open items (M)
 
 - **Priors vs real printers.** The models don't need exact slicer or exposure settings; the seed plate learns them, and the priors are deliberately wide (`model/physics.py` docstring). What can't be tested in simulation is whether a real printer lies inside them. `eval.prior_check` runs after the seed plate. In sim it flags a printer outside the prior 8/8 times and never fires on a normal one (0/8). It catches a 1% PLA XY scale error (no such term in the model) only 1/8 times from 16 pieces, because the other terms absorb most of it.
 - **In the room:** slice-check the seed STLs (PreForm, PLA slicer), check the scanner on the paper target, then print (run sheet).
 - **Sign off** on the frozen config (task split contract 4). The open point is `trust_init = 1.0`: one round of damage from a bad-faith site.
-- **Live Nemotron test** of the hypothesis agent, once an endpoint is available.
-- **Optional:** log the hand fit checks as a CSV and score them against predicted fit classes; secondary simulation analysis with challenge and spawn on.
+- **Live Nemotron test** (optional; nothing depends on it). On a Brev GPU box: `agents/serve_nemotron.sh` (vLLM, 8B Nemotron by default). Forward port 8000 to the laptop, then `python -m agents.hypothesis --ping` checks the endpoint, picks the served model and confirms the reply parses. If no endpoint materializes, skip it and say so; the seed-plate prior check covers the residual trends.
+- Hand fit checks: `eval/fitcheck.py` scores `{plate}-fitcheck.csv` rows against each arm's predicted class and the scanner-implied class (run sheet step 4.7).
+- **Optional:** secondary simulation analysis with challenge and spawn on.

@@ -1,0 +1,247 @@
+{
+ "plate_id": "pla-test",
+ "site": "pla",
+ "seed": 202,
+ "pieces": [
+  {
+   "piece_id": "pla-seed-r0c3",
+   "kind": "pin",
+   "nominal_d": 4.1,
+   "slot": [
+    0,
+    3
+   ],
+   "arm": "heldout"
+  },
+  {
+   "piece_id": "pla-seed-r0c4",
+   "kind": "pin",
+   "nominal_d": 4.9,
+   "slot": [
+    0,
+    4
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "pla-seed-r0c7",
+   "kind": "hole",
+   "nominal_d": 3.6,
+   "slot": [
+    0,
+    7
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "pla-seed-r1c4",
+   "kind": "hole",
+   "nominal_d": 1.5,
+   "slot": [
+    1,
+    4
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "pla-seed-r1c6",
+   "kind": "hole",
+   "nominal_d": 3.7,
+   "slot": [
+    1,
+    6
+   ],
+   "arm": "heldout"
+  },
+  {
+   "piece_id": "pla-seed-r1c7",
+   "kind": "pin",
+   "nominal_d": 4.0,
+   "slot": [
+    1,
+    7
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "pla-seed-r2c1",
+   "kind": "pin",
+   "nominal_d": 7.0,
+   "slot": [
+    2,
+    1
+   ],
+   "arm": "heldout"
+  },
+  {
+   "piece_id": "pla-seed-r3c3",
+   "kind": "hole",
+   "nominal_d": 5.3,
+   "slot": [
+    3,
+    3
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "pla-seed-r3c4",
+   "kind": "hole",
+   "nominal_d": 1.1,
+   "slot": [
+    3,
+    4
+   ],
+   "arm": "heldout"
+  },
+  {
+   "piece_id": "pla-seed-r3c5",
+   "kind": "hole",
+   "nominal_d": 2.8,
+   "slot": [
+    3,
+    5
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "pla-seed-r4c0",
+   "kind": "hole",
+   "nominal_d": 6.2,
+   "slot": [
+    4,
+    0
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "pla-seed-r4c1",
+   "kind": "hole",
+   "nominal_d": 7.0,
+   "slot": [
+    4,
+    1
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "pla-seed-r4c4",
+   "kind": "pin",
+   "nominal_d": 2.3,
+   "slot": [
+    4,
+    4
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "pla-seed-r4c5",
+   "kind": "pin",
+   "nominal_d": 7.0,
+   "slot": [
+    4,
+    5
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "pla-seed-r4c6",
+   "kind": "pin",
+   "nominal_d": 6.2,
+   "slot": [
+    4,
+    6
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "pla-seed-r4c7",
+   "kind": "pin",
+   "nominal_d": 5.8,
+   "slot": [
+    4,
+    7
+   ],
+   "arm": "heldout"
+  },
+  {
+   "piece_id": "pla-seed-r5c0",
+   "kind": "pin",
+   "nominal_d": 5.7,
+   "slot": [
+    5,
+    0
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "pla-seed-r5c2",
+   "kind": "hole",
+   "nominal_d": 5.3,
+   "slot": [
+    5,
+    2
+   ],
+   "arm": "heldout"
+  },
+  {
+   "piece_id": "pla-seed-r5c3",
+   "kind": "hole",
+   "nominal_d": 2.3,
+   "slot": [
+    5,
+    3
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "pla-seed-r5c4",
+   "kind": "hole",
+   "nominal_d": 4.5,
+   "slot": [
+    5,
+    4
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "pla-seed-r6c5",
+   "kind": "pin",
+   "nominal_d": 7.3,
+   "slot": [
+    6,
+    5
+   ],
+   "arm": "heldout"
+  },
+  {
+   "piece_id": "pla-seed-r6c7",
+   "kind": "pin",
+   "nominal_d": 1.5,
+   "slot": [
+    6,
+    7
+   ],
+   "arm": "seed"
+  },
+  {
+   "piece_id": "pla-seed-r7c0",
+   "kind": "hole",
+   "nominal_d": 4.8,
+   "slot": [
+    7,
+    0
+   ],
+   "arm": "heldout"
+  },
+  {
+   "piece_id": "pla-seed-r7c2",
+   "kind": "pin",
+   "nominal_d": 3.2,
+   "slot": [
+    7,
+    2
+   ],
+   "arm": "seed"
+  }
+ ]
+}

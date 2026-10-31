@@ -77,3 +77,15 @@ def test_caliper_offsets_remove_pin_shadow_bias():
     assert abs(err(ms).mean()) > 0.03                       # shadows bias pins
     fixed = apply_offsets(ms, scanner_offsets(ms, checks, plate), plate)
     assert abs(err(fixed).mean()) < 0.015 and np.abs(err(fixed)).max() < 0.05
+
+
+def test_testprint_synthetic_roundtrip(tmp_path, capsys):
+    from measure.testprint import compare, read_scans, synthesize
+    from plates.seed import seed_plate
+
+    plate = seed_plate("resin")
+    synthesize(plate, tmp_path, seed=0)
+    ms = read_scans(plate, tmp_path)
+    assert sum(m.status == "ok" for m in ms) == len(plate.pieces)
+    compare(plate, ms, particles=500, seed=0)
+    assert "held-out MAE" in capsys.readouterr().out

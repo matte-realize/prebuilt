@@ -21,6 +21,14 @@ Load `plates/out/resin/resin-seed.stl` in PreForm and `plates/out/pla/pla-seed.s
 - Print flat, plate on the bed, pins up. No supports under the plate for PLA; resin per PreForm's default for a flat part.
 - Don't scale, rotate or move anything in the slicer. Piece identity comes from grid position and the fiducials.
 
+Optional test print (off the books: no receipts, no checkpoint): print the same STL, scan it into `scans/test/` with the usual names, then
+
+```
+py -m measure.testprint plates/out/resin/resin-seed.json scans/test
+```
+
+It lists every piece side by side (nominal, measured, prior prediction, prediction after fitting the 16 calibration pieces) and the held-out MAE before and after the fit. Add `--synthetic 0` to try it without a print.
+
 ## 3. Start the real run (seed plate)
 
 ```
@@ -51,7 +59,12 @@ py run.py --source real
    - `no feature (did not print?)`: the piece really is missing. That's fine, it's a printability outcome.
    - `blob touches cell edge (fused?)`: look at the piece. If it's a scanner problem (dust, hair), rescan and rerun.
    - Scanner vs caliper `mae` above ~0.05 mm: rescan (focus, flatness) before going on.
-7. **Fit checks** (walkthrough): try 2–3 pin/hole pairs by hand and note press, slip or loose in your notebook with the slot numbers. There's no code for this yet; it validates the fit-class thresholds.
+7. **Fit checks** (walkthrough): push 2–3 printed pins into printed holes from the same plate and write what you feel to `scans/<site>/<plate_id>-fitcheck.csv`:
+   ```
+   pin_row,pin_col,hole_row,hole_col,fit
+   2,1,5,2,slip
+   ```
+   `fit` is press, slip or loose. After any round, `py -m eval.fitcheck` compares them with each arm's predicted class and the scanner-implied class.
 
 **Failed plate:** if more than 50% of a plate's pieces fail (`failed_plate_fraction`), the run says so. It moves the scans to `<plate_id>.failed1-*` and waits for scans of a reprint of the same plate file. If the reprint also fails, that plate is dropped from the round (prereg failure rule). A seed plate that fails twice on one printer means one real site plus simulated sites (03-saturday checkpoints).
 
@@ -66,7 +79,7 @@ py run.py --source real
 
 1. `py run.py --source real` again. It resumes after the seed plate and logs the new prereg hash on both chains.
 2. Each round: approve, print, scan, calipers, Enter (step 4). The auction, credit and messages run on their own after measurement.
-3. Between rounds (optional, exploratory): `py -m agents.hypothesis --checkpoint receipts/real/state.pkl` (needs the Nemotron endpoint; `--dry-run` without one).
+3. Between rounds (optional, exploratory): `py -m agents.hypothesis --checkpoint receipts/real/state.pkl`. It needs a Nemotron endpoint: on Brev run `agents/serve_nemotron.sh`, forward port 8000, check with `py -m agents.hypothesis --ping`. Use `--dry-run` without one.
 4. At the end: `py run.py --source real --out real.json` once more, which prints the summary and writes the scores. Then:
    - `py -m eval.audit receipts/real/resin.jsonl receipts/real/pla.jsonl` (privacy audit, must PASS)
    - `py -m eval.figures.headline sim.json --real real.json` (slide 6; `sim.json` is a `run.py --source sim --seeds N --out` run)

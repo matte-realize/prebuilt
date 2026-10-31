@@ -12,9 +12,11 @@ can be local (NIM on the DGX Spark, the default) or hosted.
 
     python -m agents.hypothesis --checkpoint receipts/real/state.pkl --dry-run   # print the prompts
     python -m agents.hypothesis --checkpoint receipts/real/state.pkl             # ask and record
+    python -m agents.hypothesis --ping                                           # check the endpoint
 
 Endpoint: PREBUILT_LLM_URL (OpenAI-compatible, default http://localhost:8000/v1),
-PREBUILT_LLM_MODEL, and NVIDIA_API_KEY if the endpoint needs one.
+PREBUILT_LLM_MODEL (default: the first model the endpoint lists), and NVIDIA_API_KEY
+if the endpoint needs one. agents/serve_nemotron.sh serves one on a GPU box (e.g. Brev).
 """
 from __future__ import annotations
 
@@ -96,16 +98,58 @@ def messages(summary: dict) -> list[dict]:
 
 # ---- model call ----------------------------------------------------------------
 
-def ask_llm(msgs: list[dict], url: str | None = None, model: str | None = None, timeout: float = 120) -> str:
+def _endpoint(url: str | None = None) -> tuple[str, dict]:
     url = (url or os.environ.get("PREBUILT_LLM_URL") or DEFAULT_URL).rstrip("/")
-    body = {"model": model or os.environ.get("PREBUILT_LLM_MODEL") or DEFAULT_MODEL,
-            "messages": msgs, "temperature": 0.2, "max_tokens": 1024}
     headers = {"Content-Type": "application/json"}
     if os.environ.get("NVIDIA_API_KEY"):
         headers["Authorization"] = f"Bearer {os.environ['NVIDIA_API_KEY']}"
-    req = urllib.request.Request(f"{url}/chat/completions", json.dumps(body).encode(), headers)
+    return url, headers
+
+
+def list_models(url: str | None = None, timeout: float = 20) -> list[str]:
+    url, headers = _endpoint(url)
+    with urllib.request.urlopen(urllib.request.Request(f"{url}/models", headers=headers), timeout=timeout) as r:
+        return [m["id"] for m in json.loads(r.read()).get("data", [])]
+
+
+def model_name(url: str | None = None) -> str:
+    """PREBUILT_LLM_MODEL, else the endpoint's first model, else the default name."""
+    if os.environ.get("PREBUILT_LLM_MODEL"):
+        return os.environ["PREBUILT_LLM_MODEL"]
+    try:
+        return (list_models(url) or [DEFAULT_MODEL])[0]
+    except OSError:
+        return DEFAULT_MODEL
+
+
+def ask_llm(msgs: list[dict], url: str | None = None, model: str | None = None, timeout: float = 120) -> str:
+    base, headers = _endpoint(url)
+    body = {"model": model or model_name(url), "messages": msgs, "temperature": 0.2, "max_tokens": 1024}
+    req = urllib.request.Request(f"{base}/chat/completions", json.dumps(body).encode(), headers)
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read())["choices"][0]["message"]["content"]
+
+
+def ping() -> int:
+    """Check the endpoint end to end: models listed, a reply, and a reply that parses."""
+    url, _ = _endpoint()
+    try:
+        models = list_models()
+    except OSError as e:
+        print(f"can't reach {url}/models: {e}\n  Is the server up and the port forwarded? (agents/serve_nemotron.sh)")
+        return 1
+    print(f"{url}: models {models or '(none listed)'}; using {model_name()}")
+    sample = {"site_process": "pla", "n_measured": 22, "residual_trend_z": {"diameter": 3.4, "radial_distance_sq": 0.4},
+              "residual_z_by_bin": [{"kind": "hole", "d_mm": "1-2", "n": 4, "mean_z": -1.8}], "unmet_needs": {}}
+    try:
+        reply = ask_llm(messages(sample))
+    except OSError as e:
+        print(f"chat request failed: {e}")
+        return 1
+    hyps = parse(reply)
+    print(f"reply parsed into {len(hyps)} hypothesis(es)" + (f"; first: {hyps[0]['effect']}" if hyps else
+          f". Raw reply starts: {reply[:200]!r}"))
+    return 0 if hyps else 2
 
 
 # ---- validation ----------------------------------------------------------------
@@ -156,7 +200,7 @@ def run(state: dict, ask=ask_llm, out_dir: str | Path | None = None, dry_run: bo
             continue
         reply = ask(msgs)
         hyps = parse(reply)
-        entry = {"round": rnd, "model": os.environ.get("PREBUILT_LLM_MODEL") or DEFAULT_MODEL,
+        entry = {"round": rnd, "model": model_name(),
                  "summary": summary, "prompt_hash": sha256(canonical(msgs)), "reply_hash": sha256(reply),
                  "hypotheses": hyps}
         if out_dir:
@@ -170,7 +214,10 @@ def main() -> None:
     ap.add_argument("--checkpoint", default="receipts/real/state.pkl")
     ap.add_argument("--dry-run", action="store_true", help="print the prompts, call nothing")
     ap.add_argument("--out-dir", default=None, help="hypothesis chains (default: the checkpoint's directory)")
+    ap.add_argument("--ping", action="store_true", help="check the endpoint with a sample summary, record nothing")
     a = ap.parse_args()
+    if a.ping:
+        raise SystemExit(ping())
     with open(a.checkpoint, "rb") as f:
         state = pickle.load(f)
     result = run(state, out_dir=a.out_dir or str(Path(a.checkpoint).parent), dry_run=a.dry_run)
