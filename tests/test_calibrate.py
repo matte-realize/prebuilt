@@ -76,6 +76,15 @@ def test_predict_returns_interval_per_round(synthetic):
         assert {"median", "q05", "q95"} <= set(pred[key][1])
 
 
+def test_predict_gpu_batch_matches_cpu_shape(synthetic):
+    pytest.importorskip("warp")
+    cfg = calibrate.Config(rounds=1, n_particles=300, slots_per_arm=4, seed_pieces=8)
+    cpu = calibrate.predict(synthetic[2], cfg, range(3), workers=1)
+    gpu = calibrate.predict(synthetic[2], cfg, range(3), workers=2, gpu_batch=2)  # chunks of 2 and 1
+    for key in cpu:
+        assert gpu[key][1]["n"] == cpu[key][1]["n"]
+
+
 def test_interval_with_no_defined_values():
     assert calibrate._interval([math.nan, math.nan])["n"] == 0
     assert "n=0" in calibrate._fmt(calibrate._interval([]))

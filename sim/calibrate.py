@@ -37,6 +37,7 @@ import shlex
 import subprocess
 import sys
 from dataclasses import asdict, dataclass, replace
+from functools import partial
 from multiprocessing import get_context
 from pathlib import Path
 
@@ -47,6 +48,7 @@ from contracts import Measurement, Piece
 from eval.metrics import oracle_gap_closed
 from model import physics
 from model.physics import PieceArrays
+from model.posterior import ParticlePosterior
 from plates.seed import seed_plate
 from sim.reference import FAIL_D, FAIL_WIDTH, SimPrinter, make_world
 
@@ -383,10 +385,17 @@ def _run_worker(seed: int) -> dict:
     return run_seed(seed, *_WORKER)
 
 
-def run_seed(seed: int, calib: Calibration, cfg: Config) -> dict:
+def _run_gpu_chunk(seeds: list[int], device: str | None) -> list[dict]:
+    """One batch of seeds whose posterior fits share GPU launches (sim.batch); printers stay on the CPU."""
+    from sim.batch import Batcher
+    batcher = Batcher(device)
+    return batcher.run([partial(run_seed, s, *_WORKER, posterior=batcher.posterior) for s in seeds])
+
+
+def run_seed(seed: int, calib: Calibration, cfg: Config, posterior=ParticlePosterior) -> dict:
     rng = np.random.default_rng([seed, 0xD])
     world = calib.world(int(rng.integers(len(calib))), rng)
-    res = run_experiment(world, SITES, replace(cfg, seed=seed))
+    res = run_experiment(world, SITES, replace(cfg, seed=seed), posterior=posterior)
     # a site with no ok held-out pieces scores mae_truth None; NaN drops it from this seed's numbers
     scores = [{**row, "mae_truth": math.nan if row["mae_truth"] is None else row["mae_truth"]} for row in res.scores]
 
@@ -412,10 +421,17 @@ def _interval(v: list[float]) -> dict[str, float | None]:
     return {"median": q[2], "q05": q[0], "q25": q[1], "q75": q[3], "q95": q[4], "n": len(a)}
 
 
-def predict(calib: Calibration, cfg: Config, seeds: range, workers: int) -> dict:
-    # spawn: fork is unsafe once Warp has started threads
+def predict(calib: Calibration, cfg: Config, seeds: range, workers: int, gpu_batch: int = 0,
+            device: str | None = None) -> dict:
+    """`gpu_batch` > 0: each worker runs that many seeds at once with their posterior fits batched on
+    the GPU (model.posterior_warp). Each seed's world and noise don't depend on its batch."""
+    # spawn: fork is unsafe once Warp has started threads, and each GPU worker needs its own CUDA context
     with get_context("spawn").Pool(workers, initializer=_init_worker, initargs=(calib, cfg)) as pool:
-        rows = pool.map(_run_worker, seeds, chunksize=1)
+        if gpu_batch:
+            chunks = [list(seeds[i:i + gpu_batch]) for i in range(0, len(seeds), gpu_batch)]
+            rows = [r for chunk in pool.map(partial(_run_gpu_chunk, device=device), chunks, chunksize=1) for r in chunk]
+        else:
+            rows = pool.map(_run_worker, seeds, chunksize=1)
     rounds = sorted(rows[0]["gap"])
     return {key: {r: _interval([row[key][r] for row in rows]) for r in rounds}
             for key in ("iso_minus_net_um", "iso_minus_net_truth_um", "gap", "gap_truth")}
@@ -467,6 +483,10 @@ def main() -> None:
     ap.add_argument("--shared-jitter", type=float, default=SHARED_JITTER,
                     help="assumed site-to-site spread of the shared parameters, fraction of prior std")
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 1))
+    ap.add_argument("--gpu-batch", type=int, default=0, metavar="N",
+                    help="run N seeds per worker at once with posterior fits on the GPU (0 = CPU); "
+                         "8 workers saturate an 8 GB GPU (sim.batch)")
+    ap.add_argument("--device", default=None, help="Warp device for --gpu-batch (default: CUDA if available)")
     ap.add_argument("--exclude-failed", nargs="*", default=[], metavar="PIECE_ID",
                     help="failed seed pieces to leave out of the failure fit (scanner misses, not print failures)")
     ap.add_argument("--out", required=True)
@@ -502,7 +522,7 @@ def main() -> None:
               f"max R-hat {max(fits[site].rhat.values()):.3f}", flush=True)
     (out / "calibration.json").write_text(json.dumps(calib, indent=1))
 
-    pred = predict(fitted, cfg, range(a.seed0, a.seed0 + a.seeds), a.workers)
+    pred = predict(fitted, cfg, range(a.seed0, a.seed0 + a.seeds), a.workers, a.gpu_batch, a.device)
     record = {**provenance(), "prereg_sha256": prereg_sha, "draft_null_fields": gaps, "config": asdict(cfg), "source": {"state": a.state, "scans": a.scans, "synthetic": a.synthetic},
               "seeds": [a.seed0, a.seed0 + a.seeds], **pred}
     (out / "prediction.json").write_text(json.dumps(record, indent=1))
