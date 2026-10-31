@@ -77,7 +77,9 @@ def main() -> None:
         print(f"prereg sha256 {sha}")
         chains = args.chains or "receipts/real"
         check_resume(f"{chains}/state.pkl", cfg)
-        res = run_experiment({s: RealPrinter(s, f"{args.scans}/{s}") for s in SITES}, SITES, cfg,
+        printers = {s: RealPrinter(s, f"{args.scans}/{s}", failed_plate_fraction=prereg["failed_plate_fraction"])
+                    for s in SITES}
+        res = run_experiment(printers, SITES, cfg,
                              chain_dir=chains, checkpoint=f"{chains}/state.pkl")
         res.scores = with_fit(res.scores, res.predictions, fit_thresholds(prereg), SITES)
         print(summarize(res.scores))

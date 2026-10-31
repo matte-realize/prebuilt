@@ -37,3 +37,5 @@ The spec describes the full vision. The walkthrough is what we are building this
 5. [Pre-registration file and slide outline](build/05-prereg-and-slides.md)
 6. [Task split](build/06-task-split.md): who owns what (Matthew: agents and the physical loop; teammate: HPC). Replaces the M/T assignments in 2 and 3
 7. [Status and Phase C findings](build/07-status.md)
+8. [Warp posterior build log](build/08-warp-posterior.md)
+9. [Printer-day run sheet](build/09-run-sheet.md): step by step at the printers

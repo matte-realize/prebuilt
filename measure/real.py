@@ -25,8 +25,10 @@ PLATE_DIR = Path(__file__).resolve().parent.parent / "plates" / "out"
 
 
 class RealPrinter:
-    def __init__(self, site: str, scan_dir: str, ask=input, plate_dir: str | Path = PLATE_DIR):
+    def __init__(self, site: str, scan_dir: str, ask=input, plate_dir: str | Path = PLATE_DIR,
+                 failed_plate_fraction: float | None = None):
         self.site = site
+        self.failed_plate_fraction = failed_plate_fraction  # prereg: above this, reprint once
         self.plate_dir = Path(plate_dir)
         self.scan_dir = Path(scan_dir)
         self.scan_dir.mkdir(parents=True, exist_ok=True)
@@ -43,6 +45,29 @@ class RealPrinter:
         return {"plate_id": plate.plate_id, "approved": answer.lower() in ("y", "yes"), "note": "" if answer.lower() in ("y", "yes") else answer}
 
     def print_and_measure(self, plate: Plate) -> list[Measurement]:
+        """Measure the plate. Past the prereg's failed-plate fraction it is reprinted once; if the
+        reprint fails too, every piece is reported failed so the round is scored without it."""
+        base = self.scan_dir / plate.plate_id
+        ms = self._measure_once(plate)
+        frac = sum(m.status == "failed" for m in ms) / max(len(ms), 1)
+        if self.failed_plate_fraction is None or frac <= self.failed_plate_fraction:
+            return ms
+        print(f"  [{self.site}] {plate.plate_id}: {frac:.0%} of pieces failed, over the prereg's "
+              f"{self.failed_plate_fraction:.0%}. Reprint the same plate file once.")
+        stamp = 1
+        while any(self.scan_dir.glob(f"{plate.plate_id}.failed{stamp}-*")):
+            stamp += 1
+        for f in self.scan_dir.glob(f"{plate.plate_id}-*"):  # keep the failed scans, out of the way
+            f.rename(f.with_name(f.name.replace(plate.plate_id, f"{plate.plate_id}.failed{stamp}", 1)))
+        ms = self._measure_once(plate)
+        frac = sum(m.status == "failed" for m in ms) / max(len(ms), 1)
+        if frac > self.failed_plate_fraction:
+            print(f"  [{self.site}] reprint also failed ({frac:.0%}): scoring the round without this plate.")
+            ms = [Measurement(p.piece_id, plate.plate_id, plate.site, None, "failed", "failed-plate") for p in plate.pieces]
+            Path(f"{base}-measurements.json").write_text(json.dumps([asdict(m) for m in ms], indent=1))
+        return ms
+
+    def _measure_once(self, plate: Plate) -> list[Measurement]:
         base = self.scan_dir / plate.plate_id
         while True:
             answer = self.ask(f"[{self.site}] scans for {plate.plate_id} in {self.scan_dir}? [Enter when ready / 'fail' if the plate failed] ").strip()
