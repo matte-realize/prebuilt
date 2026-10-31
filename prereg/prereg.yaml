@@ -59,10 +59,16 @@ deviations:
     why: >-
       synthetic stress tests show front-lit pin scans read ~50 um small from
       cast shadows, nearly constant across pieces (07-status, scanner)
-  - id: challenge_and_spawn_on
-    walkthrough: not scheduled for the weekend build
-    registered: networked arm runs the challenge round and can wake the dormant `position` agent
-    why: spec 8.1 defines the networked arm as the full Section 6 system
+  - id: challenge_and_spawn_off
+    walkthrough: not scheduled for the weekend build (spec 8.1 includes them in the full system)
+    registered: >-
+      off for every claim; reported only as a secondary simulation analysis
+      (run.py --challenge --spawn)
+    why: >-
+      they act only in the networked arm, so they change its piece selection and
+      bring back the confound same_agents removes. With them on, the oracle
+      trailed networked at round 3 (+1.4 +- 0.9 um, 12 seeds); with them off it
+      did not (07-status, headline chart).
 
 # Experiment config. Keys are arms.experiment.Config fields.
 config:
@@ -75,16 +81,16 @@ config:
   oracle_hierarchical: true
   between_site_sd: 0.25        # fraction of each shared parameter's prior std; not tuned on real data
   lpd_clip: 2.0                # nats per held-out piece in credit (07-status finding 7)
-  challenge: true
-  dormant: [position]
+  challenge: false
+  dormant: []
   unmet_z: 2.0
   # Frozen from T's Phase C tuning sweep, M signs off. eta = 20 is known too high (finding 6).
   eta: null
   cred_floor: null
   trust_init: null
   discount: null
-  challenge_eig: null
-  spawn_threshold: null
+  challenge_eig: 0.05           # challenge and spawn are off; these apply to the secondary analysis only
+  spawn_threshold: 2
   seed: 0
 
 measurement:
@@ -98,10 +104,15 @@ fit_classes_mm:                # clearance = hole_d - pin_d
   # clearance lies within one slip-band width of the class boundaries; correct when the class of
   # the predicted clearance matches the class of the measured clearance. Reported, not primary:
   # the held-out design gives only ~4-15 such pairs per site per round.
-  resin: {press_below: null, slip: [null, null], loose_above: null}
-  pla:   {press_below: null, slip: [null, null], loose_above: null}
+  # Measured clearance. Interference is press; resin holds tighter tolerances than PLA,
+  # so its slip band is narrower. Gaps between bands go to the nearer class.
+  resin: {press_below: 0.0, slip: [0.05, 0.15], loose_above: 0.2}
+  pla:   {press_below: 0.0, slip: [0.10, 0.25], loose_above: 0.35}
 
-failed_plate_fraction: null    # a plate with more than this fraction of failed pieces is reprinted, not scored
+# A plate with more than this fraction of failed pieces is reprinted, not scored. Half, not
+# lower: agents deliberately probe small features near the failure limit, so many individual
+# failures are expected; a plate-level fault (adhesion, bed, resin) fails most pieces.
+failed_plate_fraction: 0.5
 
 heldout:
   manifest: prereg/heldout.json
@@ -117,7 +128,7 @@ primary_metric: predicted_range.metric   # held-out MAE, pooled over both sites
 #   iso_minus_net_mae_um   isolated - networked held-out MAE on measured diameters, um (Phase D primary)
 #   oracle_gap_closed_mae  (iso - net) / (iso - oracle) on measured MAE (walkthrough's metric)
 predicted_range:
-  metric: null
+  metric: iso_minus_net_mae_um   # gap-closed divides by a near-zero iso - oracle and swings
   round: 3                     # the round the prediction is scored on
   range: [null, null]
 

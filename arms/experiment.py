@@ -87,11 +87,13 @@ class Config:
     bad_sites: tuple[str, ...] = ()  # sites that broadcast corrupted beliefs
     agents: tuple[str, ...] = tuple(AGENT_NAMES)
     seed_pieces: int | None = SEED_PIECES  # calibration pieces on the seed plate (None = all 56)
-    # Challenge round (spec 6.5 step 3) and spawn of dormant agents (6.7). Both are part of
-    # the networked arm's "full system (Section 6)" in the pre-registered design (8.1), so on.
-    challenge: bool = True
+    # Challenge round (spec 6.5 step 3) and spawn of dormant agents (6.7). Off for the
+    # registered claim: they run only in the networked arm, so they change its piece
+    # selection and bring back the confound same_agents removes (07-status, headline
+    # chart). Reported as a secondary simulation analysis with both on.
+    challenge: bool = False
     challenge_eig: float = 0.05      # nats; a proposal the flagger expects to learn less from is "predictable"
-    dormant: tuple[str, ...] = tuple(DORMANT_NAMES)  # templates that can wake; () = no spawning
+    dormant: tuple[str, ...] = ()    # templates that can wake (DORMANT_NAMES = all); () = no spawning
     spawn_threshold: int = 2         # unmet-needs entries (own + incoming, cumulative) that wake a template
     unmet_z: float = 2.0             # |z| of a residual trend that goes in the unmet-needs log
     seed: int = 0

@@ -121,7 +121,7 @@ def _kinds(res):
 
 def test_challenge_round_runs_logs_and_credits():
     res = run_experiment(make_world(SITES, 7), SITES,
-                         Config(rounds=2, n_particles=300, seed=7, challenge_eig=1e9, dormant=()))
+                         Config(rounds=2, n_particles=300, seed=7, challenge=True, challenge_eig=1e9, dormant=()))
     assert res.challenges and audit(list(res.chains.values())).passed
     assert "challenge" in _kinds(res) and "challenge_credit" in _kinds(res)
     scored = [c for c in res.challenges if c["credit"] is not None]
@@ -132,7 +132,8 @@ def test_challenge_round_runs_logs_and_credits():
 
 
 def test_unmet_needs_cross_sites_and_wake_dormant_agents():
-    cfg = dict(rounds=2, n_particles=300, seed=8, unmet_z=0.0, spawn_threshold=2, challenge=False)
+    cfg = dict(rounds=2, n_particles=300, seed=8, unmet_z=0.0, spawn_threshold=2, challenge=False,
+               dormant=tuple(DORMANT_NAMES))
     # With messages, one site's question plus the other's reaches the threshold in round 1.
     res = run_experiment(make_world(SITES, 8), SITES, Config(**cfg))
     assert {(s["round"], s["site"], s["agent"]) for s in res.spawned} == {(1, "resin", "position"), (1, "pla", "position")}

@@ -12,6 +12,7 @@ from dataclasses import asdict
 
 import numpy as np
 
+from agents.agents import DORMANT_NAMES
 from arms.experiment import Config, run_experiment
 from plates.seed import SEED_PIECES
 from eval.audit import audit
@@ -47,8 +48,8 @@ def main() -> None:
     ap.add_argument("--oracle-particles", type=int, default=None, help="oracle arm particles (default: --particles)")
     ap.add_argument("--bad-site", action="append", default=[], help="sim only: site that broadcasts bad beliefs")
     ap.add_argument("--no-messages", action="store_true", help="ablation: cut the network")
-    ap.add_argument("--no-challenge", action="store_true", help="ablation: skip the challenge round")
-    ap.add_argument("--no-spawn", action="store_true", help="ablation: dormant agents never wake")
+    ap.add_argument("--challenge", action="store_true", help="secondary analysis: run the challenge round (networked arm)")
+    ap.add_argument("--spawn", action="store_true", help="secondary analysis: dormant agents can wake (networked arm)")
     ap.add_argument("--seed-pieces", type=int, default=SEED_PIECES, help="sim sweep: calibration pieces on the seed plate (max 56)")
     ap.add_argument("--slots", type=int, default=Config.slots_per_arm, help="sim sweep: slots per arm per plate")
     ap.add_argument("--lpd-clip", type=lambda v: None if v.lower() == "none" else float(v), default=Config.lpd_clip,
@@ -98,7 +99,7 @@ def main() -> None:
         cfg = Config(rounds=args.rounds, n_particles=args.particles, seed=seed, oracle_particles=args.oracle_particles,
                      bad_sites=tuple(args.bad_site), share_messages=not args.no_messages,
                      seed_pieces=args.seed_pieces, slots_per_arm=args.slots, lpd_clip=args.lpd_clip,
-                     challenge=not args.no_challenge, **({"dormant": ()} if args.no_spawn else {}))
+                     challenge=args.challenge, dormant=tuple(DORMANT_NAMES) if args.spawn else ())
         chain_dir = f"{args.chains}/seed{seed}" if args.chains else None
         res = run_experiment(make_world(SITES, seed), SITES, cfg, chain_dir)
         res.scores = with_fit(res.scores, res.predictions, thresholds, SITES)
