@@ -22,9 +22,17 @@ Run sweeps with `run.py --source sim --seeds 20 --out results.json`. In simulati
 6. **η = 20 is too high.** Honest senders lose trust from noise in the leave-one-out difference: in one bad-site run the honest sender dropped to 0.25. Sweep η, `trust_init` and `cred_floor` together, scoring both "bad site loses trust" and "honest site keeps it".
 7. **Held-out LPD can swing by tens of nats** when the model is wrong. Credibility math is overflow-safe now, but one round can dominate credit. Consider clipping per-piece LPD.
 
+## Challenge round and spawn (built Oct 31)
+
+Both are on by default (`Config.challenge`, `Config.dormant`), since spec 8.1 defines the networked arm as the full Section 6 system. `run.py --no-challenge --no-spawn` turns them off; with both off, results match the earlier code. They change results, so T's Phase C numbers predate them.
+
+- **Challenge** (`agents/challenge.py`, spec 6.5 step 3). After proposing, each agent may flag one proposal another agent would win a slot with. It flags "redundant with mine" if the same piece is among its own winning proposals, or "already predictable from my evidence" if its own posterior's expected information gain on the piece is below `Config.challenge_eig` (0.05 nats, a placeholder to freeze with η). Flaggers go in order of credibility. A flagged piece moves to the end of its owner's list, so it prints only if the owner has slots to spare. In credit, the flagger gets ± (leave-one-piece-out held-out dLPD of the test piece − the round's average dLPD per piece), added to its own dLPD. The test piece is the flagged piece if it printed (the flagger gains if it's below average) or else the piece that replaced it (the flagger gains if that one is above average). Every flag and its credit goes on the receipt chain (`challenge`, `challenge_credit`) and into `Results.challenges`.
+- **Spawn** (`arms/experiment.py` `_unmet_needs`, `_spawn`, spec 6.7). One dormant template exists: `position`, which proposes by information gain on `pos_gx`/`pos_gy`, with candidates scored at a plate corner. After credit, each site correlates its networked posterior's standardized training residuals with squared distance from the plate center. The physics model has linear plate gradients only, so this checks for the sim's unmodeled radial term. If |z| ≥ `Config.unmet_z` (2.0), the site logs an unmet need and broadcasts it in the new `Message.unmet_needs` field: template, question, and z only, validated by `network/protocol.py`. A site wakes the template with uniform credibility (1/(n+1)) once its own plus incoming entries reach `Config.spawn_threshold` (2), so a question raised at one site can wake the agent at the other. Retired agents don't respawn. In 5 seeds at 16 seed pieces and 6 slots, position woke at both sites in round 2 in 4 of 5 seeds.
+- **Open:** no orientation template (`Piece` has no orientation). Challenge outcomes aren't broadcast (the spec allows it but doesn't require it). The position agent targets the modeled linear gradient, not the radial term that wakes it.
+
 ## Not built yet (M)
 
-- Challenge round, spawn/retire of dormant agents (retire on the credibility floor is built), hypothesis agent.
+- Hypothesis agent.
 - Fit-class accuracy: waits on the prereg thresholds.
 - Scanner on real scans: synthetic error is under 25 µm at 400 dpi. Real lighting, shadows and pin-top edges will be worse; check with the paper target, then a test print.
 - Slice-check the seed STLs in PreForm and the PLA slicer.

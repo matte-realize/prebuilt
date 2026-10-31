@@ -27,6 +27,8 @@ def main() -> None:
     ap.add_argument("--oracle-particles", type=int, default=None, help="oracle arm particles (default: --particles)")
     ap.add_argument("--bad-site", action="append", default=[], help="sim only: site that broadcasts bad beliefs")
     ap.add_argument("--no-messages", action="store_true", help="ablation: cut the network")
+    ap.add_argument("--no-challenge", action="store_true", help="ablation: skip the challenge round")
+    ap.add_argument("--no-spawn", action="store_true", help="ablation: dormant agents never wake")
     ap.add_argument("--seed-pieces", type=int, default=SEED_PIECES, help="sim sweep: calibration pieces on the seed plate (max 56)")
     ap.add_argument("--slots", type=int, default=Config.slots_per_arm, help="sim sweep: slots per arm per plate")
     ap.add_argument("--chains", default=None, help="directory for receipt chains (default: in memory)")
@@ -57,7 +59,8 @@ def main() -> None:
         seed = args.seed + k
         cfg = Config(rounds=args.rounds, n_particles=args.particles, seed=seed, oracle_particles=args.oracle_particles,
                      bad_sites=tuple(args.bad_site), share_messages=not args.no_messages,
-                     seed_pieces=args.seed_pieces, slots_per_arm=args.slots)
+                     seed_pieces=args.seed_pieces, slots_per_arm=args.slots,
+                     challenge=not args.no_challenge, **({"dormant": ()} if args.no_spawn else {}))
         chain_dir = f"{args.chains}/seed{seed}" if args.chains else None
         res = run_experiment(make_world(SITES, seed), SITES, cfg, chain_dir)
         rep = audit(list(res.chains.values()))
@@ -65,7 +68,9 @@ def main() -> None:
             print(summarize(res.scores))
             for row in res.trust:
                 print(f"trust round {row['round']}: {row['receiver']} <- {row['sender']}: {row['trust']:.3f}")
-        print(f"seed {seed}: privacy audit {'PASS' if rep.passed else 'FAIL'} ({rep.crossings} crossings)")
+        spawned = ", ".join(f"{x['agent']}@{x['site']} r{x['round']}" for x in res.spawned) or "none"
+        print(f"seed {seed}: privacy audit {'PASS' if rep.passed else 'FAIL'} ({rep.crossings} crossings); "
+              f"{len(res.challenges)} challenge flags; spawned: {spawned}")
         for r, g in oracle_gap_closed(res.scores).items():
             gaps[r].append(g)
         all_rows += [{**row, "seed": seed} for row in res.scores]
