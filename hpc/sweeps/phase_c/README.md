@@ -116,6 +116,67 @@ Recommendation: **n_particles 4000, mh_steps 6**. It sits on that plateau with m
 
 The trust and knobs stages ran at 2000, 3. A check of those choices at 4000, 6 is listed below.
 
-### Not run yet
+### Oracle: oracle_particles = n_particles; no count makes the oracle an upper bound
 
-Oracle (`oracle_particles`).
+Full table: [`results/tuning_oracle_seed16_slots6.md`](results/tuning_oracle_seed16_slots6.md). 100 seeds (2000-2099), honest runs, at 4000 particles, 6 MH steps (oracle 12). The target was the smallest `oracle_particles` at which the oracle beats networked in at least 90% of seeds. None does:
+
+| oracle_particles | oracle < networked, rounds 1 / 2 / 3 | oracle mae_truth round 3, µm |
+|---|---|---|
+| 2000 | 47% / 52% / 52% | 11.15 ± 0.37 |
+| 4000 | 48% / 52% / 50% | 11.30 ± 0.37 |
+| 8000 | 51% / 57% / 53% | 11.17 ± 0.39 |
+| 16000 | 51% / 53% / 52% | 11.23 ± 0.38 |
+| 32000 | 50% / 51% / 50% | 11.35 ± 0.38 |
+
+Why: with two sites, networked already extracts what the oracle does. A diagnostic run with `Config.oracle_data="networked"` (the oracle pools exactly the networked arm's data, so only inference differs; [`results/diag_oracle_data_networked.jsonl.gz`](results/diag_oracle_data_networked.jsonl.gz), 40 seeds) gives oracle − networked of −0.04, −0.01, +0.05 µm (SE 0.06-0.07) in rounds 1-3, oracle winning in 60%, 48%, 40% of seeds. Two estimators that agree to within 0.05 µm split the seeds about evenly, so a 90% rule can't be met by any particle count. In the real design the arms also print different pieces, which adds noise to each seed's comparison.
+
+Consequences: per-seed oracle gap closed sits near 1 with a wide spread (IQR roughly [0, 1.5]); it is not bounded in [0, 1] and shouldn't be committed. iso − net (now the registered metric) is unaffected. Recommend `oracle_particles: 4000` (= n_particles; extra particles change nothing).
+
+### Trust check at 4000 particles, 6 MH steps
+
+[`results/tuning_trustcheck_p4000_mh6.md`](results/tuning_trustcheck_p4000_mh6.md), 40 seeds, trust_init 1.0, cred_floor 0.05. eta 5 still the best trade:
+
+| eta | bad sender's trust | honest trust | honest links < 0.5 | net/iso under attack (median) |
+|---|---|---|---|---|
+| 2 | 0.14 | 0.95 | 1% | 1.27 |
+| **5** | **0.05** | **0.90** | **5%** | **1.03** |
+| 10 | 0.03 | 0.84 | 11% | 1.00 |
+
+## 3. Proposed config (for review; prereg.yaml not edited)
+
+Values for the `config` section of `prereg/prereg.yaml`. Main (1dbf284) already holds eta, cred_floor, trust_init and discount as below; the changes are `n_particles`, `oracle_particles` and a new `mh_steps` line.
+
+    n_particles: 4000            # was 2000; 6 MH steps / 4000 particles removes sampler error that inflated iso - net
+    mh_steps: 6                  # new line; Config default is 3. oracle_mh_steps scales with it (12)
+    oracle_particles: 4000       # = n_particles; 2000-32000 all tie with networked (oracle stage)
+    eta: 5
+    cred_floor: 0.05
+    trust_init: 1.0
+    discount: 0.2
+    between_site_sd: 0.25        # unchanged; knobs stage
+
+## 4. Draft predicted range (simulation only, before calibration)
+
+Per seed, isolated − networked, µm, both sites averaged, at the proposed config. 100 seeds from `tuning_oracle_seed16_slots6` (oracle_particles 4000 rows):
+
+| round | measured MAE (registered): median [IQR] | share > 0 | noise-free MAE: median [IQR] | share > 0 | oracle gap closed, noise-free: median [IQR] |
+|---|---|---|---|---|---|
+| 1 | 0.61 [−1.26, 2.04] | 56% | 1.62 [−0.25, 3.40] | 72% | 0.83 [−0.01, 1.85] |
+| 2 | 0.62 [−0.64, 2.31] | 63% | 1.62 [−0.30, 4.16] | 72% | 0.62 [−0.39, 1.55] |
+| 3 | 0.60 [−0.39, 1.97] | 61% | 1.75 [−0.44, 3.26] | 69% | 0.68 [−0.03, 1.52] |
+
+The mean effect on noise-free error is clear (1.5-2.0 µm, SE 0.3). But on measured error over 8 held-out pieces per site, measurement noise is about as large as the effect: in about 40% of simulated worlds a single real run would show networked no better than isolated. The real experiment is one seed. This range replaces nothing until `sim.calibrate` reruns it on the real seed plates.
+
+## Compared with earlier numbers
+
+- The laptop preview (trust stage before `oracle_particles` and `same_agents`) was lost with the `prebuilt-phase-d` worktree. The closest comparison is section 1 (`same_agents` off, old oracle sampler): there the oracle trailed networked by about 1 µm at round 3 (11.84 vs 10.87). Now it ties (11.30 vs 11.52). That change is mostly the oracle MH fix plus `same_agents` together; these runs can't separate the two, and the `oracle_data="networked"` check says the remaining tie is real.
+- iso − net (noise-free, round 3) was 2.06 µm in section 1, 2.22 at 2000/3 with `same_agents`, and 1.52 at 4000/6. `same_agents` left it about the same; better sampling lowered it.
+- The trust choice is the same with challenge and spawn on or off, and at 2000/3 or 4000/6.
+
+## Confidence
+
+- High: eta 5, trust_init 1.0, cred_floor 0.05, discount 0.2, between_site_sd 0.25. The choice is stable across three sweeps (challenge on/off, 2000/3 and 4000/6).
+- High: oracle_particles doesn't matter, and the 90% rule can't be met.
+- Moderate: 4000/6 over 2000/6. Both sit on the plateau; the paired SEs are about 0.4 µm.
+- Moderate: the draft range. It is from the uncalibrated sim; real noise and failure rates will move it.
+- Open: whether a 60% chance of a positive result on one real run is acceptable. That is a design question for M (more held-out pieces per plate, or scoring on more rounds, would cut measurement noise).
