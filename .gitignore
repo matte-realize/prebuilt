@@ -10,3 +10,4 @@ receipts/real/
 viewer/out/
 eval/figures/out/
 .env
+hpc/sweeps/phase_c/results/tuning_*.jsonl

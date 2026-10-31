@@ -50,6 +50,34 @@ The main cause was Monte Carlo mixing, not particle count: the 18-dim oracle got
 
 Privacy audit passed in 400/400 runs. Wall time per run: 7 s (4 pieces, 6 slots) to 52 s (56 pieces, 18 slots).
 
-## Not run yet
+## 2. Tuning sweep (16 seed pieces, 6 slots)
 
-`tuning.py` (stages `trust`, `knobs`, `particles`) and `hpc/nebius/run_phase_c.sh` are smoke-tested only (2 seeds, 1 round). The tuning sweep, frozen config and predicted range (deliverables 2-3) are still to do; the range waits on the oracle fix above.
+Run on the GCP VM from main at ce27b43 (challenge and spawn off, `same_agents`, scaled `oracle_mh_steps`), 40 seeds, 3 rounds, seeds 2000-2039. Raw rows are committed gzipped; `analyze.py` reads them directly.
+
+    .venv/bin/python hpc/sweeps/phase_c/tuning.py --stage trust --seed-pieces 16 --slots 6 --seeds 40 --workers 31
+
+### Trust: eta 5, trust_init 1.0, cred_floor 0.05
+
+Full table: [`results/tuning_trust_seed16_slots6.md`](results/tuning_trust_seed16_slots6.md). Last round, 40 seeds per condition:
+
+| eta, trust_init | bad sender's trust | honest trust | honest links < 0.5 | net/iso under attack (median) | iso − net honest, µm (SE) |
+|---|---|---|---|---|---|
+| 1, 1.0 | 0.25 | 0.97 | 0% | 1.94 | 1.81 (0.50) |
+| 2, 1.0 | 0.12 | 0.95 | 1% | 1.15 | 1.92 (0.50) |
+| **5, 1.0** | **0.03** | **0.89** | **6%** | **0.97** | **2.22 (0.47)** |
+| 5, 0.75 | 0.04 | 0.77 | 10% | 0.92 | 2.03 (0.50) |
+| 10, 1.0 | 0.02 | 0.83 | 11% | 0.94 | 1.81 (0.51) |
+| 20, 1.0 | 0.005 | 0.76 | 26% | 0.94 | 1.91 (0.61) |
+
+- **eta 5** is the smallest learning rate that stops a bad sender from hurting the honest site (networked/isolated under attack below 1). At eta 1-2 the bad site still makes the honest site's model 15-94% worse. Above 5, trust between honest sites starts collapsing: at eta 20 a quarter of honest links end below 0.5.
+- **trust_init 1.0** over 0.75: the honest links stay higher (0.89 vs 0.77) with the same protection. 0.5 starts honest links at the threshold, so 40% of them end below it.
+- **cred_floor 0.05**: makes no difference at eta 5 (0.02 and 0.05 give identical rows). 0.1 starts retiring agents (0.1 per run). 0.05 is the middle of the range that doesn't bind.
+- iso − net differs across configs by less than 1 SE, so the networking benefit doesn't decide the choice; protection against a bad site does.
+
+The same sweep with challenge and spawn on (main at 8777dae, [`results/tuning_trust_seed16_slots6_challenge_on.md`](results/tuning_trust_seed16_slots6_challenge_on.md)) picks the same values: bad trust 0.03, honest 0.92, net/iso under attack 0.97. So the choice holds for the secondary analysis as well.
+
+Provisional config for downstream work: [`hpc/phase_d/provisional_config.json`](../../phase_d/provisional_config.json). Nothing reads it automatically: `sim.calibrate` and `run.py` take the config from `prereg/prereg.yaml`. To use it before the prereg is filled in, copy `prereg.yaml`, put these values in its `config` section and pass the copy with `--prereg`. `discount`, `between_site_sd`, `n_particles` and `oracle_particles` in it are still the defaults until their stages finish.
+
+### Not run yet
+
+Knobs (discount × between_site_sd), particles (`n_particles` × `mh_steps`), oracle (`oracle_particles`).
