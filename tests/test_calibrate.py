@@ -87,3 +87,9 @@ def test_prediction_survives_a_site_failing_every_heldout_piece(synthetic):
     fits["pla"].fail_draws[:, :2] = 50.0  # every piece fails at pla
     row = calibrate._run_one((0, dict(rounds=1, n_particles=300, slots_per_arm=4, seed_pieces=8), fits))
     assert math.isfinite(row["iso_minus_net_um"][1])  # resin alone
+
+
+def test_more_draws_than_kept_samples():
+    data, _ = calibrate.seed_data_synthetic(3)
+    fit = calibrate.fit_site("pla", "pla", data["pla"], n_draws=2000, steps=1000)
+    assert fit.draws.shape[0] == fit.fail_draws.shape[0] == 2000

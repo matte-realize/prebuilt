@@ -190,7 +190,7 @@ def _failure_logp(process: str, data: Data):
 def _run_chains(logp, x0, scale, steps, n_draws, rng):
     chains = metropolis(logp, x0, scale, steps, rng)[steps // 2:]
     flat = chains.reshape(-1, chains.shape[2])
-    return flat[rng.choice(len(flat), n_draws, replace=False)], rhat(chains)
+    return flat[rng.choice(len(flat), n_draws, replace=len(flat) < n_draws)], rhat(chains)
 
 
 def fit_site(site: str, process: str, data: Data, n_draws: int = 2000, steps: int = 40000, chains: int = 8,
