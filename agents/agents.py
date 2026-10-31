@@ -10,6 +10,16 @@ most two posterior fits per round for proposals ("all" and "seed").
 | geometry     | all site measurements            | yes         | information gain on size_coef          |
 | empirical    | all site measurements            | yes         | information gain x residual size by bin|
 | printability | print outcomes (ok / failed)     | no          | uncertainty about failing to print     |
+
+Dormant agents (docs/spec/03-architecture.md 6.2, 6.7) don't bid until the
+unmet-needs log wakes them (`arms/experiment.py`, `_spawn`):
+
+| Agent        | Evidence                         | Messages in | Proposal rule                          |
+|--------------|----------------------------------|-------------|----------------------------------------|
+| position     | all site measurements            | yes         | information gain on pos_gx, pos_gy, scored at a plate corner |
+
+The orientation template in the spec has no counterpart yet: `Piece` carries
+no orientation, so there is nothing for such an agent to propose.
 """
 from __future__ import annotations
 
@@ -39,6 +49,15 @@ AGENTS = [
     AgentSpec("printability", "outcomes", False),
 ]
 AGENT_NAMES = [a.name for a in AGENTS]
+DORMANT = [
+    AgentSpec("position", "all", True),
+]
+DORMANT_NAMES = [a.name for a in DORMANT]
+SPECS = {a.name: a for a in AGENTS + DORMANT}
+
+# Placement is random, so the position agent scores candidates where a plate-position
+# effect is largest (a corner) instead of at the center, where it is zero.
+CORNER = (1.0, 1.0)
 
 
 def propose(
@@ -66,6 +85,8 @@ def propose(
         return _empirical(posts["all"], k, data, discount, site)
     elif agent == "printability":
         return _printability(k, data, discount)
+    elif agent == "position":
+        picks = greedy_batch(posts["all"], k, score="focus", focus=["pos_gx", "pos_gy"], discount=discount, at=CORNER)
     else:
         raise ValueError(f"unknown agent {agent!r}")
     return [c for c, _ in picks]

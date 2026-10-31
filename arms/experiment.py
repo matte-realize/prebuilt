@@ -12,7 +12,8 @@ Arms, all sharing every plate with equal slot budgets and random placement:
 All three are scored by the same physics posterior, so they differ only in
 which pieces they chose and, for networked, what it received.
 
-Per round, per site: propose, clear, print and measure, then credit, broadcast, and score.
+Per round, per site: propose, challenge, clear, print and measure, then credit, log unmet
+needs, broadcast, wake dormant agents, and score.
 Held-out measurements go into an escrow that only scoring and credibility read.
 """
 from __future__ import annotations
@@ -23,12 +24,12 @@ from dataclasses import asdict, dataclass, field
 
 import numpy as np
 
-from agents import auction
-from agents.agents import AGENT_NAMES, propose
+from agents import auction, challenge
+from agents.agents import AGENT_NAMES, DORMANT_NAMES, SPECS, propose
 from agents.credibility import Roster, delta_lpd, update_senders
 from agents.selection import greedy_batch
 from contracts import Measurement, Message, Piece, Printer
-from model.physics import SHARED
+from model.physics import SHARED, PieceArrays
 from model.posterior import ParticlePosterior
 from network import protocol
 from plates import heldout
@@ -72,6 +73,13 @@ class Config:
     bad_sites: tuple[str, ...] = ()  # sites that broadcast corrupted beliefs
     agents: tuple[str, ...] = tuple(AGENT_NAMES)
     seed_pieces: int | None = SEED_PIECES  # calibration pieces on the seed plate (None = all 56)
+    # Challenge round (spec 6.5 step 3) and spawn of dormant agents (6.7). Both are part of
+    # the networked arm's "full system (Section 6)" in the pre-registered design (8.1), so on.
+    challenge: bool = True
+    challenge_eig: float = 0.05      # nats; a proposal the flagger expects to learn less from is "predictable"
+    dormant: tuple[str, ...] = tuple(DORMANT_NAMES)  # templates that can wake; () = no spawning
+    spawn_threshold: int = 2         # unmet-needs entries (own + incoming, cumulative) that wake a template
+    unmet_z: float = 2.0             # |z| of a residual trend that goes in the unmet-needs log
     seed: int = 0
 
 
@@ -86,6 +94,9 @@ class SiteState:
     roster: Roster | None = None
     inbox: dict[str, Message] = field(default_factory=dict)
     trust: dict[str, float] = field(default_factory=dict)
+    flags: list = field(default_factory=list)            # this round: (Flag, judged_by result) pairs
+    unmet: dict[str, int] = field(default_factory=dict)  # template -> unmet-needs entries seen, own + incoming
+    unmet_out: list[dict] = field(default_factory=list)  # this round's own entries, to broadcast
 
 
 @dataclass
@@ -96,6 +107,8 @@ class Results:
     retired: list[dict]
     chains: dict[str, ReceiptChain]
     config: dict
+    challenges: list[dict] = field(default_factory=list)  # one row per flag
+    spawned: list[dict] = field(default_factory=list)
 
 
 def run_experiment(
@@ -132,8 +145,11 @@ def run_experiment(
 
         for s, st in sites.items():
             _credit(r, st, pieces, contribs[s], cfg, rng, res)
+            _unmet_needs(r, st, pieces, cfg, rng)
         if cfg.share_messages:
             _broadcast(r, sites, pieces, cfg, rng)
+        for st in sites.values():
+            _spawn(r, st, cfg, res)
         oracle_post = _fit_oracle(sites, pieces, cfg, rng)
         for s, st in sites.items():
             _score(r, st, pieces, oracle_post, cfg, rng, res)
@@ -250,16 +266,32 @@ def _choose(st: SiteState, sites: dict[str, SiteState], pieces, oracle_post, cfg
         "seed": _fit(st, pieces, [(p, m) for p, m in net_data if p.arm == "seed"], cfg, rng),
     }
     proposals = {a: propose(a, k, posts, net_data, cfg.discount) for a in st.roster.cred}
-    chosen, alloc = auction.clear(k, st.roster.cred, proposals)
+    bids = _challenge(st, k, proposals, posts, cfg)
+    chosen, alloc = auction.clear(k, st.roster.cred, bids)
     items += [(c, "networked") for c, _ in chosen]
     contrib += [a for _, a in chosen]
 
     st.chain.append("clearing", {
         "credibility": st.roster.cred,
         "allocation": alloc,
-        "proposals": {a: [c.key for c in v[: alloc[a]]] for a, v in proposals.items()},
+        "proposals": {a: [c.key for c in v[: alloc[a]]] for a, v in bids.items()},
     })
     return items, contrib
+
+
+def _challenge(st: SiteState, k: int, proposals, posts, cfg: Config):
+    """Challenge round. Returns the proposals with flagged pieces demoted; keeps the flags for credit."""
+    st.flags = []
+    if not cfg.challenge:
+        return proposals
+    cred = st.roster.cred
+    own = {a: posts.get(SPECS[a].evidence) for a in cred}
+    flags = challenge.challenge(k, cred, proposals, own, cfg.challenge_eig)
+    bids = challenge.demote(proposals, flags)
+    st.flags = [(f, challenge.judged_by(k, cred, proposals, bids, f)) for f in flags]
+    st.chain.append("challenge", {"flags": [
+        {**asdict(f), "tested_by": t[0] if t else None} for f, t in st.flags]})
+    return bids
 
 
 def _log_plate(plate, st: SiteState, pieces) -> None:
@@ -305,6 +337,8 @@ def _credit(r: int, st: SiteState, pieces, contrib: dict[str, str], cfg: Config,
         if mine:
             minus = [(p, m) for p, m in data if p.piece_id not in mine]
             dlpd[agent] = delta_lpd(full, heldout_lpds(_fit(st, pieces, minus, cfg, rng, msgs), st.escrow), cfg.lpd_clip)
+    flag_credit = _challenge_credit(r, st, pieces, contrib, full, dlpd, cfg, rng, res)
+    dlpd = {a: dlpd.get(a, 0.0) + flag_credit.get(a, 0.0) for a in dlpd.keys() | flag_credit.keys()}
     retired = st.roster.step(dlpd, cfg.eta)
     res.credibility.append({"round": r, "site": st.site, **st.roster.cred, "dlpd": dlpd})
     for a in retired:
@@ -321,6 +355,92 @@ def _credit(r: int, st: SiteState, pieces, contrib: dict[str, str], cfg: Config,
                                "retired": retired, "sender_dlpd": sender_dlpd, "trust": st.trust})
 
 
+def _challenge_credit(r: int, st: SiteState, pieces, contrib: dict[str, str], full: list[float],
+                      dlpd: dict[str, float], cfg: Config, rng, res: Results) -> dict[str, float]:
+    """Score this round's flags on held-out data; returns credit per flagger (added to its dLPD).
+
+    The test piece's leave-one-piece-out dLPD is compared with the round's average per piece
+    (sum of the agents' dLPD over pieces printed). A flagged piece that printed anyway holds
+    the flag up by being below average; a replacement, by being above it.
+    """
+    if not st.flags:
+        return {}
+    data = st.data["networked"]
+    baseline = sum(dlpd.values()) / max(len(contrib), 1)
+    key = lambda pid: f"{pieces[pid].kind}-{pieces[pid].nominal_d:.1f}"
+    credit: dict[str, float] = {}
+    rows = []
+    for f, test in st.flags:
+        pid = value = None
+        if test is not None:
+            k, sign = test
+            pid = next((p for p, a in sorted(contrib.items()) if a == f.target and key(p) == k), None)
+        if pid is not None:
+            minus = [(p, m) for p, m in data if p.piece_id != pid]
+            piece_dlpd = delta_lpd(full, heldout_lpds(_fit(st, pieces, minus, cfg, rng, st.inbox), st.escrow), cfg.lpd_clip)
+            value = sign * (piece_dlpd - baseline)
+            credit[f.flagger] = credit.get(f.flagger, 0.0) + value
+        rows.append({"round": r, "site": st.site, **asdict(f), "tested_by": pid, "credit": value})
+    res.challenges += rows
+    st.chain.append("challenge_credit", {"round": r, "baseline": baseline, "flags": rows})
+    return credit
+
+
+UNMET_QUESTIONS = {"position": "Is there a plate-position error the model does not explain?"}
+
+
+def _trend_z(x: np.ndarray, y: np.ndarray) -> float:
+    """t statistic of the correlation between x and y (0 if either is constant)."""
+    n = len(x)
+    if n < 4 or x.std() == 0 or y.std() == 0:
+        return 0.0
+    rho = float(np.clip(np.corrcoef(x, y)[0, 1], -0.999999, 0.999999))
+    return rho * float(np.sqrt((n - 2) / (1 - rho**2)))
+
+
+def _unmet_needs(r: int, st: SiteState, pieces, cfg: Config, rng) -> None:
+    """Log what the site's model can't explain, for dormant templates (spec 6.7).
+
+    position: standardized residuals of the networked posterior on the site's own
+    training measurements, against squared distance from the plate center. The
+    physics model has linear plate gradients only, so a trend here is unexplained.
+    Only the trend's z-score leaves the site.
+    """
+    st.unmet_out = []
+    if "position" not in cfg.dormant:
+        return
+    ok = [(p, m) for p, m in st.data["networked"] if m.status == "ok"]
+    if len(ok) < 4:
+        return
+    post = _fit(st, pieces, st.data["networked"], cfg, rng, st.inbox)
+    resid = []
+    for p, m in ok:
+        mean, sd = post.predict(p)
+        resid.append((m.measured_d - mean) / sd)
+    x = PieceArrays.from_pieces([p for p, _ in ok])
+    z = _trend_z((x.u**2 + x.v**2) / 2, np.array(resid))
+    if abs(z) >= cfg.unmet_z:
+        entry = {"template": "position", "question": UNMET_QUESTIONS["position"], "z": z}
+        st.unmet_out.append(entry)
+        st.unmet["position"] = st.unmet.get("position", 0) + 1
+        st.chain.append("unmet_need", {"round": r, **entry})
+
+
+def _spawn(r: int, st: SiteState, cfg: Config, res: Results) -> None:
+    """Count incoming unmet needs; wake any dormant template that reached the threshold."""
+    for _, msg in sorted(st.inbox.items()):
+        if msg.round == r:
+            for u in msg.unmet_needs:
+                st.unmet[u["template"]] = st.unmet.get(u["template"], 0) + 1
+    roster = st.roster
+    for t in cfg.dormant:
+        if t in roster.cred or t in roster.retired or st.unmet.get(t, 0) < cfg.spawn_threshold:
+            continue
+        roster.wake(t)
+        res.spawned.append({"round": r, "site": st.site, "agent": t, "unmet": st.unmet[t]})
+        st.chain.append("spawn", {"round": r, "agent": t, "unmet": st.unmet[t], "credibility": roster.cred})
+
+
 def _broadcast(r: int, sites: dict[str, SiteState], pieces, cfg: Config, rng) -> None:
     """Each site sends the shared-parameter summary of its own data only (no echo of others' messages)."""
     outgoing = {}
@@ -329,7 +449,7 @@ def _broadcast(r: int, sites: dict[str, SiteState], pieces, cfg: Config, rng) ->
         summ, _, _ = local.summary("shared")
         if s in cfg.bad_sites:
             summ = _corrupt(summ)
-        outgoing[s] = Message(s, r, summ, dict(st.roster.cred), [])
+        outgoing[s] = Message(s, r, summ, dict(st.roster.cred), [], list(st.unmet_out))
     for s, msg in outgoing.items():
         for o, other in sites.items():
             if o != s:

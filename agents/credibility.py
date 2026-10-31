@@ -40,7 +40,8 @@ def update_senders(trust: dict[str, float], dlpd: dict[str, float], eta: float) 
 
 @dataclass
 class Roster:
-    """Active agents and their credibility. An agent below `floor` for two rounds in a row retires."""
+    """Active agents and their credibility. An agent below `floor` for two rounds in a row retires;
+    a dormant agent `wake`s with uniform credibility (docs/spec/03-architecture.md 6.7)."""
     cred: dict[str, float]
     floor: float
     strikes: dict[str, int] = field(default_factory=dict)
@@ -65,3 +66,10 @@ class Roster:
             total = sum(self.cred.values())
             self.cred = {a: c / total for a, c in self.cred.items()}
         return newly
+
+    def wake(self, agent: str) -> None:
+        """A dormant agent joins with uniform credibility: 1/(n+1), the others scaled to share the rest."""
+        n = len(self.cred)
+        self.cred = {a: c * n / (n + 1) for a, c in self.cred.items()}
+        self.cred[agent] = 1.0 / (n + 1)
+        self.strikes[agent] = 0

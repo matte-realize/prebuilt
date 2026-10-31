@@ -6,7 +6,7 @@ site boundary.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Protocol
 
 
@@ -53,6 +53,8 @@ class Message:                 # the ONLY thing that crosses a site boundary
     shared_params: dict[str, tuple[float, float]]  # process-agnostic only
     credibility: dict[str, float]
     hypotheses: list[str]
+    # Unmet-needs entries: {"template", "question", "z"}; z is the only residual summary.
+    unmet_needs: list[dict] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
