@@ -95,6 +95,27 @@ Full table: [`results/tuning_knobs_seed16_slots6.md`](results/tuning_knobs_seed1
 - **discount 0** costs about half the networking benefit (1.1 vs 2.2 µm); 0.1-0.4 are within 1 SE of each other. 0.2 is the middle of that plateau.
 - **between_site_sd** trades detection against benefit. At 1.0 the bad site keeps trust 0.73: incoming beliefs are widened so much that disagreement no longer shows, and the benefit halves. 0.5 has the largest benefit (2.35 µm, within 1 SE of 0.25) but the bad sender keeps trust 0.19. 0.25 detects it (0.03) at no measurable cost in benefit. 0.1 detects best but trims the benefit and honest trust slightly.
 
+### Particles: n_particles 4000, mh_steps 6 (changed from 2000, 3)
+
+Full table: [`results/tuning_particles_seed16_slots6.md`](results/tuning_particles_seed16_slots6.md). Honest runs, same 40 seeds, round 3. Change in iso − net is paired by seed against 2000 particles, 3 MH steps:
+
+| n_particles, mh_steps | iso − net, µm (SE) | change vs 2000, 3 (SE) | isolated change | networked change | s per run |
+|---|---|---|---|---|---|
+| 1000, 3 | 2.51 (0.59) | +0.29 (0.50) | +0.44 | +0.15 | 6 |
+| **2000, 3 (old)** | **2.22 (0.47)** | - | - | - | 10 |
+| 4000, 3 | 2.42 (0.46) | +0.20 (0.34) | +0.15 | −0.05 | 18 |
+| 8000, 3 | 1.22 (0.41) | −1.00 (0.36) | −0.56 | +0.44 | 36 |
+| 1000, 6 | 1.41 (0.51) | −0.81 (0.47) | −0.37 | +0.44 | 8 |
+| 2000, 6 | 1.69 (0.43) | −0.54 (0.42) | −0.29 | +0.25 | 14 |
+| **4000, 6** | **1.44 (0.43)** | **−0.78 (0.40)** | **−0.57** | **+0.22** | **26** |
+| 8000, 6 | 1.65 (0.58) | −0.57 (0.55) | −0.26 | +0.30 | 50 |
+
+Every setting with better mixing (6 MH steps, or 8000 particles) shrinks iso − net by 0.5-1.0 µm, and always the same way: isolated gets better, networked slightly worse. So about a third of the 2.2 µm benefit at the old setting is sampler error in the isolated fit that incoming messages happen to correct, not information from the other site. With better mixing the benefit settles at 1.2-1.7 µm, still about 3 SE above zero.
+
+Recommendation: **n_particles 4000, mh_steps 6**. It sits on that plateau with margin (2000, 6 is there too, but only just). 26 s per simulated run is cheap, and on real rounds the fit time is negligible next to printing. `mh_steps` is not in the prereg's `config` section yet; `prereg.check.config_from` accepts any `Config` field, so adding `mh_steps: 6` there is enough. `oracle_mh_steps` scales with it (12 steps for the oracle).
+
+The trust and knobs stages ran at 2000, 3. A check of those choices at 4000, 6 is listed below.
+
 ### Not run yet
 
-Particles (`n_particles` × `mh_steps`), oracle (`oracle_particles`).
+Oracle (`oracle_particles`).
