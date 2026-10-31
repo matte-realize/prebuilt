@@ -59,6 +59,10 @@ class Config:
     # The oracle's joint posterior has about twice the dimensions of one site's,
     # so it needs more particles to stay an upper bound. None = n_particles.
     oracle_particles: int | None = None
+    # True: isolated and oracle also choose pieces by the agent auction (uniform
+    # credibility), so the arms differ only in the data each model sees.
+    # False: the walkthrough's single max-information agent for both.
+    same_agents: bool = True
     # Ablations
     share_messages: bool = True      # False = cut the network
     bad_sites: tuple[str, ...] = ()  # sites that broadcast corrupted beliefs
@@ -116,7 +120,7 @@ def run_experiment(
         oracle_post = _fit_oracle(sites, pieces, cfg, rng)
         plates, contribs = {}, {}
         for s, st in sites.items():
-            items, contrib = _choose(st, pieces, oracle_post, cfg, rng)
+            items, contrib = _choose(st, sites, pieces, oracle_post, cfg, rng)
             plate_seed = int(rng.integers(2**31))
             plates[s], index = build_plate_indexed(f"{s}-r{r}", s, items, plate_seed, heldout.heldout_fixed(f"r{r}"))
             contribs[s] = {pid: contrib[i] for pid, i in index.items() if contrib[i] is not None}
@@ -198,26 +202,43 @@ def _fit(st: SiteState, pieces, data: Data, cfg: Config, rng, messages: dict[str
     return post
 
 
-def _fit_oracle(sites: dict[str, SiteState], pieces, cfg: Config, rng) -> ParticlePosterior:
+def _fit_oracle(sites: dict[str, SiteState], pieces, cfg: Config, rng, keep=lambda p: True) -> ParticlePosterior:
     post = ParticlePosterior({s: st.process for s, st in sites.items()}, pieces,
                              n=cfg.oracle_particles or cfg.n_particles, seed=_rng_seed(rng),
                              between_site_sd=cfg.between_site_sd if cfg.oracle_hierarchical else None)
-    post.update([m for st in sites.values() for _, m in st.data["oracle"]])
+    post.update([m for st in sites.values() for p, m in st.data["oracle"] if keep(p)])
     return post
 
 
 # ---- choosing pieces ---------------------------------------------------------
 
-def _choose(st: SiteState, pieces, oracle_post, cfg: Config, rng):
+def _uniform_auction(posts, data, k: int, cfg: Config, site: str | None = None) -> list:
+    """The networked arm's agents and clearing rule, at fixed uniform credibility."""
+    cred = {a: 1.0 / len(cfg.agents) for a in cfg.agents}
+    proposals = {a: propose(a, k, posts, data, cfg.discount, site) for a in cred}
+    chosen, _ = auction.clear(k, cred, proposals)
+    return [c for c, _ in chosen]
+
+
+def _choose(st: SiteState, sites: dict[str, SiteState], pieces, oracle_post, cfg: Config, rng):
     k = cfg.slots_per_arm
     items, contrib = [], []
 
-    iso = _fit(st, pieces, st.data["isolated"], cfg, rng)
-    items += [(c, "isolated") for c, _ in greedy_batch(iso, k, discount=cfg.discount)]
-    contrib += [None] * k
-
-    items += [(c, "oracle") for c, _ in greedy_batch(oracle_post, k, discount=cfg.discount, site=st.site)]
-    contrib += [None] * k
+    iso_data = st.data["isolated"]
+    iso = _fit(st, pieces, iso_data, cfg, rng)
+    if cfg.same_agents:
+        seed_only = [(p, m) for p, m in iso_data if p.arm == "seed"]
+        iso_posts = {"all": iso, "seed": _fit(st, pieces, seed_only, cfg, rng)}
+        items += [(c, "isolated") for c in _uniform_auction(iso_posts, iso_data, k, cfg)]
+        ora_data = [(p, m) for o in sites.values() for p, m in o.data["oracle"]]
+        ora_posts = {"all": oracle_post,
+                     "seed": _fit_oracle(sites, pieces, cfg, rng, lambda p: p.arm == "seed")}
+        mine = [(p, m) for p, m in ora_data if m.site == st.site]
+        items += [(c, "oracle") for c in _uniform_auction(ora_posts, mine, k, cfg, st.site)]
+    else:
+        items += [(c, "isolated") for c, _ in greedy_batch(iso, k, discount=cfg.discount)]
+        items += [(c, "oracle") for c, _ in greedy_batch(oracle_post, k, discount=cfg.discount, site=st.site)]
+    contrib += [None] * (2 * k)
 
     net_data = st.data["networked"]
     posts = {

@@ -53,7 +53,7 @@ def greedy_batch(
     post: ParticlePosterior,
     k: int,
     score: str = "eig",
-    focus: list[str] | None = None,
+    focus: list[str | int] | None = None,   # parameter names or theta columns
     discount: float = 0.0,
     site: str | None = None,
     exclude: set[str] | None = None,
@@ -64,7 +64,7 @@ def greedy_batch(
     mu, s = post.predictive_components(x, site)
     mult = cost_discount(cands, discount)
     logw = post.logw.copy()
-    focus_cols = [post.names.index(f) for f in (focus or [])]
+    focus_cols = [f if isinstance(f, int) else post.names.index(f) for f in (focus or [])]
     blocked = np.array([c.key in (exclude or set()) for c in cands])
     out = []
     for _ in range(k):

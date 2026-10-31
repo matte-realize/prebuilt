@@ -47,18 +47,23 @@ def propose(
     posts: dict[str, ParticlePosterior],
     data: list[tuple[Piece, Measurement]],
     discount: float,
+    site: str | None = None,
 ) -> list[Candidate]:
-    """Ranked proposals for one agent. `posts` maps evidence filter -> fitted posterior."""
+    """Ranked proposals for one agent. `posts` maps evidence filter -> fitted posterior.
+
+    `site` picks one site's view of a multi-site (oracle) posterior.
+    """
     if agent == "physics":
         post = posts["all"]
-        focus = [n for n, t in zip(post.names, post.tags) if t == "site" and n != "sigma_meas"]
-        picks = greedy_batch(post, k, score="focus", focus=focus, discount=discount)
+        focus = [j for j, n in _site_params(post, site) if post.tags[j] == "site" and not n.endswith("sigma_meas")]
+        picks = greedy_batch(post, k, score="focus", focus=focus, discount=discount, site=site)
     elif agent == "calibration":
-        picks = greedy_batch(posts["seed"], k, discount=discount)
+        picks = greedy_batch(posts["seed"], k, discount=discount, site=site)
     elif agent == "geometry":
-        picks = greedy_batch(posts["all"], k, score="focus", focus=["size_coef"], discount=discount)
+        focus = [j for j, n in _site_params(posts["all"], site) if n.endswith("size_coef")]
+        picks = greedy_batch(posts["all"], k, score="focus", focus=focus, discount=discount, site=site)
     elif agent == "empirical":
-        return _empirical(posts["all"], k, data, discount)
+        return _empirical(posts["all"], k, data, discount, site)
     elif agent == "printability":
         return _printability(k, data, discount)
     else:
@@ -66,22 +71,28 @@ def propose(
     return [c for c, _ in picks]
 
 
+def _site_params(post: ParticlePosterior, site: str | None) -> list[tuple[int, str]]:
+    """(theta column, name) of the parameters that drive `site`'s predictions."""
+    _, cols = post.blocks[site or post._only_site()]
+    return [(int(j), post.names[j]) for j in cols]
+
+
 def _bin(kind: str, d: float) -> tuple[str, int]:
     return kind, int(d)  # 1 mm bins per kind
 
 
-def _empirical(post: ParticlePosterior, k: int, data, discount: float) -> list[Candidate]:
+def _empirical(post: ParticlePosterior, k: int, data, discount: float, site: str | None = None) -> list[Candidate]:
     """Information gain, weighted up where this site's residuals are large."""
     ok = [(p, m) for p, m in data if m.status == "ok"]
     zbin: dict[tuple[str, int], list[float]] = defaultdict(list)
     if ok:
-        mu, s = post.predictive_components([p for p, _ in ok])
+        mu, s = post.predictive_components([p for p, _ in ok], site)
         w = np.exp(post.logw)
         mean = w @ mu
         sd = np.sqrt(w @ (mu - mean) ** 2 + w @ s**2)
         for (p, m), mn, sdv in zip(ok, mean, sd):
             zbin[_bin(p.kind, p.nominal_d)].append(abs(m.measured_d - mn) / sdv)
-    picks = greedy_batch(post, 4 * k, discount=discount)
+    picks = greedy_batch(post, 4 * k, discount=discount, site=site)
     boost = {c.key: 1.0 + float(np.mean(zbin[_bin(c.kind, c.nominal_d)])) if zbin.get(_bin(c.kind, c.nominal_d)) else 1.0
              for c, _ in picks}
     ranked = sorted(picks, key=lambda cs: -cs[1] * boost[cs[0].key])
