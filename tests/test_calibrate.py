@@ -72,7 +72,7 @@ def test_predict_returns_interval_per_round(synthetic):
     fits = synthetic[2]
     cfg = calibrate.Config(rounds=1, n_particles=300, slots_per_arm=4, seed_pieces=8)
     pred = calibrate.predict(fits, cfg, range(2), workers=2)
-    for key in ("iso_minus_net_um", "iso_minus_net_truth_um", "gap", "gap_truth"):
+    for key in ("iso_minus_net_um", "iso_minus_net_real_um", "iso_minus_net_truth_um", "gap", "gap_truth"):
         assert set(pred[key]) == {1}
         assert {"median", "q05", "q95"} <= set(pred[key][1])
 
@@ -162,7 +162,16 @@ def test_tier_b_calibrates_only_the_real_site(tier_b, monkeypatch):
     assert calib["simulated"]["pla"]["truth"]["radial"] == world.radial
     pred = json.loads((tmp / "out" / "prediction.json").read_text())
     assert pred["config"]["sim_sites"] == ["pla"] and pred["iso_minus_net_um"]["1"]["n"] == 1
-    assert "pla**: simulated" in (tmp / "out" / "summary.md").read_text()
+    assert pred["iso_minus_net_real_um"]["1"]["n"] == 1
+    summary = (tmp / "out" / "summary.md").read_text()
+    assert "pla**: simulated" in summary and "measured MAE, resin only" in summary
+
+
+def test_iso_minus_net_can_score_one_site():
+    rows = [{"round": 1, "site": s, "arm": a, "mae": m} for s, a, m in
+            (("resin", "isolated", 0.040), ("resin", "networked", 0.030), ("pla", "isolated", 0.050), ("pla", "networked", 0.050))]
+    assert calibrate.iso_minus_net(rows)[1] == pytest.approx(5.0)
+    assert calibrate.iso_minus_net(rows, sites=["resin"])[1] == pytest.approx(10.0)
 
 
 def test_tier_b_prediction_uses_the_runs_world(synthetic):

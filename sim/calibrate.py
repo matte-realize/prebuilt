@@ -395,23 +395,31 @@ def _run_worker(seed: int) -> dict:
     return run_seed(seed, *_WORKER)
 
 
+def iso_minus_net(scores: list[dict], metric: str = "mae", sites=None) -> dict[int, float]:
+    """Isolated - networked held-out `metric` per round in µm, averaged over `sites` (default all).
+
+    Tier B scores the real site only: pass the sites that aren't simulated.
+    """
+    by = {}
+    for row in scores:
+        if sites is None or row["site"] in sites:
+            v = math.nan if row[metric] is None else row[metric]
+            by.setdefault(row["round"], {}).setdefault(row["arm"], []).append(v)
+    return {r: 1000 * (np.nanmean(a["isolated"]) - np.nanmean(a["networked"])) for r, a in by.items()}
+
+
 def run_seed(seed: int, calib: Calibration, cfg: Config) -> dict:
     rng = np.random.default_rng([seed, 0xD])
     world = calib.world(int(rng.integers(len(calib))), rng)
     res = run_experiment(world, SITES, replace(cfg, seed=seed))
     # a site with no ok held-out pieces scores mae_truth None; NaN drops it from this seed's numbers
     scores = [{**row, "mae_truth": math.nan if row["mae_truth"] is None else row["mae_truth"]} for row in res.scores]
-
-    def iso_minus_net(metric: str) -> dict[int, float]:
-        by = {}
-        for row in scores:
-            by.setdefault(row["round"], {}).setdefault(row["arm"], []).append(row[metric])
-        return {r: 1000 * (np.nanmean(a["isolated"]) - np.nanmean(a["networked"])) for r, a in by.items()}
-
+    real = [s for s in SITES if s not in cfg.sim_sites]
     # iso - net on measured MAE is the primary H1 metric (07-status); gap closed is reported as a reference
     return {"seed": seed,
-            "iso_minus_net_um": iso_minus_net("mae"),
-            "iso_minus_net_truth_um": iso_minus_net("mae_truth"),
+            "iso_minus_net_um": iso_minus_net(scores, "mae"),
+            "iso_minus_net_real_um": iso_minus_net(scores, "mae", real),  # tier B's scored metric; = pooled otherwise
+            "iso_minus_net_truth_um": iso_minus_net(scores, "mae_truth"),
             "gap": oracle_gap_closed(scores, "mae"),
             "gap_truth": oracle_gap_closed(scores, "mae_truth")}
 
@@ -430,7 +438,7 @@ def predict(calib: Calibration, cfg: Config, seeds: range, workers: int) -> dict
         rows = pool.map(_run_worker, seeds, chunksize=1)
     rounds = sorted(rows[0]["gap"])
     return {key: {r: _interval([row[key][r] for row in rows]) for r in rounds}
-            for key in ("iso_minus_net_um", "iso_minus_net_truth_um", "gap", "gap_truth")}
+            for key in ("iso_minus_net_um", "iso_minus_net_real_um", "iso_minus_net_truth_um", "gap", "gap_truth")}
 
 
 def load_config(path: str | Path, draft: bool = False) -> tuple[Config, str, list[str]]:
@@ -537,8 +545,14 @@ def main() -> None:
              "Median [5%, 95%] over seeds. Isolated − networked on measured MAE is the primary metric (what real rounds produce).\n",
              "| round | isolated − networked, measured MAE (µm) | same, noise-free MAE (µm) | oracle gap closed, measured MAE | same, noise-free MAE |",
              "|---|---|---|---|---|"]
+    keys = ["iso_minus_net_um", "iso_minus_net_truth_um", "gap", "gap_truth"]
+    if fixed:  # tier B is scored on the real site only
+        real = ", ".join(s for s in SITES if s not in fixed)
+        lines[-3:] = [f"Median [5%, 95%] over seeds. Tier B: the primary metric is isolated − networked on measured MAE at the real site ({real}) only.\n",
+                      lines[-2].replace("| round |", f"| round | isolated − networked, measured MAE, {real} only (µm) |"), lines[-1] + "---|"]
+        keys.insert(0, "iso_minus_net_real_um")
     for r in sorted(pred["gap"]):
-        lines.append(f"| {r} | " + " | ".join(_fmt(pred[k][r]) for k in ("iso_minus_net_um", "iso_minus_net_truth_um", "gap", "gap_truth")) + " |")
+        lines.append(f"| {r} | " + " | ".join(_fmt(pred[k][r]) for k in keys) + " |")
     lines += ["", "## Calibration (mean ± sd, R-hat)", ""]
     for site, c in calib.items():
         cells = ", ".join(f"{k} {v['mean']:.4g} ± {v['sd']:.2g} ({v['rhat']:.2f})" for k, v in c["params"].items())
