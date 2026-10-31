@@ -105,6 +105,27 @@ def check_seed_size(data: dict[str, Data], keep: int | None) -> None:
         raise SystemExit(f"seed pieces per site {got} don't match the frozen config's seed_pieces={keep} ({want})")
 
 
+def screen_failures(data: dict[str, Data], exclude: list[str]) -> dict[str, Data]:
+    """Keep only failures that are printability outcomes.
+
+    "failed" also covers a whole plate the operator marked failed and pieces the
+    scanner couldn't read. A plate with every piece failed can't be calibrated;
+    `exclude` drops failed pieces judged (from the summary's list) to be scanner misses.
+    """
+    for site, d in data.items():
+        if d and all(m.status == "failed" for _, m in d):
+            raise SystemExit(f"{site}: every seed piece failed (whole plate failed?); reprint before calibrating")
+    failed = {p.piece_id for d in data.values() for p, m in d if m.status == "failed"}
+    if bad := sorted(set(exclude) - failed):
+        raise SystemExit(f"--exclude-failed names pieces that aren't failed seed pieces: {bad}")
+    return {s: [(p, m) for p, m in d if p.piece_id not in exclude] for s, d in data.items()}
+
+
+def failed_pieces(d: Data) -> list[dict]:
+    return [{"piece_id": p.piece_id, "kind": p.kind, "nominal_d": p.nominal_d, "slot": list(p.slot)}
+            for p, m in d if m.status == "failed"]
+
+
 # ---- sampler -------------------------------------------------------------------
 
 def metropolis(logp, x0: np.ndarray, scale: np.ndarray, steps: int, rng: np.random.Generator) -> np.ndarray:
@@ -417,6 +438,8 @@ def main() -> None:
     ap.add_argument("--shared-jitter", type=float, default=SHARED_JITTER,
                     help="assumed site-to-site spread of the shared parameters, fraction of prior std")
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 1))
+    ap.add_argument("--exclude-failed", nargs="*", default=[], metavar="PIECE_ID",
+                    help="failed seed pieces to leave out of the failure fit (scanner misses, not print failures)")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
 
@@ -429,6 +452,7 @@ def main() -> None:
     else:
         data, truth = seed_data_synthetic(a.synthetic, cfg_kw["seed_pieces"])
     check_seed_size(data, cfg_kw["seed_pieces"])
+    data = screen_failures(data, a.exclude_failed)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
 
@@ -436,7 +460,8 @@ def main() -> None:
     fits = fitted.sites
     calib = {"shared_world": {"params": fitted.summary()["shared_world"]}}
     for site, d in sorted(data.items()):
-        calib[site] = {"n_ok": fits[site].n_ok, "n_failed": fits[site].n_failed, "params": fits[site].summary()}
+        calib[site] = {"n_ok": fits[site].n_ok, "n_failed": fits[site].n_failed, "failed": failed_pieces(d),
+                       "excluded": [x for x in a.exclude_failed if x.startswith(f"{site}-")], "params": fits[site].summary()}
         if truth:
             t = truth[site]
             calib[site]["truth"] = {**dict(zip(physics.names(t.process), map(float, t.theta))), "radial": t.radial,
@@ -462,6 +487,11 @@ def main() -> None:
         cells = ", ".join(f"{k} {v['mean']:.4g} ± {v['sd']:.2g} ({v['rhat']:.2f})" for k, v in c["params"].items())
         counts = f" ({c['n_ok']} ok, {c['n_failed']} failed)" if "n_ok" in c else ""
         lines.append(f"- **{site}**{counts}: {cells}")
+    lines += ["", "## Failed seed pieces (fit as printability failures; check for scanner misses)", ""]
+    for site, c in calib.items():
+        if "failed" in c:
+            items = ", ".join(f"{f['piece_id']} ({f['kind']} {f['nominal_d']} mm)" for f in c["failed"]) or "none"
+            lines.append(f"- **{site}**: {items}" + (f"; excluded: {', '.join(c['excluded'])}" if c["excluded"] else ""))
     (out / "summary.md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
 

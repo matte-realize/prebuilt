@@ -5,7 +5,7 @@ Calibrate the simulator to the real seed plates only, then rerun the experiment 
     .venv/bin/python -m sim.calibrate --state receipts/real/state.pkl \
         --config hpc/phase_d/frozen_config.json --seeds 200 --out hpc/phase_d/out
 
-`--scans scans` reads `scans/<site>/<site>-seed-measurements.json` instead of the checkpoint. `--synthetic SEED` runs the same pipeline on a known sim world as a self-check.
+Check the failed seed pieces listed in `out/summary.md`. Any that are scanner misses rather than print failures go back in with `--exclude-failed <piece_id> ...`; a seed plate where every piece failed stops the run. `--scans scans` reads `scans/<site>/<site>-seed-measurements.json` instead of the checkpoint. `--synthetic SEED` runs the same pipeline on a known sim world as a self-check.
 
 ## What it does
 

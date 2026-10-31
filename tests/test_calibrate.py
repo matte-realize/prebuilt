@@ -5,7 +5,7 @@ import math
 import numpy as np
 import pytest
 
-from contracts import Plate
+from contracts import Measurement, Plate
 from model import physics
 from model.physics import PieceArrays
 from plates.seed import seed_plate
@@ -108,3 +108,17 @@ def test_one_world_shares_one_draw(synthetic):
     paired = np.abs(r[:, ir] - p[:, ip]).mean()
     shuffled = np.abs(r[:, ir] - p[np.random.default_rng(0).permutation(len(p))][:, ip]).mean()
     assert paired < shuffled
+
+
+def test_failure_screening():
+    data, _ = calibrate.seed_data_synthetic(7)
+    failed = [p.piece_id for p, m in data["pla"] if m.status == "failed"]
+    assert failed  # pla's small holes fail in this world
+    kept = calibrate.screen_failures(data, failed[:1])
+    assert failed[0] not in {p.piece_id for p, _ in kept["pla"]}
+    ok_id = next(p.piece_id for p, m in data["pla"] if m.status == "ok")
+    with pytest.raises(SystemExit):
+        calibrate.screen_failures(data, [ok_id])  # only failed pieces can be excluded
+    whole = {**data, "resin": [(p, Measurement(p.piece_id, "x", "resin", None, "failed", "scanner")) for p, _ in data["resin"]]}
+    with pytest.raises(SystemExit, match="every seed piece failed"):
+        calibrate.screen_failures(whole, [])
