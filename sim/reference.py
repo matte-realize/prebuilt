@@ -31,6 +31,8 @@ class SimPrinter:
     theta: np.ndarray                 # hidden truth, PARAMS[process] order
     radial: float                     # mm at the plate corner, unmodeled
     rng: np.random.Generator = field(repr=False)
+    fail_d: dict[str, float] | None = None  # kind -> 50% failure diameter; None = FAIL_D[process]
+    fail_width: float = FAIL_WIDTH
 
     def truth(self, plate: Plate) -> np.ndarray:
         """Noise-free diameters including unmodeled effects (for evaluation only)."""
@@ -41,9 +43,10 @@ class SimPrinter:
     def print_and_measure(self, plate: Plate) -> list[Measurement]:
         d = self.truth(plate)
         sigma = physics.sigma(self.process, self.theta[None, :])[0]
+        fail_d = self.fail_d or FAIL_D[self.process]
         out = []
         for p, di in zip(plate.pieces, d):
-            p_fail = 1 / (1 + np.exp((p.nominal_d - FAIL_D[self.process][p.kind]) / FAIL_WIDTH))
+            p_fail = 1 / (1 + np.exp((p.nominal_d - fail_d[p.kind]) / self.fail_width))
             if self.rng.random() < p_fail:
                 out.append(Measurement(p.piece_id, plate.plate_id, plate.site, None, "failed", "sim"))
             else:
