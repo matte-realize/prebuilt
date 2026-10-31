@@ -42,7 +42,7 @@ from pathlib import Path
 
 import numpy as np
 
-from arms.experiment import Config, run_experiment
+from arms.experiment import NOT_DATA, Config, run_experiment
 from contracts import Measurement, Piece
 from eval.metrics import oracle_gap_closed
 from model import physics
@@ -63,22 +63,30 @@ FAIL_NAMES = ["fail_d_pin", "fail_d_hole", "fail_width"]
 
 # ---- seed data -----------------------------------------------------------------
 
-def seed_data_from_state(path: str | Path) -> dict[str, Data]:
-    """Seed-plate pieces from a real-run checkpoint (`run.py --source real`)."""
+def seed_data_from_state(path: str | Path) -> tuple[dict[str, Data], dict[str, list[str]]]:
+    """Seed-plate pieces from a real-run checkpoint (`run.py --source real`), and per site the
+    printed seed pieces the run kept out of its data (arms.experiment.NOT_DATA: a cell outside
+    the scan, a dropped plate)."""
     with open(path, "rb") as f:
         state = pickle.load(f)
-    return {s: [(p, m) for p, m in st.data["isolated"] if p.arm == "seed"] for s, st in state["sites"].items()}
+    data = {s: [(p, m) for p, m in st.data["isolated"] if p.arm == "seed"] for s, st in state["sites"].items()}
+    printed = {s: [p.piece_id for p in state["pieces"].values() if p.arm == "seed" and p.piece_id.startswith(f"{s}-seed-")]
+               for s in data}
+    return data, {s: sorted(set(printed[s]) - {p.piece_id for p, _ in d}) for s, d in data.items()}
 
 
-def seed_data_from_scans(scan_dir: str | Path) -> dict[str, Data]:
-    """Seed-plate pieces from `scans/<site>/<site>-seed-measurements.json` (measure/real.py)."""
-    out = {}
+def seed_data_from_scans(scan_dir: str | Path) -> tuple[dict[str, Data], dict[str, list[str]]]:
+    """Seed-plate pieces from `scans/<site>/<site>-seed-measurements.json` (measure/real.py),
+    routed like the checkpoint: NOT_DATA rows are returned as not measured, not as failures."""
+    data, dropped = {}, {}
     for site in SITES:
         plate = seed_plate(site, None)  # every id the seed plate can have; the scan file holds the printed ones
         rows = json.loads((Path(scan_dir) / site / f"{plate.plate_id}-measurements.json").read_text())
         by_id = {r["piece_id"]: Measurement(**r) for r in rows}
-        out[site] = [(p, by_id[p.piece_id]) for p in plate.pieces if p.arm == "seed" and p.piece_id in by_id]
-    return out
+        seed = [(p, by_id[p.piece_id]) for p in plate.pieces if p.arm == "seed" and p.piece_id in by_id]
+        data[site] = [(p, m) for p, m in seed if m.method not in NOT_DATA]
+        dropped[site] = sorted(p.piece_id for p, m in seed if m.method in NOT_DATA)
+    return data, dropped
 
 
 def seed_data_synthetic(seed: int, keep: int | None = None) -> tuple[dict[str, Data], dict[str, SimPrinter]]:
@@ -95,11 +103,19 @@ def seed_data_synthetic(seed: int, keep: int | None = None) -> tuple[dict[str, D
     return out, world
 
 
-def check_seed_size(data: dict[str, Data], keep: int | None) -> None:
-    """The seed data must be the seed plate the pre-registered config prints, or the calibration fits a different setup."""
-    want = {s: sum(p.arm == "seed" for p in seed_plate(s, keep).pieces) for s in data}
-    got = {s: len(d) for s, d in data.items()}
+def check_seed_size(data: dict[str, Data], keep: int | None, dropped: dict[str, list[str]] | None = None) -> None:
+    """The seed data must be the seed plate the pre-registered config prints, or the calibration fits a different setup.
+
+    `dropped` pieces were printed but aren't data (not measured); they count as on the plate.
+    """
+    for s, d in data.items():
+        if not d:
+            raise SystemExit(f"{s}: no seed piece measured (seed plate dropped?); reprint before calibrating")
+    dropped = dropped or {}
+    want = {s: sorted(p.piece_id for p in seed_plate(s, keep).pieces if p.arm == "seed") for s in data}
+    got = {s: sorted([p.piece_id for p, _ in d] + dropped.get(s, [])) for s, d in data.items()}
     if got != want:
+        got, want = ({s: len(x) for s, x in v.items()} for v in (got, want))
         raise SystemExit(f"seed pieces per site {got} don't match the frozen config's seed_pieces={keep} ({want})")
 
 
@@ -457,14 +473,14 @@ def main() -> None:
     a = ap.parse_args()
 
     cfg, prereg_sha, gaps = load_config(a.prereg, a.draft)
-    truth = None
+    truth, dropped = None, {}
     if a.state:
-        data = seed_data_from_state(a.state)
+        data, dropped = seed_data_from_state(a.state)
     elif a.scans:
-        data = seed_data_from_scans(a.scans)
+        data, dropped = seed_data_from_scans(a.scans)
     else:
         data, truth = seed_data_synthetic(a.synthetic, cfg.seed_pieces)
-    check_seed_size(data, cfg.seed_pieces)
+    check_seed_size(data, cfg.seed_pieces, dropped)
     data = screen_failures(data, a.exclude_failed)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -474,6 +490,7 @@ def main() -> None:
     calib = {"shared_world": {"params": fitted.summary()["shared_world"]}}
     for site, d in sorted(data.items()):
         calib[site] = {"n_ok": fits[site].n_ok, "n_failed": fits[site].n_failed, "failed": failed_pieces(d),
+                       "not_measured": dropped.get(site, []),
                        "excluded": [x for x in a.exclude_failed if x.startswith(f"{site}-")], "params": fits[site].summary()}
         if truth:
             t = truth[site]
@@ -481,7 +498,7 @@ def main() -> None:
                                     "fail_d_pin": FAIL_D[t.process]["pin"], "fail_d_hole": FAIL_D[t.process]["hole"],
                                     "fail_width": FAIL_WIDTH}
         plot_residuals(fits[site], d, out / f"residuals_{site}.png")
-        print(f"{site}: {fits[site].n_ok} ok, {fits[site].n_failed} failed, "
+        print(f"{site}: {fits[site].n_ok} ok, {fits[site].n_failed} failed, {len(dropped.get(site, []))} not measured, "
               f"max R-hat {max(fits[site].rhat.values()):.3f}", flush=True)
     (out / "calibration.json").write_text(json.dumps(calib, indent=1))
 
@@ -506,7 +523,8 @@ def main() -> None:
     for site, c in calib.items():
         if "failed" in c:
             items = ", ".join(f"{f['piece_id']} ({f['kind']} {f['nominal_d']} mm)" for f in c["failed"]) or "none"
-            lines.append(f"- **{site}**: {items}" + (f"; excluded: {', '.join(c['excluded'])}" if c["excluded"] else ""))
+            lines.append(f"- **{site}**: {items}" + (f"; excluded: {', '.join(c['excluded'])}" if c["excluded"] else "")
+                         + (f"; not measured (left out): {', '.join(c['not_measured'])}" if c["not_measured"] else ""))
     (out / "summary.md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
 

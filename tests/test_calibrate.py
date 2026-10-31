@@ -103,6 +103,29 @@ def test_seed_data_must_match_the_frozen_seed_plate():
         calibrate.check_seed_size(data, None)  # full plate is 56
 
 
+
+def test_pieces_the_run_kept_out_of_its_data_still_count_as_printed(tmp_path):
+    # a seed cell outside the scan is a "scanner-miss" (arms.experiment.NOT_DATA): never data, but on the plate
+    data, _ = calibrate.seed_data_synthetic(3, keep=16)
+    (p, m), rest = data["pla"][0], data["pla"][1:]
+    short = {**data, "pla": rest}
+    with pytest.raises(SystemExit, match="don't match"):
+        calibrate.check_seed_size(short, 16)
+    calibrate.check_seed_size(short, 16, {"pla": [p.piece_id]})
+    with pytest.raises(SystemExit, match="no seed piece measured"):
+        calibrate.check_seed_size({**data, "pla": []}, 16, {"pla": [q.piece_id for q, _ in data["pla"]]})
+
+    for site, d in data.items():  # the same piece through the scans source
+        rows = [dict(vars(x)) for _, x in d]
+        if site == "pla":
+            rows[0].update(measured_d=None, status="failed", method="scanner-miss")
+        (tmp_path / site).mkdir()
+        (tmp_path / site / f"{site}-seed-measurements.json").write_text(json.dumps(rows))
+    got, dropped = calibrate.seed_data_from_scans(tmp_path)
+    assert dropped == {"resin": [], "pla": [p.piece_id]}
+    assert [q.piece_id for q, _ in got["pla"]] == [q.piece_id for q, _ in rest]
+
+
 def test_one_world_shares_one_draw(synthetic):
     # both sites' shared parameters come from the same joint sample, so they sit close together
     calib = synthetic[2]
