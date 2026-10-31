@@ -1,0 +1,24 @@
+# Pre-registration. Fill in at kickoff, commit, and record the commit hash.
+# null = not yet decided. Do not print until every field except
+# predicted_range_oracle_gap_closed is filled in.
+# Source: docs/build/05-prereg-and-slides.md
+
+claims: [network_vs_oracle, sim_to_real_range, robustness_sim]
+arms: [isolated, networked, oracle]
+
+fit_classes_mm:          # clearance = hole_d - pin_d
+  resin: {press_below: null, slip: [null, null], loose_above: null}
+  pla:   {press_below: null, slip: [null, null], loose_above: null}
+
+failed_plate_fraction: null
+eta: null                # frozen after Phase C
+credibility_floor: null
+heldout_slots: {}        # plate_id -> list of [row, col]
+
+metrics: [heldout_MAE, heldout_LPD, fit_class_acc, interval_coverage_90, oracle_gap_closed]
+
+predicted_range_oracle_gap_closed: [null, null]   # committed after Phase D, before round 1
+
+failure_rules: >-
+  failed pieces are printability outcomes; held-out failures reported,
+  scored on survivors
