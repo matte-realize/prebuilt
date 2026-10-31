@@ -1,0 +1,174 @@
+<title>Prebuilt Deck</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a stack of 16:9 slides drawn like inspection sheets (slate plate, steel-blue ground,
+   resin-amber marks); Present mode shows one slide fitted to the window. */
+:root {
+  --bg: #e9eef1;        /* workshop steel */
+  --sheet: #f8fafb;     /* slide paper */
+  --ink: #111a20;
+  --muted: #55636d;
+  --line: #cfd8de;
+  --plate: #24333c;     /* printed plate, slate */
+  --amber: #b86b00;     /* resin amber: held-out rings, flags */
+  --iso: #2a78d6; --net: #eb6834; --ora: #12936a;
+  --ok: #12936a;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0d1316; --sheet: #151e23; --ink: #e6ecef; --muted: #9babb5; --line: #2a3841;
+  --plate: #3b4f5b; --amber: #f0a43a; --iso: #3987e5; --net: #f07a48; --ora: #2fc28c; --ok: #2fc28c;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0d1316; --sheet: #151e23; --ink: #e6ecef; --muted: #9babb5; --line: #2a3841;
+  --plate: #3b4f5b; --amber: #f0a43a; --iso: #3987e5; --net: #f07a48; --ora: #2fc28c; --ok: #2fc28c;
+  color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font-family: var(--body); line-height: 1.45; }
+.deck { display: grid; gap: 28px; padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1200px; margin: 0 auto; }
+.bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.bar h1 { font: 600 15px/1.2 var(--display); letter-spacing: .08em; text-transform: uppercase; margin: 0; color: var(--muted); }
+.bar button { font: 500 14px var(--body); color: var(--ink); background: var(--sheet); border: 1px solid var(--line);
+  border-radius: 6px; padding: 8px 14px; cursor: pointer; }
+.bar button:hover { border-color: var(--muted); }
+button:focus-visible, .slide:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+.slide { container-type: inline-size; aspect-ratio: 16 / 9; background: var(--sheet); border: 1px solid var(--line);
+  border-radius: 4px; padding: 3.2cqw 4cqw; display: grid; grid-template-rows: auto auto 1fr; gap: 1.4cqw;
+  position: relative; overflow: hidden; min-width: 0; }
+.slide header { display: flex; justify-content: space-between; gap: 2cqw; font: 500 1.15cqw/1 var(--mono);
+  color: var(--muted); text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid var(--line); padding-bottom: 1cqw; }
+.slide h2 { font: 700 4.2cqw/1.02 var(--display); margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+.slide .body { font-size: 1.75cqw; min-height: 0; display: grid; align-content: start; gap: 1.6cqw; }
+.slide p { margin: 0; max-width: 62ch; }
+.note { display: none; }
+.lede { font: 500 2.5cqw/1.25 var(--body); text-wrap: balance; }
+.meta { color: var(--muted); font-size: 1.4cqw; }
+.mono { font-family: var(--mono); font-size: .85em; }
+.foot { color: var(--muted); font-size: 1.45cqw; border-top: 1px dashed var(--line); padding-top: 1.1cqw; max-width: none; }
+.flag { color: var(--amber); font-weight: 600; }
+
+.split { display: grid; grid-template-columns: 1.15fr 1fr; gap: 4cqw; align-items: center; }
+.stack { display: grid; gap: 1.4cqw; align-content: start; }
+.fig { margin: 0; display: grid; justify-items: center; }
+.fig.small .plate { max-width: 70%; }
+.plate { width: 100%; max-width: 32cqw; height: auto; }
+.plate .pl { fill: var(--plate); }
+.plate .cut, .plate .hole { fill: var(--sheet); }
+.plate .pin { fill: #d9e1e6; stroke: var(--sheet); stroke-width: .5; }
+.plate .ho { stroke: var(--amber); stroke-width: .9; }
+.plate .dot { fill: var(--sheet); opacity: .25; }
+.plate .lab { font: 3.1px var(--mono); fill: var(--muted); }
+
+.cols3, .cols2 { display: grid; gap: 2.4cqw; }
+.cols3 { grid-template-columns: repeat(3, 1fr); }
+.cols2 { grid-template-columns: repeat(2, 1fr); }
+.cell { border-top: 3px solid var(--ink); padding-top: 1.2cqw; display: grid; gap: .8cqw; align-content: start; }
+.big { font: 700 4.6cqw/1 var(--display); font-variant-numeric: tabular-nums; }
+.big small, .big-ok small { font: 500 1.6cqw var(--body); color: var(--muted); margin-left: .3em; }
+.big-ok { font: 700 5cqw/1 var(--display); color: var(--ok); margin: 0; }
+
+.boundary { display: grid; grid-template-columns: 1fr 1.1fr 1fr; gap: 2cqw; align-items: stretch; }
+.site { border: 1px solid var(--line); border-radius: 4px; padding: 1.4cqw; }
+.site h3 { font: 600 1.9cqw var(--display); margin: 0 0 .8cqw; }
+.site ul, .cross { margin: 0; padding-left: 1.2em; display: grid; gap: .5cqw; font-size: 1.5cqw; }
+.wall { border-left: 3px solid var(--amber); border-right: 3px solid var(--amber); padding: 1.2cqw 1.6cqw; display: grid; gap: .8cqw; align-content: start; }
+.wall > span { font: 600 1.2cqw var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--amber); }
+.a-iso { color: var(--iso); } .a-net { color: var(--net); } .a-ora { color: var(--ora); }
+
+.flow { margin: 0; padding-left: 1.6em; display: grid; gap: 1.1cqw; font-size: 1.7cqw; max-width: 70ch; }
+.flow li::marker { font: 600 1em var(--mono); color: var(--amber); }
+
+.timeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2cqw; position: relative; }
+.timeline > div { border-top: 3px solid var(--ink); padding-top: 1.1cqw; display: grid; gap: .6cqw; align-content: start; font-size: 1.5cqw; }
+.timeline > div:last-child { border-top-color: var(--amber); }
+.t { font: 600 1.25cqw var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+
+.slide:has(.chart) .body { grid-template-columns: 2.6fr 1fr; align-items: start; }
+.slide:has(.chart) .foot { grid-column: 1 / -1; }
+.chart { margin: 0; background: #fcfcfb; border-radius: 3px; padding: .4cqw; }
+.chart img { display: block; width: 100%; height: auto; }
+.nums { border-collapse: collapse; font: 1.6cqw var(--mono); font-variant-numeric: tabular-nums; width: 100%; }
+.nums th { font: 600 1.2cqw var(--mono); text-transform: uppercase; letter-spacing: .04em; text-align: right; padding: .5cqw .6cqw; border-bottom: 1px solid var(--line); }
+.nums td { text-align: right; padding: .6cqw; border-bottom: 1px solid var(--line); }
+.nums th:first-child, .nums td:first-child { text-align: left; color: var(--muted); }
+
+.receipt { margin: 0; font: 1.25cqw/1.5 var(--mono); background: var(--bg); border: 1px solid var(--line); border-radius: 4px;
+  padding: 1.4cqw; overflow: auto; white-space: pre; color: var(--ink); }
+.placeholder { border: 2px dashed var(--line); border-radius: 6px; padding: 3cqw; display: grid; place-items: center; min-height: 18cqw; color: var(--muted); }
+
+/* Phone and narrow windows: drop the 16:9 frame and use normal type. */
+@media (max-width: 720px) {
+  .slide { aspect-ratio: auto; padding: 20px 18px; gap: 12px; }
+  .slide header { font-size: 11px; padding-bottom: 8px; }
+  .slide h2 { font-size: 28px; }
+  .slide .body, .flow { font-size: 15px; gap: 14px; }
+  .lede { font-size: 19px; } .meta, .foot, .site ul, .cross, .timeline > div { font-size: 13px; }
+  .big { font-size: 34px; } .big small, .big-ok small { font-size: 13px; } .big-ok { font-size: 40px; }
+  .split, .cols3, .cols2, .boundary, .timeline, .slide:has(.chart) .body { grid-template-columns: 1fr; }
+  .plate { max-width: 300px; } .site h3 { font-size: 17px; } .wall > span, .t, .nums th { font-size: 11px; }
+  .nums { font-size: 14px; } .receipt { font-size: 11px; padding: 12px; } .placeholder { min-height: 120px; padding: 20px; }
+  .wall { border-left: 0; border-right: 0; border-top: 3px solid var(--amber); border-bottom: 3px solid var(--amber); }
+}
+
+/* Present: one slide, fitted to the window. */
+body.present { overflow: hidden; }
+body.present .deck { max-width: none; padding: 0; height: 100vh; display: grid; place-items: center; }
+body.present .bar { position: fixed; right: max(12px, env(safe-area-inset-right, 0px)); bottom: max(12px, env(safe-area-inset-bottom, 0px)); z-index: 2; opacity: .55; }
+body.present .bar:hover { opacity: 1; }
+body.present .bar h1 { display: none; }
+body.present .slide { display: none; width: min(100vw, calc(100vh * 16 / 9)); border-radius: 0; }
+body.present .slide.on { display: grid; }
+body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; bottom: 1.2cqw; font: 1.2cqw var(--mono); color: var(--amber); }
+@media (prefers-reduced-motion: no-preference) { .slide.on { animation: in .18s ease-out; } }
+@keyframes in { from { opacity: .4; } to { opacity: 1; } }
+</style>
+
+<main class="deck">
+  <div class="bar">
+    <h1>Prebuilt · draft deck · 10 slides</h1>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button id="notes" type="button" aria-pressed="false">Speaker notes</button>
+      <button id="present" type="button">Present (→ ← Esc)</button>
+    </div>
+  </div>
+%%SLIDES%%
+</main>
+
+<script>
+(() => {
+  const slides = [...document.querySelectorAll('.slide')];
+  let i = Math.max(0, slides.findIndex(s => '#' + s.id === location.hash));
+  const show = n => {
+    i = Math.min(slides.length - 1, Math.max(0, n));
+    slides.forEach((s, k) => s.classList.toggle('on', k === i));
+  };
+  const present = on => {
+    document.body.classList.toggle('present', on);
+    document.getElementById('present').textContent = on ? 'Exit (Esc)' : 'Present (→ ← Esc)';
+    if (on) { show(i); document.documentElement.requestFullscreen?.().catch(() => {}); }
+    else { document.exitFullscreen?.().catch(() => {}); slides[i].scrollIntoView({ block: 'center' }); }
+  };
+  document.getElementById('present').addEventListener('click', () => present(!document.body.classList.contains('present')));
+  document.getElementById('notes').addEventListener('click', e => {
+    const on = document.body.classList.toggle('notes');
+    e.currentTarget.setAttribute('aria-pressed', String(on));
+  });
+  slides.forEach((s, k) => s.addEventListener('dblclick', () => { i = k; present(true); }));
+  document.addEventListener('keydown', e => {
+    if (!document.body.classList.contains('present')) return;
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); show(i + 1); }
+    else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Escape') present(false);
+  });
+  document.addEventListener('click', e => {
+    if (document.body.classList.contains('present') && e.target.closest('.slide')) show(i + 1);
+  });
+})();
+</script>
