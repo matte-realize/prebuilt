@@ -73,6 +73,12 @@ Both are on by default (`Config.challenge`, `Config.dormant`), since spec 8.1 de
 
 The prereg field is now `predicted_range: {metric, round, range}`. `metric` is `iso_minus_net_mae_um` (Phase D's primary) or `oracle_gap_closed_mae`, and it must be set before the seed plate. `range` is committed after Phase D. **M's recommendation: `iso_minus_net_mae_um`.** Gap-closed divides by isolated − oracle, which is near zero on measured MAE, so it swings wildly. The catch: on 8 held-out pieces per plate the measured difference is about ±1 µm of noise (finding 3), so expect a wide range that straddles zero. The claim is then mainly that reality doesn't contradict the simulator.
 
+## Headline chart (built Oct 31)
+
+`python -m eval.figures.headline sim.json [--real real.json] [--truth]` takes `run.py --out` results and writes `eval/figures/out/headline.{png,pdf}`. Left panel: held-out MAE per arm against pieces printed per site, mean ± 1 SE, with real rounds as markers. Right panel: isolated − networked per round in µm (median, 5–95% over seeds), the committed prediction box when `predicted_range.metric` is `iso_minus_net_mae_um`, and the real value.
+
+**Open question it surfaced:** on current `main` (12 seeds, 1000 particles, noise-free MAE), the oracle trails networked again at round 3 (+1.4 ± 0.9 µm). With `--no-challenge --no-spawn` it's −0.9 ± 0.7 at round 2 and +0.6 ± 0.7 at round 3. Challenge and spawn run only in the networked arm, so they may bring back the selection advantage that `same_agents` removed. That's suggestive, not settled. T: include the challenge-and-spawn off variants in the sweep. If it holds, either run the challenge round in all three arms' auctions too, or turn both off for the claim.
+
 ## Not built yet (M)
 
 - Hypothesis agent.
