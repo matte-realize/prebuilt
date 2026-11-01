@@ -79,7 +79,7 @@ SLIDES = [
 </div>""",
      "Hold up a printed plate. The point: precision is a property of your machine, and the only way to learn it is to print."),
 
-    ("0:25–0:50 · What we built", "Two printer sites, one boundary, only beliefs cross",
+    ("0:25–0:45 · What we built", "Two printer sites, one boundary, only beliefs cross",
      """<div class="arch">
   <div class="node"><span class="proc">SLA · simulated</span><h3>Resin site</h3><p>prints, measures, learns its own model</p></div>
   <div class="link"><span class="msg">μ, σ of 3 shared parameters</span><span class="arrow" aria-hidden="true">⇄</span><span class="wall-tag">schema-checked · on a receipt</span></div>
@@ -88,7 +88,7 @@ SLIDES = [
 <div class="stays"><b>Stays home:</b> every measurement, every machine-specific parameter.</div>""",
      "Point at the middle: that's the whole interface. Errors that every printer shares (small features shrink, edges drift) are learned together; everything else stays local. Both sites are simulated printers whose true behavior we know, which is how every result is scored."),
 
-    ("0:50–1:40 · Demo", "Watch the network learn",
+    ("0:45–1:30 · Demo", "Watch the network learn",
      """<div class="demo" id="demo">
   <svg class="sites" viewBox="0 0 440 300" aria-label="Two sites exchanging belief summaries across a boundary">
     <g id="trustG"><text x="220" y="22" text-anchor="middle" class="tiny">resin's trust in PLA</text>
@@ -121,7 +121,7 @@ SLIDES = [
 </div>""",
      "In Present mode it plays by itself. Narrate the caption line. Then L: resin's error spikes in round 1, trust collapses to 0.01 once held-out pieces expose the lie, and by round 3 resin is back level with learning alone. Without a check, a liar costs one round. Then C: the consistency check sets PLA's note aside at the boundary, no spike. With the check, none (slide 4)."),
 
-    ("1:40–2:15 · Results, in simulation", "The win is many sites, not many agents",
+    ("1:30–2:00 · Results, in simulation", "The win is many sites, not many agents",
      f"""<div class="cols3 hero">
   <div class="cell"><span class="big">12%</span><p>lower error than learning alone, in 75 of 100 worlds. Pooling all the raw data: also 12%.</p></div>
   <div class="cell"><span class="big">35%</span><p>with eight sites that each know little, better in 20 of 20 worlds. Many data-poor sites is where sharing pays.</p></div>
@@ -130,7 +130,7 @@ SLIDES = [
 <p class="foot">Simulation with hidden truth, frozen config, paired per world. The consistency check is an added protocol option, off in the registered config, tested in {CHECK["worlds"]} worlds. The agent layer adds nothing measurable: with messages cut, learned credibility ties equal votes. At two sites the gain is 1.6 µm, below what you can measure on a real part, so we don't claim it there.</p>""",
      "Say it plainly: these are simulation numbers, the gain comes from sharing between sites, not from the agents, and at two sites it is a couple of microns. It grows with the number of data-poor sites."),
 
-    ("2:15–2:40 · Why simulation", "Grounded in a real printer, scored in simulation",
+    ("2:00–2:30 · Why simulation", "Grounded in a real printer, scored in simulation",
      """<div class="timeline">
   <div><span class="t">Real printer</span><p>Formlabs Form Studio 1: a 1.5 mm pin measured 1.41–1.48 mm by micrometer, 24–89 µm small.</p></div>
   <div><span class="t">Vendor spec</span><p>±0.08 mm on 1–30 mm features. Real error is tens of µm, as the spec says.</p></div>
@@ -140,15 +140,16 @@ SLIDES = [
 <p class="foot">Registered before printing: two printers can't show the sharing gain on real parts. The test plate, a hand-measurement sheet and the scanner pipeline are built for real sites; the simulator says when the gain becomes measurable: many sites, each with little data.</p>""",
      "Hold up the printed plate. Say it once: the real printer tells us the simulator is the right size; the simulator is the only place a 1.6 µm gain can be scored. Don't claim the model was fit on the real printer: three pieces aren't enough."),
 
-    ("2:40–3:00 · Next", "Print anywhere, trust the part",
+    ("2:30–3:00 · Next", "Print anywhere, trust the part",
      f"""<div class="split">
-  <div class="stack"><p class="lede">For fleets where fit decides: dental labs, print farms, service bureaus. Many printers, little data each, data that can't leave.</p>
-  <p><b>Parts that fit the first time.</b> Corrected designs from a learned printer cut size error from 118 to 6 µm (simulation).</p>
-  <p><b>Bolder: smaller features.</b> The smaller the part, the more the printer's error matters and the scarcer the data. Microfluidics and bioprinting are where this should pay most. Next: learn which printers to trust.</p>
-  <p class="meta mono">github.com/matte-realize/prebuilt · plate, tools and simulator open</p></div>
+  <div class="stack"><p class="lede">For fleets where fit decides: dental labs, print farms, service bureaus.</p>
+  <p><b>Parts that fit the first time.</b> Corrected designs: size error 118 → 6 µm.</p>
+  <p><b>Safe when printers differ.</b> Half the fleet sharing no physics: trust lifts the matching printers to 25% better, harm to the others falls from −15% to −1%.</p>
+  <p><b>Bolder: smaller features.</b> Same error, bigger share of the part; the gain holds at 7–9% below 1 mm. Microfluidics, bioprinting.</p>
+  <p class="meta mono">All numbers simulation · github.com/matte-realize/prebuilt</p></div>
   <figure class="fig">{sites_svg()}<figcaption>Lower error than learning alone, by number of sites. Each starts with 4 test pieces and prints 2 a round; round 3, simulation.</figcaption></figure>
 </div>""",
-     "Point at the bars once: 2, 4, 8 sites, the fleet regime. The micro-scale line is direction, not a result: say 'should'. End on the line. Stop talking."),
+     "Point at the bars once: 2, 4, 8 sites, the fleet regime. Mixed fleets is the answer to 'what if printers differ': trust makes sharing safe, it doesn't fully identify mismatched printers. The micro-scale line is direction: the gain holds there, it doesn't grow. End on the line. Stop talking."),
 ]
 
 EXTRA_CSS = """
