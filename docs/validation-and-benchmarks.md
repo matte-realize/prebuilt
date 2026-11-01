@@ -158,3 +158,16 @@ The committed results (`results/*.jsonl.gz`) are what the analyzers read, so eve
 - **The agents don't beat random piece selection.** The gain comes from sharing between sites, not from the agent layer.
 - **Trust doesn't cleanly identify mismatched printers.** The defences make sharing safe on average; the best separation is AUC 0.77.
 - **The simulator's physics is the model's physics plus a few extra effects.** The negative control shows the gain isn't built in, but a real printer can differ in ways neither has.
+
+## Prior work this builds on
+
+The pitch's "built on proven science" slide cites these. Numbers are from each paper's abstract; check the full text before quoting details.
+
+- **The error is real.** Desktop SLA, 54 CMM-measured specimens (5, 10, 20 mm; 25–100 µm layers): pins oversized up to about +195 µm, holes undersized up to about −250 µm. *Tehnički vjesnik* (2026), [hrcak.srce.hr/345003](https://hrcak.srce.hr/345003).
+- **Correcting it works.** Q. Huang, J. Zhang, A. Sabbaghi, T. Dasgupta, "Optimal offline compensation of shape shrinkage for three-dimensional printing processes," *IISE Transactions* 47(5):431–441, 2015, [ideas.repec.org](https://ideas.repec.org/a/taf/uiiexx/v47y2015i5p431-441.html).
+- **Transfer across processes.** A. Sabbaghi, Q. Huang, "Model transfer across additive manufacturing processes via mean effect equivalence of lurking variables," *Annals of Applied Statistics* 12(4):2409–2429, 2018, [projecteuclid.org](https://projecteuclid.org/journals/annals-of-applied-statistics/volume-12/issue-4/Model-transfer-across-additive-manufacturing-processes-via-mean-effect-equivalence/10.1214/18-AOAS1158.full).
+- **Sharing helps data-poor printers.** A.-T. Wei, H. Wang, T. Dickens, H. Chi, "Co-learning of extrusion deposition quality for supporting interconnected additive manufacturing systems," *IISE Transactions* 55(4):405–418, 2023, [ideas.repec.org](https://ideas.repec.org/a/taf/uiiexx/v55y2023i4p405-418.html). Shares covariance structure across printers; data is pooled.
+- **Federated learning in printing so far targets defect images.** Tang et al., federated transfer learning for AM defect identification, *Robotics and Computer-Integrated Manufacturing*, 2024, doi:10.1016/j.rcim.2024.102779.
+- **Fit thresholds in dentistry.** Printed crowns are typically judged against a marginal gap of 120 µm or less (stricter work uses 50 µm); e.g. [explorationpub.com/uploads/Article/A101320/101320.pdf](https://explorationpub.com/uploads/Article/A101320/101320.pdf).
+- **Point-of-care printing and patient data.** Accuracy and in-house workflows for 3D-printed surgical guides: systematic review, [PMC11317891](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11317891/).
+

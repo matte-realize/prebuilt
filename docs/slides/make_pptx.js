@@ -151,7 +151,29 @@ async function main() {
   plate(s, 6.8, 1.72, 2.4);
   T(s, "The test plate: 24 pins and holes, 1–7 mm. Print it, measure it, know your printer.", { x: 6.8, y: 4.2, w: 2.45, h: 0.45, fontSize: 9.5, color: C.muted });
   T(s, "Can printers learn from each other without sharing a single measurement?", { x: M, y: 4.62, w: 5.9, h: 0.5, fontFace: HEAD, fontSize: 14, bold: true, color: C.accent });
-  s.addNotes("0:00–0:25. Hold up a printed plate. Hospitals, dental and bio labs print parts that must fit. The error belongs to each machine, you learn it by printing, and these labs can't pool what they learn: patient scans and process recipes can't leave.");
+  s.addNotes("0:00–0:22. Hold up a printed plate. Hospitals, dental and bio labs print parts that must fit. The error belongs to each machine, you learn it by printing, and these labs can't pool what they learn: patient scans and process recipes can't leave.");
+
+  // 2b · built on proven science
+  s = pres.addSlide({ masterName: "DARK" });
+  head(s, "Built on proven science", "Each piece is proven. Doing it privately is new");
+  const pw = [
+    ["The error is real", "−250 µm", "holes undersized and pins up to +195 µm on a desktop SLA printer, measured by CMM.", "Tehnički vjesnik, 2026 (54 specimens, 5–20 mm)"],
+    ["Correcting it works", "Model → fix", "learn each printer's shape error, then print a compensated design.", "Huang, Zhang, Sabbaghi, Dasgupta, IISE Transactions 47(5), 2015"],
+    ["Sharing helps", "Data-poor", "printers predict quality better by learning jointly with other printers.", "Wei, Wang, Dickens, Chi, IISE Transactions 55(4), 2023; Sabbaghi & Huang, Ann. Appl. Stat. 12(4), 2018"],
+  ];
+  pw.forEach(([lbl, big, d, cite], i) => {
+    const x = M + i * 3.0;
+    card(s, x, 1.5, 2.8, 2.35);
+    T(s, lbl.toUpperCase(), { x: x + 0.25, y: 1.7, w: 2.35, h: 0.25, fontSize: 9.5, bold: true, charSpacing: 2, color: C.teal });
+    T(s, big, { x: x + 0.25, y: 1.98, w: 2.35, h: 0.55, fontFace: HEAD, fontSize: 24, bold: true, color: C.ink, valign: "middle" });
+    T(s, d, { x: x + 0.25, y: 2.58, w: 2.35, h: 0.7, fontSize: 12, color: C.muted });
+    T(s, cite, { x: x + 0.25, y: 3.3, w: 2.35, h: 0.5, fontSize: 9, italic: true, color: C.faint });
+  });
+  card(s, M, 4.02, W - 2 * M, 0.72, C.card2);
+  T(s, [{ text: "The gap: ", options: { bold: true, color: C.accent } },
+        { text: "cross-printer learning so far pools raw data or moves models centrally, and federated learning in printing covers defect images (Tang et al., RCIM 2024). Prebuilt shares three numbers, and nothing else leaves the lab.", options: { color: C.ink } }],
+    { x: M + 0.25, y: 4.02, w: W - 2 * M - 0.5, h: 0.72, fontSize: 12, valign: "middle" });
+  s.addNotes("0:22–0:42. Every ingredient is published: the error is hundreds of microns, correcting it from a learned model works, and printers learn faster together. What nobody has done is that last part without the data leaving the lab. That's us.");
 
   // 3 · how it works
   s = pres.addSlide({ masterName: "DARK" });
@@ -173,7 +195,7 @@ async function main() {
   T(s, [{ text: "Never leaves the lab: ", options: { bold: true, color: C.teal } },
         { text: "patient scans, part geometry, measurements, machine settings. A replayable privacy audit checks every crossing: 0 measurements crossed.", options: { color: C.ink } }],
     { x: M + 0.9, y: 3.88, w: 7.8, h: 0.82, fontSize: 13, valign: "middle" });
-  s.addNotes("0:25–0:50. That's the whole interface: three numbers out, nothing else. Errors every printer shares (small features shrink, edges drift) are learned together; everything else stays local. Results are scored on simulated printers whose true behavior we know.");
+  s.addNotes("0:42–1:00. That's the whole interface: three numbers out, nothing else. Errors every printer shares (small features shrink, edges drift) are learned together; everything else stays local. Results are scored on simulated printers whose true behavior we know.");
 
   // 4 · live run
   s = pres.addSlide({ masterName: "DARK" });
@@ -181,25 +203,25 @@ async function main() {
   lineChart(s, HONEST, M, 1.5, 4.35, 3.2, "All sites honest");
   lineChart(s, LIAR, M + 4.55, 1.5, 4.35, 3.2, "One site lies (the honest site's error)");
   foot(s, `Average over 20 simulated fleets, registered config, error on held-out pieces. A liar spikes the honest site to ${LIAR.networked[0]} µm in round 1; trust collapses and it is back to ${LIAR.networked[2]} µm by round 3. With the consistency check on, round 1 stays at ${CHECKED.networked[0]} µm.`);
-  s.addNotes("0:50–1:10. Twenty seconds, two points. Left: the network tracks the pooled-data line and beats learning alone every round. Right: a site that lies costs one round, then trust cuts it off; the consistency check removes even that round. Don't walk through it; the 3D view (viewer/demo.html) is for Q&A.");
+  s.addNotes("1:00–1:15. Fifteen seconds, two points. Left: the network tracks the pooled-data line and beats learning alone every round. Right: a site that lies costs one round, then trust cuts it off; the consistency check removes even that round. Don't walk through it; the 3D view (viewer/demo.html) is for Q&A.");
 
   // 5 · results
   s = pres.addSlide({ masterName: "DARK" });
-  head(s, "Results · simulation", "The win is many sites, not many agents");
+  head(s, "Results · simulation", "Parts that fit, and new labs get there faster");
   const stats = [
-    ["12%", "lower prediction error than a lab learning alone. The network won in 75 of 100 simulated fleets. Pooling all raw data: also 12%.", C.accent],
-    [`${Math.round(SITES[2].pct)}%`, `lower error with eight data-poor labs. The network won in ${SITES[2].wins} of ${SITES[2].n} simulated fleets.`, C.teal],
-    ["0 rounds", `lost to a liar with the consistency check: ${CHECK.liar_caught} of ${CHECK.liar_notes} lies caught, ${CHECK.honest_dropped} honest notes dropped.`, C.amber],
-    ["9 µm", "size error from a corrected design, against 132 µm drawn as-is (median over 60 simulated fleets).", C.ink],
+    ["9 µm", "size error from a corrected design, against 132 µm drawn as-is. For scale: crown margins must be under ~120 µm.", C.accent],
+    [`${Math.round(SITES[2].pct)}%`, `lower error for labs with little data when eight share. The network won ${SITES[2].wins} of ${SITES[2].n} simulated fleets.`, C.teal],
+    ["12%", "lower error with just two labs, matching what pooling all raw data gives (won 75 of 100 fleets).", C.ink],
+    ["0 rounds", `lost to a lying lab with the consistency check: ${CHECK.liar_caught} of ${CHECK.liar_notes} lies caught, ${CHECK.honest_dropped} honest notes dropped.`, C.amber],
   ];
   stats.forEach(([big, sub, col], i) => {
     const x = M + i * 2.25;
     card(s, x, 1.55, 2.08, 2.7);
     T(s, big, { x: x + 0.2, y: 1.8, w: 1.8, h: 0.75, fontFace: HEAD, fontSize: big.length > 4 ? 26 : 36, bold: true, color: col, valign: "middle" });
-    T(s, sub, { x: x + 0.2, y: 2.75, w: 1.72, h: 1.7, fontSize: 12.5, color: C.muted });
+    T(s, sub, { x: x + 0.2, y: 2.75, w: 1.72, h: 1.45, fontSize: 12.5, color: C.muted });
   });
-  foot(s, "Error: how far the model's predicted size of a pin or hole is from its true printed size, on held-out pieces it never trained on. A simulated fleet: printers whose true behavior is hidden from the model, run both ways and compared head to head. The agent layer adds nothing measurable.");
-  s.addNotes("1:10–1:40. Simulation numbers, said plainly. The gain comes from sharing between sites, not from the agents. It grows with the number of data-poor sites. And what a lab actually gets is a corrected design: 9 µm off instead of 132.");
+  foot(s, "Error: how far the predicted size of a pin or hole is from its true printed size, on held-out pieces. Each simulated fleet is run both ways and compared head to head. The gain comes from sharing between labs; the agents' choice of test pieces doesn't beat random (appendix).");
+  s.addNotes("1:15–1:45. Lead with what a lab gets: a corrected design that misses by 9 microns instead of 132, well under the ~120 micron margin a dental crown needs. Then the network: labs with little data get 35% lower error when eight share, so new labs need fewer test prints. Two labs already match pooling the data. A lying lab costs nothing with the check. If asked about agents: the win is sharing between labs, not smarter piece selection, and we say so.");
 
   // 6 · rigor
   s = pres.addSlide({ masterName: "DARK" });
@@ -224,7 +246,7 @@ async function main() {
   const checks = [["Inside the vendor's ±0.08 mm spec", C.teal], ["Inside the simulator, at its small edge", C.amber], ["One pin: a sanity check, not a model fit", C.muted]];
   checks.forEach(([t, col], i) => T(s, [{ text: "●  ", options: { color: col } }, { text: t, options: { color: C.ink } }],
     { x: 5.95, y: 3.45 + i * 0.36, w: 3.35, h: 0.32, fontSize: 12 }));
-  s.addNotes("1:40–2:05. Hold up the printed plate. The real printer tells us the simulator is the right size: this pin is inside its range, at the small edge (1.8th percentile), so say 'edge', not 'middle'. The negative control shows the simulator doesn't hand us the result. Don't claim a fit on the real printer.");
+  s.addNotes("1:45–2:05. Hold up the printed plate. The real printer tells us the simulator is the right size: this pin is inside its range, at the small edge (1.8th percentile), so say 'edge', not 'middle'. The negative control shows the simulator doesn't hand us the result. Don't claim a fit on the real printer.");
 
   // 7 · who it's for
   s = pres.addSlide({ masterName: "DARK" });

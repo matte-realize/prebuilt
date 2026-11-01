@@ -122,7 +122,16 @@ SLIDES = [
   </div>
   <figure class="card fig">{plate_svg()}<figcaption>The test plate: 24 pins and holes, 1–7 mm. Print it, measure it, know your printer.</figcaption></figure>
 </div>""",
-     "0:00–0:25. Hold up a printed plate. Hospitals, dental and bio labs print parts that must fit. The error belongs to each machine, you learn it by printing, and these labs can't pool what they learn: patient scans and process recipes can't leave."),
+     "0:00–0:22. Hold up a printed plate. Hospitals, dental and bio labs print parts that must fit. The error belongs to each machine, you learn it by printing, and these labs can't pool what they learn: patient scans and process recipes can't leave."),
+
+    ("", "Built on proven science", "Each piece is proven. Doing it privately is new",
+     """<div class="steps">
+  <div class="card step"><span class="lbl">The error is real</span><span class="pn">−250&nbsp;µm</span><span>holes undersized and pins up to +195 µm on a desktop SLA printer, measured by CMM.</span><i>Tehnički vjesnik, 2026 (54 specimens, 5–20 mm)</i></div>
+  <div class="card step"><span class="lbl">Correcting it works</span><span class="pn">Model → fix</span><span>learn each printer's shape error, then print a compensated design.</span><i>Huang, Zhang, Sabbaghi, Dasgupta, IISE Transactions 47(5), 2015</i></div>
+  <div class="card step"><span class="lbl">Sharing helps</span><span class="pn">Data-poor</span><span>printers predict quality better by learning jointly with other printers.</span><i>Wei, Wang, Dickens, Chi, IISE Transactions 55(4), 2023; Sabbaghi &amp; Huang, Ann. Appl. Stat. 12(4), 2018</i></div>
+</div>
+<div class="card banner"><p><b class="gap">The gap:</b> cross-printer learning so far pools raw data or moves models centrally, and federated learning in printing covers defect images (Tang et al., RCIM 2024). Prebuilt shares three numbers, and nothing else leaves the lab.</p></div>""",
+     "0:22–0:42. Every ingredient is published: the error is hundreds of microns, correcting it from a learned model works, and printers learn faster together. What nobody has done is that last part without the data leaving the lab. That's us."),
 
     ("", "How it works", "Learn locally, share three numbers",
      f"""<div class="steps">
@@ -131,7 +140,7 @@ SLIDES = [
   <div class="card step">{tile("FaExchangeAlt")}<b>3&nbsp; Share three numbers</b><span>Mean and spread of 3 parameters every printer shares. Schema-checked, logged on a receipt.</span></div>
 </div>
 <div class="card banner">{tile("FaLock", "teal")}<p><b>Never leaves the lab:</b> patient scans, part geometry, measurements, machine settings. A replayable privacy audit checks every crossing: 0 measurements crossed.</p></div>""",
-     "0:25–0:50. That's the whole interface: three numbers out, nothing else. Errors every printer shares (small features shrink, edges drift) are learned together; everything else stays local. Results are scored on simulated printers whose true behavior we know."),
+     "0:42–1:00. That's the whole interface: three numbers out, nothing else. Errors every printer shares (small features shrink, edges drift) are learned together; everything else stays local. Results are scored on simulated printers whose true behavior we know."),
 
     ("", "Three rounds · simulation", "The network learns faster, and shrugs off a liar",
      f"""<div class="charts">
@@ -140,17 +149,17 @@ SLIDES = [
 </div>
 {LEGEND}
 <p class="foot">Average over 20 simulated fleets, registered config, error on held-out pieces. A liar spikes the honest site to {LIAR["networked"][0]} µm in round 1; trust collapses and it is back to {LIAR["networked"][2]} µm by round 3. With the consistency check on, round 1 stays at {CHECKED["networked"][0]} µm.</p>""",
-     "0:50–1:10. Twenty seconds, two points. Left: the network tracks the pooled-data line and beats learning alone every round. Right: a site that lies costs one round, then trust cuts it off; the consistency check removes even that round. Don't walk through it; the 3D view (viewer/demo.html) is for Q&A."),
+     "1:00–1:15. Fifteen seconds, two points. Left: the network tracks the pooled-data line and beats learning alone every round. Right: a site that lies costs one round, then trust cuts it off; the consistency check removes even that round. Don't walk through it; the 3D view (viewer/demo.html) is for Q&A."),
 
-    ("", "Results · simulation", "The win is many sites, not many agents",
+    ("", "Results · simulation", "Parts that fit, and new labs get there faster",
      f"""<div class="stats">
-  <div class="card stat"><span class="n net">12%</span><span>lower prediction error than a lab learning alone. The network won in 75 of 100 simulated fleets. Pooling all raw data: also 12%.</span></div>
-  <div class="card stat"><span class="n ora">{round(SITES[2]["pct"])}%</span><span>lower error with eight data-poor labs. The network won in {SITES[2]["wins"]} of {SITES[2]["n"]} simulated fleets.</span></div>
-  <div class="card stat"><span class="n amb sm">0 rounds</span><span>lost to a liar with the consistency check: {CHECK["liar_caught"]} of {CHECK["liar_notes"]} lies caught, {CHECK["honest_dropped"]} honest notes dropped.</span></div>
-  <div class="card stat"><span class="n">9&nbsp;µm</span><span>size error from a corrected design, against 132 µm drawn as-is (median over 60 simulated fleets).</span></div>
+  <div class="card stat"><span class="n net">9&nbsp;µm</span><span>size error from a corrected design, against 132 µm drawn as-is. For scale: crown margins must be under ~120 µm.</span></div>
+  <div class="card stat"><span class="n ora">{round(SITES[2]["pct"])}%</span><span>lower error for labs with little data when eight share. The network won {SITES[2]["wins"]} of {SITES[2]["n"]} simulated fleets.</span></div>
+  <div class="card stat"><span class="n">12%</span><span>lower error with just two labs, matching what pooling all raw data gives (won 75 of 100 fleets).</span></div>
+  <div class="card stat"><span class="n amb sm">0 rounds</span><span>lost to a lying lab with the consistency check: {CHECK["liar_caught"]} of {CHECK["liar_notes"]} lies caught, {CHECK["honest_dropped"]} honest notes dropped.</span></div>
 </div>
-<p class="foot">Error: how far the model's predicted size of a pin or hole is from its true printed size, on held-out pieces it never trained on. A simulated fleet: printers whose true behavior is hidden from the model, run both ways and compared head to head. The agent layer adds nothing measurable.</p>""",
-     "1:10–1:40. Simulation numbers, said plainly. The gain comes from sharing between sites, not from the agents. It grows with the number of data-poor sites. And what a lab actually gets is a corrected design: 9 µm off instead of 132."),
+<p class="foot">Error: how far the predicted size of a pin or hole is from its true printed size, on held-out pieces. Each simulated fleet is run both ways and compared head to head. The gain comes from sharing between labs; the agents' choice of test pieces doesn't beat random (appendix).</p>""",
+     "1:15–1:45. Lead with what a lab gets: a corrected design that misses by 9 microns instead of 132, well under the ~120 micron margin a dental crown needs. Then the network: labs with little data get 35% lower error when eight share, so new labs need fewer test prints. Two labs already match pooling the data. A lying lab costs nothing with the check. If asked about agents: the win is sharing between labs, not smarter piece selection, and we say so."),
 
     ("", "Rigor", "A real printer for scale, simulation to score",
      """<div class="two">
@@ -166,7 +175,7 @@ SLIDES = [
     <ul><li class="ok">Inside the vendor's ±0.08&nbsp;mm spec</li><li class="edge">Inside the simulator, at its small edge</li><li>One pin: a sanity check, not a model fit</li></ul>
   </div>
 </div>""",
-     "1:40–2:05. Hold up the printed plate. The real printer tells us the simulator is the right size: this pin is inside its range, at the small edge (1.8th percentile), so say 'edge', not 'middle'. The negative control shows the simulator doesn't hand us the result. Don't claim a fit on the real printer."),
+     "1:45–2:05. Hold up the printed plate. The real printer tells us the simulator is the right size: this pin is inside its range, at the small edge (1.8th percentile), so say 'edge', not 'middle'. The negative control shows the simulator doesn't hand us the result. Don't claim a fit on the real printer."),
 
     ("", "Who it's for", "Medical and bio labs that print and can't pool data",
      f"""<div class="two wide">
@@ -236,6 +245,10 @@ body { background: #05090f; }
 .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2cqw; }
 .step { padding: 2.2cqw; display: grid; gap: 1.2cqw; align-content: start; }
 .banner { display: flex; gap: 2cqw; align-items: center; padding: 1.6cqw 2cqw; background: var(--card2); }
+.step .lbl { font: 700 1.1cqw var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--teal); }
+.step .pn { font: 700 3.2cqw/1.1 var(--display); color: var(--ink); }
+.step i { font-size: 1.15cqw; color: var(--muted); opacity: .8; }
+.banner b.gap { color: var(--accent); }
 .banner p { margin: 0; font-size: 1.65cqw; max-width: none; } .banner b { color: var(--teal); }
 .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 2cqw; }
 .charts .card { padding: 1cqw 1.4cqw; }

@@ -1,6 +1,6 @@
 # 3-minute pitch: script, best points, Q&A
 
-Deck: `docs/slides/prebuilt-pitch.pptx` (PowerPoint or Keynote; rebuild with `node docs/slides/make_pptx.js`), PDF `prebuilt-pitch.pdf`, and the same slides in a browser: `prebuilt-pitch.html` (`python docs/slides/make_pitch.py`; double-click a slide for Present mode, arrows to move, Esc to exit). Nine slides, ending on the close; slide 8, validation and benchmarks, is skipped when presenting. There is no live walkthrough: in three minutes it would cost a third of the time, so slide 4 is a static chart of three rounds. The 3D view (`viewer/demo.html`) and the full backup deck (`prebuilt-deck.html`) are for questions.
+Deck: `docs/slides/prebuilt-pitch.pptx` (PowerPoint or Keynote; rebuild with `node docs/slides/make_pptx.js`), PDF `prebuilt-pitch.pdf`, and the same slides in a browser: `prebuilt-pitch.html` (`python docs/slides/make_pitch.py`; double-click a slide for Present mode, arrows to move, Esc to exit). Ten slides, ending on the close; slide 9, validation and benchmarks, is skipped when presenting. There is no live walkthrough: in three minutes it would cost a third of the time, so slide 4 is a static chart of three rounds. The 3D view (`viewer/demo.html`) and the full backup deck (`prebuilt-deck.html`) are for questions.
 
 ## Who's in the room, and what each needs to hear
 
@@ -22,21 +22,23 @@ Rules for this room:
 
 **1 · Title (0:00).** Hold up the printed plate. "Prebuilt: precision printing for labs that can't share their data."
 
-**2 · Problem (0:00–0:25).** "Hospitals, dental labs and bio labs print parts that have to fit: surgical guides and crowns from patient scans, microfluidic chips with sub-millimetre channels. But no printed part matches its file. Holes come out small, pins come out fat, by tens to hundreds of microns, and each machine is wrong in its own way. You learn it by printing, every lab does that from scratch, and they can't pool what they learn: patient scans and process recipes can't leave. So we asked: can printers learn from each other without sharing a single measurement?"
+**2 · Problem (0:00–0:22).** "Hospitals, dental labs and bio labs print parts that have to fit: surgical guides and crowns from patient scans, microfluidic chips with sub-millimetre channels. But no printed part matches its file. Holes come out small, pins come out fat, by tens to hundreds of microns, and each machine is wrong in its own way. You learn it by printing, every lab does that from scratch, and they can't pool what they learn: patient scans and process recipes can't leave. So we asked: can printers learn from each other without sharing a single measurement?"
 
-**3 · How it works (0:25–0:50).** "Each lab prints this test plate and measures it. It fits a physics model of its own machine, locally. The only thing that leaves is the mean and spread of three parameters every printer shares. It's schema-checked, written on a receipt, and a privacy audit replays every crossing: zero measurements crossed."
+**3 · Built on proven science (0:22–0:42).** "None of this is speculative. Published measurements show desktop resin printers miss by up to a quarter of a millimetre. Learning a printer's error and printing a corrected design is established. And printers that learn together beat printers that learn alone. What nobody has done is that last part without the data leaving the lab. That's Prebuilt."
 
-**4 · Three rounds (0:50–1:10).** Point, don't walk through it. "Left: our network, orange, beats learning alone every round and matches pooling all the raw data. Right: one site lies. It costs one round, then trust cuts it off, and a consistency check removes even that round."
+**4 · How it works (0:42–1:00).** "Each lab prints this test plate and measures it. It fits a physics model of its own machine, locally. The only thing that leaves is the mean and spread of three parameters every printer shares. It's schema-checked, written on a receipt, and a privacy audit replays every crossing: zero measurements crossed."
 
-**5 · Results (1:10–1:40).** "Across a hundred simulated worlds: twelve percent lower error than learning alone, as good as pooling the data. With eight data-poor labs, thirty-five percent, in every world. A consistency check catches a liar's notes on arrival and never dropped an honest one. And what a lab actually gets is a corrected design that misses by 9 microns instead of 132. The sharing does the work, not the agents: our agent layer adds nothing measurable yet, and we say so."
+**5 · Three rounds (1:00–1:15).** Point, don't walk through it. "Left: our network, orange, beats learning alone every round and matches pooling all the raw data. Right: one site lies. It costs one round, then trust cuts it off, and a consistency check removes even that round."
 
-**6 · Rigor (1:40–2:05).** "We printed this on a Formlabs Form Studio 1. Its smallest pin should be 1.5 millimeters; by micrometer it's 1.44, inside Formlabs' spec, and inside our simulator's range at its small edge: exactly why each printer has to learn its own error. But the two-site gain is under two microns, so only a simulation with known truth can score it, and we registered that before printing. And the simulator doesn't hand us the result: when printers share no physics, sharing gains nothing."
+**6 · Results (1:15–1:45).** "What a lab gets: a corrected design that misses by 9 microns instead of 132, well under the 120 microns a dental crown margin allows. What the network adds: labs with little data get 35 percent lower error when eight share, so a new lab needs fewer test prints. Even two labs match pooling all the raw data. And a lying lab costs nothing with the consistency check. All of it in simulation, and the win comes from labs sharing, not from smarter agents inside each lab."
 
-**7 · Who it's for (2:05–2:45).** "Who needs this: hospital labs printing surgical guides, dental labs, microfluidics and bio labs, and device makers spread across contract printers. Each has many printers, little data per printer, and data that legally or commercially can't be pooled. That's exactly where sharing pays, and the value grows with every lab that joins. Bioprinting is where we're headed; today it's direction, not a result."
+**7 · Rigor (1:45–2:05).** "We printed this on a Formlabs Form Studio 1. Its smallest pin should be 1.5 millimeters; by micrometer it's 1.44, inside Formlabs' spec, and inside our simulator's range at its small edge: exactly why each printer has to learn its own error. But the two-site gain is under two microns, so only a simulation with known truth can score it, and we registered that before printing. And the simulator doesn't hand us the result: when printers share no physics, sharing gains nothing."
 
-Slide 8 (validation and benchmarks) is for Q&A: click straight past it.
+**8 · Who it's for (2:05–2:45).** "Who needs this: hospital labs printing surgical guides, dental labs, microfluidics and bio labs, and device makers spread across contract printers. Each has many printers, little data per printer, and data that legally or commercially can't be pooled. That's exactly where sharing pays, and the value grows with every lab that joins. Bioprinting is where we're headed; today it's direction, not a result."
 
-**9 · Close (2:45–3:00).** "Labs learn their printers together, and their data stays home. Print anywhere, trust the part." Stop talking.
+Slide 9 (validation and benchmarks) is for Q&A: click straight past it.
+
+**10 · Close (2:45–3:00).** "Labs learn their printers together, and their data stays home. Print anywhere, trust the part." Stop talking.
 
 ## The five points to land
 
