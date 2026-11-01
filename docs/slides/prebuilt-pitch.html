@@ -278,19 +278,19 @@ body { background: #05090f; }
   <div class="card"><svg viewBox="0 0 440 260" class="lchart" role="img" aria-label="One site lies (the honest site's error)"><text x="220.0" y="20" text-anchor="middle" class="ct">One site lies (the honest site's error)</text><line x1="50" x2="396" y1="210.0" y2="210.0" class="grid"/><text x="42" y="214.0" text-anchor="end" class="tick">0</text><line x1="50" x2="396" y1="168.4" y2="168.4" class="grid"/><text x="42" y="172.4" text-anchor="end" class="tick">22</text><line x1="50" x2="396" y1="126.9" y2="126.9" class="grid"/><text x="42" y="130.9" text-anchor="end" class="tick">44</text><line x1="50" x2="396" y1="85.3" y2="85.3" class="grid"/><text x="42" y="89.3" text-anchor="end" class="tick">66</text><line x1="50" x2="396" y1="43.8" y2="43.8" class="grid"/><text x="42" y="47.8" text-anchor="end" class="tick">88</text><text x="50.0" y="232" text-anchor="middle" class="tick">Round 1</text><text x="223.0" y="232" text-anchor="middle" class="tick">Round 2</text><text x="396.0" y="232" text-anchor="middle" class="tick">Round 3</text><polyline points="50.0,182.6 223.0,185.1 396.0,187.7" class="ln iso"/><circle cx="50.0" cy="182.6" r="4.5" class="dot iso"/><circle cx="223.0" cy="185.1" r="4.5" class="dot iso"/><circle cx="396.0" cy="187.7" r="4.5" class="dot iso"/><polyline points="50.0,183.7 223.0,190.2 396.0,190.5" class="ln ora"/><circle cx="50.0" cy="183.7" r="4.5" class="dot ora"/><circle cx="223.0" cy="190.2" r="4.5" class="dot ora"/><circle cx="396.0" cy="190.5" r="4.5" class="dot ora"/><polyline points="50.0,54.7 223.0,178.3 396.0,186.0" class="ln net"/><circle cx="50.0" cy="54.7" r="4.5" class="dot net"/><circle cx="223.0" cy="178.3" r="4.5" class="dot net"/><circle cx="396.0" cy="186.0" r="4.5" class="dot net"/><text x="14" y="125.0" transform="rotate(-90 14 125.0)" text-anchor="middle" class="tick">model error, µm</text></svg></div>
 </div>
 <p class="legend"><span class="k iso"></span>Learning alone<span class="k net"></span>Prebuilt network<span class="k ora"></span>Pooled raw data</p>
-<p class="foot">20 simulated worlds, registered config, error on held-out pieces. A liar spikes the honest site to 82.2 µm in round 1; trust collapses and it is back to 12.7 µm by round 3. With the consistency check on, round 1 stays at 13.3 µm.</p></div>
+<p class="foot">Average over 20 simulated fleets, registered config, error on held-out pieces. A liar spikes the honest site to 82.2 µm in round 1; trust collapses and it is back to 12.7 µm by round 3. With the consistency check on, round 1 stays at 13.3 µm.</p></div>
   <aside class="note">0:50–1:10. Twenty seconds, two points. Left: the network tracks the pooled-data line and beats learning alone every round. Right: a site that lies costs one round, then trust cuts it off; the consistency check removes even that round. Don't walk through it; the 3D view (viewer/demo.html) is for Q&A.</aside>
 </section>
 <section class="slide" id="s5" aria-label="Slide 5: The win is many sites, not many agents">
   <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>Results · simulation</span><span class="num">5 / 9</span></header>
   <h2>The win is many sites, not many agents</h2>
   <div class="body"><div class="stats">
-  <div class="card stat"><span class="n net">12%</span><span>lower error than learning alone, in 75 of 100 worlds. Pooling all raw data: also 12%.</span></div>
-  <div class="card stat"><span class="n ora">35%</span><span>with eight data-poor sites, better in 20 of 20 worlds.</span></div>
+  <div class="card stat"><span class="n net">12%</span><span>lower prediction error than a lab learning alone. The network won in 75 of 100 simulated fleets. Pooling all raw data: also 12%.</span></div>
+  <div class="card stat"><span class="n ora">35%</span><span>lower error with eight data-poor labs. The network won in 20 of 20 simulated fleets.</span></div>
   <div class="card stat"><span class="n amb sm">0 rounds</span><span>lost to a liar with the consistency check: 180 of 180 lies caught, 0 honest notes dropped.</span></div>
-  <div class="card stat"><span class="n">9&nbsp;µm</span><span>size error from a corrected design, against 132 µm drawn as-is (median, 60 worlds).</span></div>
+  <div class="card stat"><span class="n">9&nbsp;µm</span><span>size error from a corrected design, against 132 µm drawn as-is (median over 60 simulated fleets).</span></div>
 </div>
-<p class="foot">Hidden-truth simulation, registered config, paired per world. The consistency check is an added option, off in the registered config. The agent layer adds nothing measurable. At two sites the gain is 1.6 µm, below what a real part can show.</p></div>
+<p class="foot">Error: how far the model's predicted size of a pin or hole is from its true printed size, on held-out pieces it never trained on. A simulated fleet: printers whose true behavior is hidden from the model, run both ways and compared head to head. The agent layer adds nothing measurable.</p></div>
   <aside class="note">1:10–1:40. Simulation numbers, said plainly. The gain comes from sharing between sites, not from the agents. It grows with the number of data-poor sites. And what a lab actually gets is a corrected design: 9 µm off instead of 132.</aside>
 </section>
 <section class="slide" id="s6" aria-label="Slide 6: A real printer for scale, simulation to score">
@@ -326,21 +326,10 @@ body { background: #05090f; }
 <p class="foot">Buyers are our hypothesis, not yet validated with customers. Chart: lower error than learning alone at 2 / 4 / 8 data-poor sites, simulation. On sub-millimetre features the gain holds at 7–9% in simulation; bioprinting is direction, not a result.</p></div>
   <aside class="note">2:05–2:45. Name the buyer and why pooling is off the table: patient data and process IP. Then the bars: value grows with every lab that joins, a network effect. If asked about bioprinting: the gain holds on sub-mm features in simulation; real bioprinting is the direction, not a result.</aside>
 </section>
-<section class="slide bare" id="s8" aria-label="Slide 8: Print anywhere, trust the part">
-  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg></span><span class="num">8 / 9</span></header>
-  <h2>Print anywhere, trust the part</h2>
-  <div class="body"><div class="hero-title">
-  <svg class="logo-lg" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>
-  <p class="big-close">Print anywhere, trust the part</p>
-  <p class="tag">Labs learn their printers together. Their data stays home.</p>
-  <p class="meta">github.com/matte-realize/prebuilt · all sharing results in simulation</p>
-</div></div>
-  <aside class="note">2:45–3:00. End on the line. Stop talking.</aside>
-</section>
-<section class="slide" id="s9" aria-label="Slide 9: Many sites beat one; agents don't beat random">
-  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>Appendix · validation and benchmarks</span><span class="num">9 / 9</span></header>
+<section class="slide" id="s8" aria-label="Slide 8: Many sites beat one; agents don't beat random">
+  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>Validation and benchmarks</span><span class="num">8 / 9</span></header>
   <h2>Many sites beat one; agents don't beat random</h2>
-  <div class="body"><table class="bench"><thead><tr><th>Round 3, paired simulated worlds</th><th>Gain</th><th>Worlds better</th><th>p</th></tr></thead><tbody>
+  <div class="body"><table class="bench"><thead><tr><th>Round 3, simulated fleets, head to head</th><th>Lower error</th><th>Fleets where it wins</th><th>p</th></tr></thead><tbody>
 <tr><td>Network vs single site alone</td><td>12.3% (1.6&nbsp;µm)</td><td>75 / 100</td><td>&lt;0.001</td></tr>
 <tr><td>Pooled raw data (upper bound) vs alone</td><td>12.2%</td><td>64 / 100</td><td></td></tr>
 <tr><td>Agents only, messages cut, vs alone</td><td>2.4%</td><td>56 / 100</td><td>0.27</td></tr>
@@ -349,7 +338,18 @@ body { background: #05090f; }
 <tr><td>Negative control: nothing shared</td><td>−13.0% (adaptive spread −0.4%)</td><td>19 / 60</td><td>0.006</td></tr>
 </tbody></table>
 <p class="foot">Hidden-truth simulator, registered config, error against true size on held-out pieces, sign test over worlds. 90% intervals cover 90–91%. GPU posterior up to 84× NumPy on an H100. Reproduce: docs/validation-and-benchmarks.md.</p></div>
-  <aside class="note">Backup for Q&A: the multi-agent vs single-agent comparison. Many sites beat one site; many agents inside a site don't beat random. Say both.</aside>
+  <aside class="note">Skip when presenting; for Q&A. The multi-agent vs single-agent comparison. Many sites beat one site; many agents inside a site don't beat random. Say both.</aside>
+</section>
+<section class="slide bare" id="s9" aria-label="Slide 9: Print anywhere, trust the part">
+  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg></span><span class="num">9 / 9</span></header>
+  <h2>Print anywhere, trust the part</h2>
+  <div class="body"><div class="hero-title">
+  <svg class="logo-lg" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>
+  <p class="big-close">Print anywhere, trust the part</p>
+  <p class="tag">Labs learn their printers together. Their data stays home.</p>
+  <p class="meta">github.com/matte-realize/prebuilt · all sharing results in simulation</p>
+</div></div>
+  <aside class="note">2:45–3:00. End on the line. Stop talking.</aside>
 </section>
 </main>
 

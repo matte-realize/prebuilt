@@ -139,17 +139,17 @@ SLIDES = [
   <div class="card">{line_svg(LIAR, "One site lies (the honest site's error)")}</div>
 </div>
 {LEGEND}
-<p class="foot">20 simulated worlds, registered config, error on held-out pieces. A liar spikes the honest site to {LIAR["networked"][0]} µm in round 1; trust collapses and it is back to {LIAR["networked"][2]} µm by round 3. With the consistency check on, round 1 stays at {CHECKED["networked"][0]} µm.</p>""",
+<p class="foot">Average over 20 simulated fleets, registered config, error on held-out pieces. A liar spikes the honest site to {LIAR["networked"][0]} µm in round 1; trust collapses and it is back to {LIAR["networked"][2]} µm by round 3. With the consistency check on, round 1 stays at {CHECKED["networked"][0]} µm.</p>""",
      "0:50–1:10. Twenty seconds, two points. Left: the network tracks the pooled-data line and beats learning alone every round. Right: a site that lies costs one round, then trust cuts it off; the consistency check removes even that round. Don't walk through it; the 3D view (viewer/demo.html) is for Q&A."),
 
     ("", "Results · simulation", "The win is many sites, not many agents",
      f"""<div class="stats">
-  <div class="card stat"><span class="n net">12%</span><span>lower error than learning alone, in 75 of 100 worlds. Pooling all raw data: also 12%.</span></div>
-  <div class="card stat"><span class="n ora">{round(SITES[2]["pct"])}%</span><span>with eight data-poor sites, better in {SITES[2]["wins"]} of {SITES[2]["n"]} worlds.</span></div>
+  <div class="card stat"><span class="n net">12%</span><span>lower prediction error than a lab learning alone. The network won in 75 of 100 simulated fleets. Pooling all raw data: also 12%.</span></div>
+  <div class="card stat"><span class="n ora">{round(SITES[2]["pct"])}%</span><span>lower error with eight data-poor labs. The network won in {SITES[2]["wins"]} of {SITES[2]["n"]} simulated fleets.</span></div>
   <div class="card stat"><span class="n amb sm">0 rounds</span><span>lost to a liar with the consistency check: {CHECK["liar_caught"]} of {CHECK["liar_notes"]} lies caught, {CHECK["honest_dropped"]} honest notes dropped.</span></div>
-  <div class="card stat"><span class="n">9&nbsp;µm</span><span>size error from a corrected design, against 132 µm drawn as-is (median, 60 worlds).</span></div>
+  <div class="card stat"><span class="n">9&nbsp;µm</span><span>size error from a corrected design, against 132 µm drawn as-is (median over 60 simulated fleets).</span></div>
 </div>
-<p class="foot">Hidden-truth simulation, registered config, paired per world. The consistency check is an added option, off in the registered config. The agent layer adds nothing measurable. At two sites the gain is 1.6 µm, below what a real part can show.</p>""",
+<p class="foot">Error: how far the model's predicted size of a pin or hole is from its true printed size, on held-out pieces it never trained on. A simulated fleet: printers whose true behavior is hidden from the model, run both ways and compared head to head. The agent layer adds nothing measurable.</p>""",
      "1:10–1:40. Simulation numbers, said plainly. The gain comes from sharing between sites, not from the agents. It grows with the number of data-poor sites. And what a lab actually gets is a corrected design: 9 µm off instead of 132."),
 
     ("", "Rigor", "A real printer for scale, simulation to score",
@@ -181,17 +181,8 @@ SLIDES = [
 <p class="foot">Buyers are our hypothesis, not yet validated with customers. Chart: lower error than learning alone at 2 / 4 / 8 data-poor sites, simulation. On sub-millimetre features the gain holds at 7–9% in simulation; bioprinting is direction, not a result.</p>""",
      "2:05–2:45. Name the buyer and why pooling is off the table: patient data and process IP. Then the bars: value grows with every lab that joins, a network effect. If asked about bioprinting: the gain holds on sub-mm features in simulation; real bioprinting is the direction, not a result."),
 
-    ("close", "", "Print anywhere, trust the part",
-     f"""<div class="hero-title">
-  {logo("logo-lg")}
-  <p class="big-close">Print anywhere, trust the part</p>
-  <p class="tag">Labs learn their printers together. Their data stays home.</p>
-  <p class="meta">github.com/matte-realize/prebuilt · all sharing results in simulation</p>
-</div>""",
-     "2:45–3:00. End on the line. Stop talking."),
-
-    ("", "Appendix · validation and benchmarks", "Many sites beat one; agents don't beat random",
-     f"""<table class="bench"><thead><tr><th>Round 3, paired simulated worlds</th><th>Gain</th><th>Worlds better</th><th>p</th></tr></thead><tbody>
+    ("", "Validation and benchmarks", "Many sites beat one; agents don't beat random",
+     f"""<table class="bench"><thead><tr><th>Round 3, simulated fleets, head to head</th><th>Lower error</th><th>Fleets where it wins</th><th>p</th></tr></thead><tbody>
 <tr><td>Network vs single site alone</td><td>12.3% (1.6&nbsp;µm)</td><td>75 / 100</td><td>&lt;0.001</td></tr>
 <tr><td>Pooled raw data (upper bound) vs alone</td><td>12.2%</td><td>64 / 100</td><td></td></tr>
 <tr><td>Agents only, messages cut, vs alone</td><td>2.4%</td><td>56 / 100</td><td>0.27</td></tr>
@@ -200,7 +191,15 @@ SLIDES = [
 <tr><td>Negative control: nothing shared</td><td>−13.0% (adaptive spread −0.4%)</td><td>19 / 60</td><td>0.006</td></tr>
 </tbody></table>
 <p class="foot">Hidden-truth simulator, registered config, error against true size on held-out pieces, sign test over worlds. 90% intervals cover 90–91%. GPU posterior up to 84× NumPy on an H100. Reproduce: docs/validation-and-benchmarks.md.</p>""",
-     "Backup for Q&A: the multi-agent vs single-agent comparison. Many sites beat one site; many agents inside a site don't beat random. Say both."),
+     "Skip when presenting; for Q&A. The multi-agent vs single-agent comparison. Many sites beat one site; many agents inside a site don't beat random. Say both."),
+    ("close", "", "Print anywhere, trust the part",
+     f"""<div class="hero-title">
+  {logo("logo-lg")}
+  <p class="big-close">Print anywhere, trust the part</p>
+  <p class="tag">Labs learn their printers together. Their data stays home.</p>
+  <p class="meta">github.com/matte-realize/prebuilt · all sharing results in simulation</p>
+</div>""",
+     "2:45–3:00. End on the line. Stop talking.")
 ]
 
 EXTRA_CSS = """

@@ -180,17 +180,17 @@ async function main() {
   head(s, "Three rounds · simulation", "The network learns faster, and shrugs off a liar");
   lineChart(s, HONEST, M, 1.5, 4.35, 3.2, "All sites honest");
   lineChart(s, LIAR, M + 4.55, 1.5, 4.35, 3.2, "One site lies (the honest site's error)");
-  foot(s, `20 simulated worlds, registered config, error on held-out pieces. A liar spikes the honest site to ${LIAR.networked[0]} µm in round 1; trust collapses and it is back to ${LIAR.networked[2]} µm by round 3. With the consistency check on, round 1 stays at ${CHECKED.networked[0]} µm.`);
+  foot(s, `Average over 20 simulated fleets, registered config, error on held-out pieces. A liar spikes the honest site to ${LIAR.networked[0]} µm in round 1; trust collapses and it is back to ${LIAR.networked[2]} µm by round 3. With the consistency check on, round 1 stays at ${CHECKED.networked[0]} µm.`);
   s.addNotes("0:50–1:10. Twenty seconds, two points. Left: the network tracks the pooled-data line and beats learning alone every round. Right: a site that lies costs one round, then trust cuts it off; the consistency check removes even that round. Don't walk through it; the 3D view (viewer/demo.html) is for Q&A.");
 
   // 5 · results
   s = pres.addSlide({ masterName: "DARK" });
   head(s, "Results · simulation", "The win is many sites, not many agents");
   const stats = [
-    ["12%", "lower error than learning alone, in 75 of 100 worlds. Pooling all raw data: also 12%.", C.accent],
-    [`${Math.round(SITES[2].pct)}%`, `with eight data-poor sites, better in ${SITES[2].wins} of ${SITES[2].n} worlds.`, C.teal],
+    ["12%", "lower prediction error than a lab learning alone. The network won in 75 of 100 simulated fleets. Pooling all raw data: also 12%.", C.accent],
+    [`${Math.round(SITES[2].pct)}%`, `lower error with eight data-poor labs. The network won in ${SITES[2].wins} of ${SITES[2].n} simulated fleets.`, C.teal],
     ["0 rounds", `lost to a liar with the consistency check: ${CHECK.liar_caught} of ${CHECK.liar_notes} lies caught, ${CHECK.honest_dropped} honest notes dropped.`, C.amber],
-    ["9 µm", "size error from a corrected design, against 132 µm drawn as-is (median, 60 worlds).", C.ink],
+    ["9 µm", "size error from a corrected design, against 132 µm drawn as-is (median over 60 simulated fleets).", C.ink],
   ];
   stats.forEach(([big, sub, col], i) => {
     const x = M + i * 2.25;
@@ -198,7 +198,7 @@ async function main() {
     T(s, big, { x: x + 0.2, y: 1.8, w: 1.8, h: 0.75, fontFace: HEAD, fontSize: big.length > 4 ? 26 : 36, bold: true, color: col, valign: "middle" });
     T(s, sub, { x: x + 0.2, y: 2.75, w: 1.72, h: 1.7, fontSize: 12.5, color: C.muted });
   });
-  foot(s, "Hidden-truth simulation, registered config, paired per world. The consistency check is an added option, off in the registered config. The agent layer adds nothing measurable. At two sites the gain is 1.6 µm, below what a real part can show.");
+  foot(s, "Error: how far the model's predicted size of a pin or hole is from its true printed size, on held-out pieces it never trained on. A simulated fleet: printers whose true behavior is hidden from the model, run both ways and compared head to head. The agent layer adds nothing measurable.");
   s.addNotes("1:10–1:40. Simulation numbers, said plainly. The gain comes from sharing between sites, not from the agents. It grows with the number of data-poor sites. And what a lab actually gets is a corrected design: 9 µm off instead of 132.");
 
   // 6 · rigor
@@ -253,20 +253,12 @@ async function main() {
   foot(s, "Buyers are our hypothesis, not yet validated with customers. Chart: lower error than learning alone at 2 / 4 / 8 data-poor sites, simulation. On sub-millimetre features the gain holds at 7–9% in simulation; bioprinting is direction, not a result.");
   s.addNotes("2:05–2:45. Name the buyer and why pooling is off the table: patient data and process IP. Then the bars: value grows with every lab that joins, a network effect. If asked about bioprinting: the gain holds on sub-mm features in simulation; real bioprinting is the direction, not a result.");
 
-  // 8 · close
-  s = pres.addSlide({ masterName: "DARK" });
-  s.addImage({ data: LOGO, x: M, y: 1.2, w: 0.75, h: 0.75, altText: "Prebuilt logo" });
-  T(s, "Print anywhere, trust the part", { x: M, y: 2.15, w: 9, h: 0.8, fontFace: HEAD, fontSize: 38, bold: true });
-  T(s, "Labs learn their printers together. Their data stays home.", { x: M, y: 2.95, w: 9, h: 0.5, fontSize: 18, color: C.accent });
-  T(s, "github.com/matte-realize/prebuilt  ·  all sharing results in simulation", { x: M, y: 4.55, w: 9, h: 0.3, fontSize: 11, color: C.faint });
-  s.addNotes("2:45–3:00. End on the line. Stop talking.");
-
   // 9 · appendix
   s = pres.addSlide({ masterName: "DARK" });
-  head(s, "Appendix · validation and benchmarks", "Many sites beat one; agents don't beat random");
+  head(s, "Validation and benchmarks", "Many sites beat one; agents don't beat random");
   const H = (t) => ({ text: t, options: { bold: true, color: C.muted, fontSize: 10, fill: { color: C.card2 } } });
   const rows = [
-    [H("Round 3, paired simulated worlds"), H("Gain"), H("Worlds better"), H("p")],
+    [H("Round 3, simulated fleets, head to head"), H("Lower error"), H("Fleets where it wins"), H("p")],
     ["Network vs single site alone", "12.3% (1.6 µm)", "75 / 100", "<0.001"],
     ["Pooled raw data (upper bound) vs alone", "12.2%", "64 / 100", ""],
     ["Agents only, messages cut, vs alone", "2.4%", "56 / 100", "0.27"],
@@ -278,7 +270,15 @@ async function main() {
     x: M, y: 1.5, w: W - 2 * M, colW: [3.5, 2.7, 1.6, 1.1], fontFace: BODY, fontSize: 12, color: C.ink,
     border: { type: "solid", pt: 0.5, color: C.line }, rowH: 0.37, valign: "middle", margin: [0.03, 0.1, 0.03, 0.1] });
   foot(s, "Hidden-truth simulator, registered config, error against true size on held-out pieces, sign test over worlds. 90% intervals cover 90–91%. GPU posterior up to 84× NumPy on an H100. Reproduce: docs/validation-and-benchmarks.md.");
-  s.addNotes("Backup for Q&A: the multi-agent vs single-agent comparison. Many sites beat one site; many agents inside a site don't beat random. Say both.");
+  s.addNotes("Skip when presenting; for Q&A. The multi-agent vs single-agent comparison. Many sites beat one site; many agents inside a site don't beat random. Say both.");
+
+  // last · close
+  s = pres.addSlide({ masterName: "DARK" });
+  s.addImage({ data: LOGO, x: M, y: 1.2, w: 0.75, h: 0.75, altText: "Prebuilt logo" });
+  T(s, "Print anywhere, trust the part", { x: M, y: 2.15, w: 9, h: 0.8, fontFace: HEAD, fontSize: 38, bold: true });
+  T(s, "Labs learn their printers together. Their data stays home.", { x: M, y: 2.95, w: 9, h: 0.5, fontSize: 18, color: C.accent });
+  T(s, "github.com/matte-realize/prebuilt  ·  all sharing results in simulation", { x: M, y: 4.55, w: 9, h: 0.3, fontSize: 11, color: C.faint });
+  s.addNotes("2:45–3:00. End on the line. Stop talking.");
 
   const out = path.join(__dirname, "prebuilt-pitch.pptx");
   await pres.writeFile({ fileName: out });

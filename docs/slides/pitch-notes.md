@@ -1,6 +1,6 @@
 # 3-minute pitch: script, best points, Q&A
 
-Deck: `docs/slides/prebuilt-pitch.pptx` (PowerPoint or Keynote; rebuild with `node docs/slides/make_pptx.js`), PDF `prebuilt-pitch.pdf`, and the same slides in a browser: `prebuilt-pitch.html` (`python docs/slides/make_pitch.py`; double-click a slide for Present mode, arrows to move, Esc to exit). Eight slides plus a backup appendix. There is no live walkthrough: in three minutes it would cost a third of the time, so slide 4 is a static chart of three rounds. The 3D view (`viewer/demo.html`) and the full backup deck (`prebuilt-deck.html`) are for questions.
+Deck: `docs/slides/prebuilt-pitch.pptx` (PowerPoint or Keynote; rebuild with `node docs/slides/make_pptx.js`), PDF `prebuilt-pitch.pdf`, and the same slides in a browser: `prebuilt-pitch.html` (`python docs/slides/make_pitch.py`; double-click a slide for Present mode, arrows to move, Esc to exit). Nine slides, ending on the close; slide 8, validation and benchmarks, is skipped when presenting. There is no live walkthrough: in three minutes it would cost a third of the time, so slide 4 is a static chart of three rounds. The 3D view (`viewer/demo.html`) and the full backup deck (`prebuilt-deck.html`) are for questions.
 
 ## Who's in the room, and what each needs to hear
 
@@ -34,7 +34,9 @@ Rules for this room:
 
 **7 · Who it's for (2:05–2:45).** "Who needs this: hospital labs printing surgical guides, dental labs, microfluidics and bio labs, and device makers spread across contract printers. Each has many printers, little data per printer, and data that legally or commercially can't be pooled. That's exactly where sharing pays, and the value grows with every lab that joins. Bioprinting is where we're headed; today it's direction, not a result."
 
-**8 · Close (2:45–3:00).** "Labs learn their printers together, and their data stays home. Print anywhere, trust the part." Stop talking.
+Slide 8 (validation and benchmarks) is for Q&A: click straight past it.
+
+**9 · Close (2:45–3:00).** "Labs learn their printers together, and their data stays home. Print anywhere, trust the part." Stop talking.
 
 ## The five points to land
 
