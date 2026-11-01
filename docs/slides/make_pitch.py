@@ -103,123 +103,61 @@ LEGEND = ('<p class="legend"><span class="k iso"></span>Learning alone<span clas
           '<span class="k ora"></span>Pooled raw data</p>')
 
 SLIDES = [
-    ("title", "", "Prebuilt",
-     f"""<div class="hero-title">
-  <div class="brandline">{logo("logo-xl")}<span>Prebuilt</span></div>
-  <p class="tag">Every printer learns from every other. No data leaves.</p>
-  <p class="sub">Precision manufacturing for labs that can't share their data: each machine learns its own errors and gets better with every machine that joins. Patient scans, part geometry and measurements stay home.</p>
-  <p class="meta">ScienceClaw · Manufacturing &amp; Materials · MIT Media Lab</p>
-</div>""",
-     "0:00. Open on the one-liner and hold up the printed plate."),
-
-    ("", "The problem", "Labs that print can't share what they learn",
-     f"""<div class="two">
+    ("", "", "Prebuilt",
+     f"""<div class="brandline small">{logo("logo-md")}<span>Prebuilt</span></div>
+<p class="tag">Every printer learns from every other. No data leaves.</p>
+<div class="two">
   <div class="rows">
-    <div class="row">{tile("FaTooth")}<div><b>Guides, crowns and implants from patient scans</b><span>They must seat on the first print, and the scans are protected health data.</span></div></div>
-    <div class="row">{tile("FaFlask")}<div><b>Microfluidic chips and bioprinted scaffolds</b><span>Sub-millimetre features, and every test print costs days and material.</span></div></div>
-    <div class="row">{tile("FaPrint")}<div><b>Every printer is wrong in its own way</b><span>Holes print small and pins fat, by tens to hundreds of µm. Only printing reveals it.</span></div></div>
-    <p class="q">Can printers learn from each other without sharing a single measurement?</p>
+    <div class="row">{tile("FaPrint")}<div><b>Every printer is wrong in its own way</b><span>Holes print up to 250 µm small and pins up to 195 µm large (desktop SLA, CMM; Tehnički vjesnik 2026).</span></div></div>
+    <div class="row">{tile("FaTooth")}<div><b>In medicine, that decides the fit</b><span>Crowns, surgical guides and microfluidic chips must fit first time. A crown margin allows ~120 µm.</span></div></div>
+    <div class="row">{tile("FaLock")}<div><b>And labs can't pool what they learn</b><span>Patient scans and process recipes can't leave, so every lab re-learns its printer from scratch.</span></div></div>
   </div>
-  <figure class="card fig">{plate_svg()}<figcaption>The test plate: 24 pins and holes, 1–7 mm. Print it, measure it, know your printer.</figcaption></figure>
+  <figure class="card fig">{plate_svg()}<figcaption>The test plate: 24 pins and holes. Print it, measure it, know your printer.</figcaption></figure>
 </div>""",
-     "0:00–0:22. Hold up a printed plate. Hospitals, dental and bio labs print parts that must fit. The error belongs to each machine, you learn it by printing, and these labs can't pool what they learn: patient scans and process recipes can't leave."),
-
-    ("", "Built on proven science", "Each piece is proven. Doing it privately is new",
-     """<div class="steps">
-  <div class="card step"><span class="lbl">The error is real</span><span class="pn">−250&nbsp;µm</span><span>holes undersized and pins up to +195 µm on a desktop SLA printer, measured by CMM.</span><i>Tehnički vjesnik, 2026 (54 specimens, 5–20 mm)</i></div>
-  <div class="card step"><span class="lbl">Correcting it works</span><span class="pn">Model → fix</span><span>learn each printer's shape error, then print a compensated design.</span><i>Huang, Zhang, Sabbaghi, Dasgupta, IISE Transactions 47(5), 2015</i></div>
-  <div class="card step"><span class="lbl">Sharing helps</span><span class="pn">Data-poor</span><span>printers predict quality better by learning jointly with other printers.</span><i>Wei, Wang, Dickens, Chi, IISE Transactions 55(4), 2023; Sabbaghi &amp; Huang, Ann. Appl. Stat. 12(4), 2018</i></div>
-</div>
-<div class="card banner"><p><b class="gap">The gap:</b> cross-printer learning so far pools raw data or moves models centrally, and federated learning in printing covers defect images (Tang et al., RCIM 2024). Prebuilt shares three numbers, and nothing else leaves the lab.</p></div>""",
-     "0:22–0:42. Every ingredient is published: the error is hundreds of microns, correcting it from a learned model works, and printers learn faster together. What nobody has done is that last part without the data leaving the lab. That's us."),
+     "0:00–0:40. Hold up the printed plate. Every printer is wrong in its own way; in a hospital or dental lab that decides the fit; and those labs can't pool what they learn. Prebuilt: every printer learns from every other, and no data leaves."),
 
     ("", "How it works", "Learn locally, share three numbers",
      f"""<div class="steps">
-  <div class="card step">{tile("FaPrint")}<b>1&nbsp; Print a test plate</b><span>24 pins and holes. Measure them by micrometer or flatbed scanner.</span></div>
+  <div class="card step">{tile("FaPrint")}<b>1&nbsp; Print a test plate</b><span>24 pins and holes, measured by micrometer or flatbed scanner.</span></div>
   <div class="card step">{tile("FaRulerCombined")}<b>2&nbsp; Learn your printer</b><span>A physics model of your machine, fit locally on your own data.</span></div>
-  <div class="card step">{tile("FaExchangeAlt")}<b>3&nbsp; Share three numbers</b><span>Mean and spread of 3 parameters every printer shares. Schema-checked, logged on a receipt.</span></div>
+  <div class="card step">{tile("FaExchangeAlt")}<b>3&nbsp; Share three numbers</b><span>Mean and spread of 3 parameters every printer shares, logged on a receipt.</span></div>
 </div>
-<div class="card banner">{tile("FaLock", "teal")}<p><b>Never leaves the lab:</b> patient scans, part geometry, measurements, machine settings. A replayable privacy audit checks every crossing: 0 measurements crossed.</p></div>""",
-     "0:42–1:00. That's the whole interface: three numbers out, nothing else. Errors every printer shares (small features shrink, edges drift) are learned together; everything else stays local. Results are scored on simulated printers whose true behavior we know."),
-
-    ("", "Three rounds · simulation", "The network learns faster, and shrugs off a liar",
-     f"""<div class="charts">
-  <div class="card">{line_svg(HONEST, "All sites honest")}</div>
-  <div class="card">{line_svg(LIAR, "One site lies (the honest site's error)")}</div>
-</div>
-{LEGEND}""",
-     "1:00–1:15. Fifteen seconds, two points. Left: the network tracks the pooled-data line and beats learning alone every round. Right: a site that lies costs one round, then trust cuts it off; the consistency check removes even that round. Don't walk through it; the 3D view (viewer/demo.html) is for Q&A."),
+<div class="card banner">{tile("FaLock", "teal")}<p><b>Never leaves the lab:</b> patient scans, part geometry, measurements, machine settings. A replayable audit checks every crossing.</p></div>
+<div class="card banner"><p><b class="gap">What's new:</b> correcting printer error (Huang et al. 2015) and learning across printers (Wei et al. 2023) are proven, but pool the data. Prebuilt does it privately.</p></div>""",
+     "0:40–1:15. Three numbers out, nothing else, and an audit replays every crossing. Every ingredient is published; what nobody had done is doing it without the data leaving the lab."),
 
     ("", "Results · simulation", "Parts that fit, and new labs get there faster",
      f"""<div class="stats">
-  <div class="card stat"><span class="n net">9&nbsp;µm</span><span>size error from a corrected design, against 132 µm drawn as-is. For scale: crown margins must be under ~120 µm.</span></div>
-  <div class="card stat"><span class="n ora">{round(SITES[2]["pct"])}%</span><span>lower error for labs with little data when eight share. The network won {SITES[2]["wins"]} of {SITES[2]["n"]} simulated fleets.</span></div>
-  <div class="card stat"><span class="n">12%</span><span>lower error with just two labs, matching what pooling all raw data gives (won 75 of 100 fleets).</span></div>
-  <div class="card stat"><span class="n amb sm">0 rounds</span><span>lost to a lying lab with the consistency check: {CHECK["liar_caught"]} of {CHECK["liar_notes"]} lies caught, {CHECK["honest_dropped"]} honest notes dropped.</span></div>
+  <div class="card stat"><span class="n net">9&nbsp;µm</span><span>size error from a corrected design, against 132 µm drawn as-is.</span></div>
+  <div class="card stat"><span class="n ora">{round(SITES[2]["pct"])}%</span><span>lower error for data-poor labs when eight share (won {SITES[2]["wins"]} of {SITES[2]["n"]} fleets).</span></div>
+  <div class="card stat"><span class="n">12%</span><span>lower error with just two labs, matching pooling all raw data.</span></div>
+  <div class="card stat"><span class="n amb sm">0 rounds</span><span>lost to a lying lab: {CHECK["liar_caught"]} of {CHECK["liar_notes"]} lies caught, {CHECK["honest_dropped"]} honest notes dropped.</span></div>
+</div>
+<div class="steps">
+  <div class="card step rig"><b>Registered first</b><span>Claims committed, with a hash, before the first print.</span></div>
+  <div class="card step rig"><b>Negative control</b><span>Printers that share no physics gain nothing: the gain is real.</span></div>
+  <div class="card step rig"><b>Real printer</b><span>A Form Studio 1 pin: 1.44 mm for 1.50, inside the ±0.08&nbsp;mm spec.</span></div>
 </div>""",
-     "1:15–1:45. Lead with what a lab gets: a corrected design that misses by 9 microns instead of 132, well under the ~120 micron margin a dental crown needs. Then the network: labs with little data get 35% lower error when eight share, so new labs need fewer test prints. Two labs already match pooling the data. A lying lab costs nothing with the check. If asked about agents: the win is sharing between labs, not smarter piece selection, and we say so."),
-
-    ("", "Rigor", "A real printer for scale, simulation to score",
-     """<div class="two">
-  <ol class="tl">
-    <li><b>Registered first</b><span>Every claim and prediction was committed, with its hash on record, before the first print.</span></li>
-    <li><b>Negative control</b><span>When printers share no physics, sharing gains nothing. The gain isn't built into the scoring.</span></li>
-    <li><b>Scored against known truth</b><span>Simulation checks every prediction against the true printed size, which a real measurement can't: two micrometer readings of one pin differ by 65 µm.</span></li>
-  </ol>
-  <div class="card pin">
-    <span class="lbl">Real printer · Form Studio 1</span>
-    <span class="n">1.44<small> mm</small></span>
-    <span class="muted">a 1.50 mm pin, by micrometer (two readings: 1.41 and 1.48)</span>
-    <ul><li class="ok">Inside the vendor's ±0.08&nbsp;mm spec</li><li class="edge">Inside the simulator, at its small edge</li><li>Next: calibrate on the full 24-piece plate</li></ul>
-  </div>
-</div>""",
-     "1:45–2:05. Hold up the printed plate. The real printer tells us the simulator is the right size: this pin is inside its range, at the small edge (1.8th percentile), so say 'edge', not 'middle'. The negative control shows the simulator doesn't hand us the result. Don't claim a fit on the real printer."),
+     "1:15–2:10. What a lab gets, what the network adds, and the rigor underneath."),
 
     ("", "Who it's for", "For anyone whose precision is a trade secret",
      f"""<div class="who2">
   <span class="glbl net">Now · medical and bio</span>
   <div class="grid3">
-    <div class="card who">{tile("FaHospital")}<b>Hospital 3D-printing labs</b><span>Surgical guides from patient scans. Scans stay in-house.</span></div>
-    <div class="card who">{tile("FaTooth")}<b>Dental labs</b><span>Crowns and aligners must seat first time. Patient data can't pool.</span></div>
-    <div class="card who">{tile("FaMicroscope")}<b>Bio and microfluidics labs</b><span>Sub-mm lab-on-chip parts. Recipes are IP.</span></div>
+    <div class="card who chip">{tile("FaHospital")}<b>Hospital 3D-printing labs</b></div>
+    <div class="card who chip">{tile("FaTooth")}<b>Dental labs</b></div>
+    <div class="card who chip">{tile("FaMicroscope")}<b>Bio and microfluidics labs</b></div>
   </div>
   <span class="glbl amb">Next · high-precision industry</span>
   <div class="grid3">
-    <div class="card who">{tile("FaMicrochip", "amb")}<b>Chip makers, GPU packaging</b><span>Every nanometre is yield, and process recipes are the company.</span></div>
-    <div class="card who">{tile("FaShieldAlt", "amb")}<b>Defense and aerospace</b><span>Export-controlled technical data can't leave the site.</span></div>
-    <div class="card who">{tile("FaCogs", "amb")}<b>MEMS and nanotech</b><span>Sub-micron parts, closely held processes, scarce test data.</span></div>
+    <div class="card who chip">{tile("FaMicrochip", "amb")}<b>Chip makers, GPU packaging</b></div>
+    <div class="card who chip">{tile("FaShieldAlt", "amb")}<b>Defense and aerospace</b></div>
+    <div class="card who chip">{tile("FaCogs", "amb")}<b>MEMS and nanotech</b></div>
   </div>
 </div>
-<div class="card banner"><p><b class="gap">Value grows with every member:</b> {round(SITES[0]["pct"])}% → {round(SITES[1]["pct"])}% → {round(SITES[2]["pct"])}% lower error at 2 / 4 / 8 labs (simulation).</p></div>""",
-     "2:05–2:30. Start with who we serve now: hospital, dental and bio labs that print and legally can't pool patient data. Then the bigger prize: anyone whose precision is a trade secret. Chip makers and GPU packaging, defense and aerospace under export control, MEMS and nanotech. Same problem, same constraint, and the network gets more valuable with every member."),
-
-    ("", "Where this goes", "Today printed parts. Next, every precision machine",
-     f"""<div class="steps ladder">
-  <div class="card step">{tile("FaPrint")}<span class="lbl net">Today · 3D printing</span><span class="pn">132 → 9&nbsp;µm</span><span>Medical and bio labs: corrected designs that fit the first time, learned across labs (simulation).</span></div>
-  <div class="card step">{tile("FaDna", "teal")}<span class="lbl">Next · micro-scale</span><span class="pn">Sub-mm</span><span>Microfluidics and bioprinting: the sharing gain holds at 7–9% on sub-millimetre features (simulation).</span></div>
-  <div class="card step">{tile("FaMicrochip", "amb")}<span class="lbl amb">Vision · semiconductors</span><span class="pn">Nanometres</span><span>Fabs and GPU packaging lines: tool data already sits in private silos, and learning across them nears a pooled model (imec, 2021).</span></div>
-</div>
-<div class="card banner"><p><b class="gap">One rule at every scale:</b> machines learn their errors together; recipes, designs and measurements stay home. Fewer misprints, higher yield.</p></div>""",
-     "2:30–2:48. Paint the path: today printed parts for medical and bio labs; next micro-scale, where the gain already holds in simulation; then any precision machine whose owners can't share data. Semiconductor fabs already keep tool data in silos, and imec showed learning across those silos approaches a pooled model. Same rule, nanometre stakes. This is the vision, not today's result."),
-    ("", "Validation and benchmarks", "The network beats every single-lab baseline",
-     f"""<table class="bench"><thead><tr><th>Round 3, simulated fleets, head to head</th><th>Lower error</th><th>Fleets where it wins</th><th>p</th></tr></thead><tbody>
-<tr><td>Network vs single site alone</td><td>12.3% (1.6&nbsp;µm)</td><td>75 / 100</td><td>&lt;0.001</td></tr>
-<tr><td>Pooled raw data (upper bound) vs alone</td><td>12.2%</td><td>64 / 100</td><td></td></tr>
-<tr><td>Ablation: sharing off, same agents</td><td>2.4%</td><td>56 / 100</td><td>0.27</td></tr>
-<tr><td>Ablation: agents vs random test pieces</td><td>+1.0%</td><td>31 / 60</td><td>0.90</td></tr>
-<tr><td>4 / 8 data-poor sites vs alone</td><td>{SITES[1]["pct"]:.1f}% / {SITES[2]["pct"]:.1f}%</td><td>{SITES[1]["wins"]}/{SITES[1]["n"]} · {SITES[2]["wins"]}/{SITES[2]["n"]}</td><td>&lt;0.001</td></tr>
-<tr><td>Negative control: nothing shared</td><td>−13.0% (adaptive spread −0.4%)</td><td>19 / 60</td><td>0.006</td></tr>
-</tbody></table>
-<p class="foot">Hidden-truth simulator, registered config, error against true size on held-out pieces, sign test over worlds. 90% intervals cover 90–91%. GPU posterior up to 84× NumPy on an H100. Reproduce: docs/validation-and-benchmarks.md.</p>""",
-     "Skip when presenting; for Q&A. The multi-agent vs single-agent comparison. Many sites beat one site; many agents inside a site don't beat random. Say both."),
-    ("close", "", "Print anywhere, trust the part",
-     f"""<div class="hero-title">
-  {logo("logo-lg")}
-  <p class="big-close">Print anywhere, trust the part</p>
-  <p class="tag">Machines learn their errors together. Their data stays home. From microns today to nanometres next.</p>
-  <p class="meta">github.com/matte-realize/prebuilt</p>
-</div>""",
-     "2:48–3:00. End on the line. Stop talking.")
+<div class="card banner"><p><b class="gap">Value grows with every member:</b> {round(SITES[0]["pct"])}% → {round(SITES[1]["pct"])}% → {round(SITES[2]["pct"])}% lower error at 2 / 4 / 8 labs. From microns today to nanometres next.</p></div>
+<p class="endline">{logo("logo-sm")}<span>Print anywhere, trust the part.</span><span class="meta">github.com/matte-realize/prebuilt</span></p>""",
+     "2:10–3:00. Anyone whose precision is a trade secret: medical and bio today; chips, defense, MEMS and nanotech next. Print anywhere, trust the part."),
 ]
 
 EXTRA_CSS = """
@@ -260,6 +198,10 @@ body { background: #05090f; }
 .step .pn { font: 700 3.2cqw/1.1 var(--display); color: var(--ink); }
 .step i { font-size: 1.15cqw; color: var(--muted); opacity: .8; }
 .banner b.gap { color: var(--accent); }
+.brandline.small { font-size: 4.6cqw; gap: 1.4cqw; } .logo-md { width: 5cqw; height: 5cqw; } .logo-sm { width: 3.4cqw; height: 3.4cqw; }
+.step.rig { background: var(--card2); padding: 1.6cqw 2cqw; gap: .6cqw; } .step.rig b { color: var(--teal); }
+.who.chip { grid-template-columns: auto 1fr; padding: 1.2cqw 1.4cqw; } 
+.endline { display: flex; align-items: center; gap: 1.4cqw; font: 700 3cqw var(--display); margin: .6cqw 0 0; max-width: none; } .endline .meta { margin-left: auto; font: 400 1.3cqw var(--body); color: var(--muted); }
 .who2 { display: grid; gap: 1cqw; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6cqw; margin-bottom: .8cqw; }
 .glbl { font: 700 1.1cqw var(--mono); letter-spacing: .14em; text-transform: uppercase; } .glbl.net { color: var(--accent); } .glbl.amb { color: var(--amber); }
@@ -308,7 +250,7 @@ body { background: #05090f; }
 .sub { font-size: 2cqw; color: var(--muted); margin: 0; max-width: 60ch; }
 .hero-title .meta { font-size: 1.3cqw; color: var(--muted); margin-top: 3cqw; }
 .big-close { font: 700 5.6cqw/1.1 var(--display); margin: 0; max-width: none; }
-.slide.bare header { visibility: hidden; } .slide.bare h2 { display: none; }
+.slide.first header { visibility: hidden; } .slide.first h2 { display: none; } .slide.first .body { gap: 1.2cqw; }
 .bench { width: 100%; border-collapse: collapse; font-size: 1.6cqw; }
 .bench th { text-align: left; font: 600 1.25cqw var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: var(--card2); }
 .bench th, .bench td { padding: 1cqw 1.4cqw; border: 1px solid var(--line); }
@@ -329,7 +271,7 @@ body { background: #05090f; }
 def render() -> str:
     sections = []
     for i, (kind, kicker, title, body, note) in enumerate(SLIDES, 1):
-        cls = "slide bare" if kind in ("title", "close") else "slide"
+        cls = "slide first" if i == 1 else "slide"
         sections.append(f"""<section class="{cls}" id="s{i}" aria-label="Slide {i}: {title}">
   <header><span class="kick">{logo()}{kicker}</span><span class="num">{i} / {len(SLIDES)}</span></header>
   <h2>{title}</h2>
