@@ -119,8 +119,11 @@ function lineChart(slide, data, x, y, w, h, title) {
   });
 }
 
-const NOTES_OUT = process.env.PREBUILT_NOTES_OUT;   // presenter copy with speaker notes, kept outside the repo
-const note = (slide, t) => { if (NOTES_OUT) slide.addNotes(t); };
+// Presenter copy: PREBUILT_NOTES_OUT=<deck.pptx> PREBUILT_NOTES=<notes.json> adds speaker notes (a JSON list of strings, one per slide).
+// Neither file lives in the repo; the committed deck has no notes.
+const NOTES_OUT = process.env.PREBUILT_NOTES_OUT;
+const NOTES = NOTES_OUT && process.env.PREBUILT_NOTES ? JSON.parse(fs.readFileSync(process.env.PREBUILT_NOTES, "utf8")) : [];
+const note = (slide, i) => { if (NOTES_OUT && NOTES[i]) slide.addNotes(NOTES[i]); };
 
 async function main() {
   LOGO = await png(fs.readFileSync(path.join(ROOT, "assets/logo.svg"), "utf8"), 512);
@@ -145,7 +148,7 @@ async function main() {
   card(s, 6.55, 1.95, 2.9, 2.85, C.card);
   plate(s, 6.85, 2.12, 2.3);
   T(s, "Our test plate on a Formlabs Form Studio 1: a 1.50 mm pin printed at 1.44 mm.", { x: 6.8, y: 4.45, w: 2.45, h: 0.32, fontSize: 9.5, color: C.muted });
-  note(s, "0:00–0:40. Hold up the printed plate. Every printer is wrong in its own way: published measurements show desktop resin printers missing by up to a quarter of a millimetre. In a hospital or dental lab that decides whether a crown seats or a guide fits. And those labs can't pool what they learn, because patient scans and process recipes can't leave. So every lab starts from scratch. Prebuilt: every printer learns from every other, and no data leaves.");
+  note(s, 0);
 
   // 2 · how it works
   s = pres.addSlide({ masterName: "DARK" });
@@ -171,7 +174,7 @@ async function main() {
   T(s, [{ text: "What's new: ", options: { bold: true, color: C.accent } },
         { text: "correcting printer error (Huang et al. 2015) and learning across printers (Wei et al. 2023) are proven, but pool the data. Prebuilt does it privately.", options: { color: C.ink } }],
     { x: M + 0.25, y: 4.25, w: W - 2 * M - 0.5, h: 0.6, fontSize: 12.5, valign: "middle" });
-  note(s, "0:40–1:15. Each lab prints this plate and fits a model of its own machine, locally. The only thing that leaves is three numbers, logged on a receipt, and an audit replays every crossing. Every ingredient is published: correcting printer error from a learned model works, and printers learn faster together. What nobody had done is that without the data leaving the lab.");
+  note(s, 1);
 
   // 3 · results
   s = pres.addSlide({ masterName: "DARK" });
@@ -207,7 +210,7 @@ async function main() {
     row(["Control: printers that share no physics", "no gain", "19 / 60", ""], 3),
   ], { x: M, y: 3.68, w: W - 2 * M, colW: [4.6, 1.8, 1.5, 1.0], fontFace: BODY, fontSize: 11, color: C.ink,
     border: { type: "solid", pt: 0.5, color: C.line }, rowH: 0.25, valign: "middle", margin: [0.02, 0.1, 0.02, 0.1] });
-  note(s, "1:15–2:10. In simulation, scored against the true printed size. Left: a corrected design misses by 9 microns instead of 132. Middle: labs with little data get lower error the more labs share, 35% at eight, so new labs need fewer test prints. Right: a lying lab spikes error in round one; with the consistency check, nothing happens. The table: two labs already match pooling all the raw data, and when printers share no physics there's no gain, so the gain is real.");
+  note(s, 2);
 
   // 4 · who + where + close
   s = pres.addSlide({ masterName: "DARK" });
@@ -233,7 +236,7 @@ async function main() {
   s.addImage({ data: LOGO, x: M, y: 4.3, w: 0.45, h: 0.45, altText: "Prebuilt logo" });
   T(s, "Print anywhere, trust the part.", { x: M + 0.6, y: 4.28, w: 6, h: 0.5, fontFace: HEAD, fontSize: 24, bold: true, valign: "middle" });
   T(s, "github.com/matte-realize/prebuilt", { x: 6.6, y: 4.38, w: 2.85, h: 0.3, fontSize: 11, color: C.faint, align: "right", valign: "middle" });
-  note(s, "2:10–3:00. Who needs this: anyone whose precision is a trade secret. Today, hospital, dental and bio labs that legally can't pool patient data. Next, chip makers and GPU packaging lines where every nanometre is yield, defense and aerospace under export control, MEMS and nanotech. Same problem, same constraint, and the network gets more valuable with every member. From microns today to nanometres next. Print anywhere, trust the part.");
+  note(s, 3);
 
   const out = NOTES_OUT || path.join(__dirname, "prebuilt-pitch.pptx");
   await pres.writeFile({ fileName: out });
