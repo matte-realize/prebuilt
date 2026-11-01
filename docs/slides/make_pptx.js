@@ -183,10 +183,10 @@ async function main() {
   ];
   stats.forEach(([big, sub, c], i) => {
     const x = 0.5 + i * 3.1;
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y: 1.6, w: 2.8, h: 3.0, rectRadius: 0.12,
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y: 1.6, w: 2.8, h: 2.75, rectRadius: 0.12,
       fill: { color: COL.sheet }, line: { color: COL.line, width: 1 } });
     text(s, big, { x: x + 0.25, y: 1.85, w: 2.3, h: 0.95, fontFace: HEAD, fontSize: 36, bold: true, color: c });
-    text(s, sub, { x: x + 0.25, y: 2.9, w: 2.3, h: 1.6, fontSize: 13, color: COL.ink });
+    text(s, sub, { x: x + 0.25, y: 2.75, w: 2.3, h: 1.5, fontSize: 14, color: COL.ink });
   });
   footnote(s, "Hidden-truth simulation, registered config, paired per world. The consistency check is an added option, off in the registered config. The agent layer adds nothing measurable. At two sites the gain is 1.6 µm, below what a real part can show, so we claim it in simulation only.");
   s.addNotes("1:30–2:00. Say it plainly: these are simulation numbers, the gain comes from sharing between sites, not from the agents, and at two sites it is a couple of microns. It grows with the number of data-poor sites.");
@@ -196,7 +196,7 @@ async function main() {
   s.background = { color: COL.sheet };
   header(s, LOGO, "Rigor", "A real printer for scale, simulation to score");
   const steps = [
-    ["Real printer", "Formlabs Form Studio 1: a 1.5 mm pin measured 1.41–1.48 mm by micrometer, 24–89 µm small."],
+    ["Real printer", "Formlabs Form Studio 1: a 1.5 mm pin measured 1.41–1.48 mm by micrometer, 24\u201189\u00A0µm small."],
     ["Vendor spec", "±0.08 mm on 1–30 mm features. Real error is tens of µm, as the spec says."],
     ["Simulator", "Simulated resin pins miss by −0.1 to +0.27 mm. The real pin is inside, at the small edge: each printer must learn its own error."],
     ["Why not real", "The sharing gain is 1.6 µm. Two readings of one pin differed by 65 µm. Only hidden truth can score it."],
@@ -227,7 +227,7 @@ async function main() {
     text(s, d, { x: 3.05, y, w: 2.9, h: 0.6, fontSize: 12, color: COL.nightMuted });
   });
   text(s, [{ text: "What they get: ", options: { bold: true, color: COL.nightInk } },
-           { text: "parts that fit the first time (corrected designs: size error 132 → 9 µm), and sharing that stays safe when printers differ.", options: { color: COL.nightMuted } }],
+           { text: "parts that fit the first time (corrected designs: size error 132\u00A0→\u00A09\u00A0µm), and sharing that stays safe when printers differ.", options: { color: COL.nightMuted } }],
     { x: 0.5, y: 4.3, w: 5.45, h: 0.6, fontSize: 12 });
   s.addChart(pres.charts.BAR, [{ name: "Lower error than alone", labels: SITES.map((r) => `${r.sites} sites`), values: SITES.map((r) => Math.round(r.pct)) }], {
     x: 6.2, y: 1.45, w: 3.4, h: 3.3, barDir: "col", chartColors: [COL.net], barGapWidthPct: 60,
@@ -255,7 +255,7 @@ async function main() {
     ["Negative control: nothing shared", "−13.0% (adaptive spread: −0.4%)", "19 / 60", "0.006"],
   ];
   s.addTable(rows, { x: 0.5, y: 1.5, w: 9.0, colW: [3.6, 2.6, 1.7, 1.1], fontFace: BODY, fontSize: 12, color: COL.ink,
-    border: { type: "solid", pt: 0.5, color: COL.line }, rowH: 0.38, valign: "middle", margin: [0, 6, 0, 6] });
+    border: { type: "solid", pt: 0.5, color: COL.line }, rowH: 0.38, valign: "middle", margin: [0.03, 0.08, 0.03, 0.08] });
   footnote(s, "Hidden-truth simulator, registered config, error against true size on held-out pieces, sign test over worlds. 90% intervals cover 90–91%. GPU posterior up to 84× NumPy on an H100. Reproduce every row: docs/validation-and-benchmarks.md.");
   s.addNotes("Backup for Q&A: the multi-agent vs single-agent comparison. Many sites beat one site; many agents inside a site don't beat random. Say both.");
 
