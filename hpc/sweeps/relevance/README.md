@@ -227,3 +227,14 @@ Matched pairs keep full weight; mismatched pairs are down-weighted on average, b
 
 - **What it shows:** in a mixed fleet, matched sites still gain, and the defences make the gain larger (+16% → +25% at 8 sites) while cutting the harm to unmatched sites (−15% → −1%). The fixed spread lets unmatched sites pull matched ones off; down-weighting them helps both sides.
 - **What it doesn't:** trust doesn't yet cleanly sort senders into "listen" and "ignore" within three rounds; it nudges. Unmatched sites still don't gain (they have no one to learn from) and the 8-site run is 20 worlds. Simulation only; added options, off in the registered config.
+
+## 12. Corrected designs: a calibrated interval (60 worlds, seed plate fit, simulation)
+
+`compensate_calibration.py` fits each site on its full seed plate (1000 particles), asks `model.compensate` for pins and holes at 2, 3, 5, 7 mm, and compares with the simulator's true printed size at the draw size. 960 cases. `analyze_compensate_calibration.py` writes `results/compensate-calibration-summary.json`.
+
+- **Corrected designs work:** median |true printed − target| 132 µm drawn as-is → 9 µm corrected (90th percentile 305 → 21 µm), corrected closer in 97% of cases. The earlier 118 → 6 µm was the first 10 of these worlds.
+- **The old interval was overconfident.** The 90% printer-mean interval (parameter uncertainty only) covered 69% of true sizes. The leftover error has no bias (within ±2 µm per site and kind) but is wider than the posterior thinks: residual sd 11–14 µm against a model sd of 7–9 µm. The simulator has effects the model lacks, so this is model discrepancy, not a bug.
+- **Fix:** a pooled discrepancy term, 8.6 µm, added in quadrature to both intervals (`model.compensate.DISCREPANCY_MM`, `discrepancy=False` to turn it off). Two-fold cross-validation (fit on worlds 0–29, cover 30–59, and the reverse): 96% and 81%, mean 88%. Worlds differ in how heavy their tails are, so one half alone over- or under-states it. 90% half-width becomes about 16–24 µm.
+- Per site and kind (fit on 0–29, test on 30–59) the term would be 7–11 µm; one pooled value is simpler and about as good.
+
+Caveat: calibrated against this simulator. A real printer will have its own discrepancy; the hand-measurement sheet is how to estimate it.

@@ -40,6 +40,12 @@ from model.physics import PieceArrays
 from plates import spec
 
 Q = 0.9
+# Model discrepancy, mm: the spread of (true printer mean - posterior-mean prediction) that the
+# posterior's own uncertainty doesn't cover (simulator effects the model lacks). Added in quadrature
+# to both intervals. One pooled value fitted on 60 simulated worlds; without it the 90% printer-mean
+# interval covered 69% of true sizes, two-fold cross-validated cover with it is 81-96% (mean 88%).
+# hpc/sweeps/relevance/compensate_calibration.py, README section 12.
+DISCREPANCY_MM = 0.0086
 DEFAULT_TARGETS = (2.0, 3.0, 5.0, 7.0)  # mm, the console's default table
 
 
@@ -62,12 +68,14 @@ def predicted_mean(post, kind: str, d, at=(0.0, 0.0), site: str | None = None) -
     return np.exp(post.logw) @ mu
 
 
-def _draws(post, kind: str, d: float, at, site, rng, k: int):
-    """Weighted particle draws at nominal d: (model-only means [k], predictive draws [k])."""
+def _draws(post, kind: str, d: float, at, site, rng, k: int, delta: float = 0.0):
+    """Weighted particle draws at nominal d: (model-only means [k], predictive draws [k], raw means [k]).
+    delta (mm) is the model discrepancy, added to both."""
     mu, s = post.predictive_components(_pieces(kind, d, at), site)
     idx = rng.choice(len(post.logw), size=k, p=np.exp(post.logw - np.logaddexp.reduce(post.logw)))
-    m = mu[idx, 0]
-    return m, m + s[idx] * rng.standard_normal(k)
+    raw = mu[idx, 0]
+    m = raw + delta * rng.standard_normal(k)
+    return m, m + s[idx] * rng.standard_normal(k), raw
 
 
 def _ivl(x: np.ndarray, q: float) -> list[float]:
@@ -76,7 +84,7 @@ def _ivl(x: np.ndarray, q: float) -> list[float]:
 
 
 def compensate(post, kind: str, target_d: float, at=(0.0, 0.0), site: str | None = None,
-               q: float = Q, k: int = 20000, seed: int = 0, tol: float = 1e-5) -> dict:
+               q: float = Q, k: int = 20000, seed: int = 0, tol: float = 1e-5, discrepancy: bool = True) -> dict:
     """Nominal to draw so the printed `kind` comes out at `target_d` mm, on the printer `post` was fit to.
 
     post: a fitted ParticlePosterior (or anything with predictive_components and logw);
@@ -84,7 +92,9 @@ def compensate(post, kind: str, target_d: float, at=(0.0, 0.0), site: str | None
       draw_d          mm to draw (clipped to the plate range D_MIN..D_MAX)
       predicted_d     posterior-mean printed size when drawn at draw_d
       interval        q predictive interval of the printed size at draw_d (one piece, with scatter)
-      model_interval  q interval of the printer's mean at draw_d (parameter uncertainty only)
+      model_interval  q interval of the printer's mean at draw_d (parameter uncertainty, plus the
+                      calibrated model discrepancy unless discrepancy=False)
+      model_sd        sd of the posterior's mean prediction at draw_d (parameter uncertainty only)
       shift_um        draw_d - target_d, in µm
       as_drawn        the same three numbers if you just drew it at target_d
       clipped / notes when the target can't be reached in range, or is outside the fitted range.
@@ -115,12 +125,14 @@ def compensate(post, kind: str, target_d: float, at=(0.0, 0.0), site: str | None
     if draw < 2.0:
         notes.append("small feature: the model predicts size, not whether it prints at all")
     rng = np.random.default_rng(seed)
+    delta = DISCREPANCY_MM if discrepancy else 0.0
     out = {"kind": kind, "target_d": target, "at": [float(at[0]), float(at[1])], "q": q,
-           "draw_d": float(draw), "shift_um": float((draw - target) * 1000), "clipped": clipped, "notes": notes}
+           "draw_d": float(draw), "shift_um": float((draw - target) * 1000), "clipped": clipped, "notes": notes,
+           "discrepancy_mm": delta}
     for key, d in (("", draw), ("as_drawn", target)):
-        m, y = _draws(post, kind, d, at, site, rng, k)
+        m, y, raw = _draws(post, kind, d, at, site, rng, k, delta)
         res = {"predicted_d": float(predicted_mean(post, kind, d, at, site)[0]),
-               "interval": _ivl(y, q), "model_interval": _ivl(m, q)}
+               "interval": _ivl(y, q), "model_interval": _ivl(m, q), "model_sd": float(raw.std())}
         if key:
             out[key] = res
         else:

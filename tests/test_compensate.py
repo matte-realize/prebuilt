@@ -111,3 +111,14 @@ def test_console_corrected_designs(tmp_path):
     assert abs(one["sim_truth"]["at_draw"] - 5.0) < abs(one["sim_truth"]["as_drawn"] - 5.0) + 0.02
     with pytest.raises(ValueError):
         run.corrected("pla", "hole", -1)
+
+
+def test_discrepancy_widens_the_printer_mean_interval(fits):
+    _, post = fits[0]
+    on, off = compensate(post, "hole", 5.0, k=4000), compensate(post, "hole", 5.0, k=4000, discrepancy=False)
+    assert on["draw_d"] == off["draw_d"] and on["model_sd"] == pytest.approx(off["model_sd"])
+    w = lambda r: np.diff(r["model_interval"])[0]
+    assert w(on) > w(off)
+    expect = 2 * 1.6449 * np.hypot(off["model_sd"], on["discrepancy_mm"])  # roughly normal
+    assert w(on) == pytest.approx(expect, rel=0.15)
+    assert off["discrepancy_mm"] == 0.0

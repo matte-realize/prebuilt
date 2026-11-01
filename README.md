@@ -10,7 +10,7 @@ Each site prints a test plate of pins and holes, measures it, and fits a physics
 - **It pays with many data-poor sites:** 11% / 28% / 35% at 2 / 4 / 8 sites.
 - **The win is sharing, not agents.** The agent layer adds nothing measurable, and its piece choices don't beat random.
 - **Liars and mismatched printers are handled.** A consistency check catches a lying site's notes on arrival (180/180, 0/540 honest dropped). Adaptive spread, where each site learns how far to trust another from how much they agree, removes the harm when printers share no physics (−13% → −0.4%) and keeps the gain when they do. Both are added options, off in the registered config.
-- **Parts that fit the first time:** corrected designs from a learned printer cut size error from 118 to 6 µm.
+- **Parts that fit the first time:** corrected designs from a learned printer cut size error from 132 to 9 µm (median, 60 simulated worlds), with a 90% interval that's calibrated for what the model misses.
 - **Grounded in a real printer:** on a Formlabs Form Studio 1, a 1.5 mm pin measured 1.41–1.48 mm by micrometer, within the vendor's ±0.08 mm spec and inside the simulator's range. At two sites the sharing gain is below what a real part can show, so we claim it only in simulation, as registered before printing.
 
 Details: [`hpc/sweeps/relevance/README.md`](hpc/sweeps/relevance/README.md), [`hpc/sweeps/coldstart/README.md`](hpc/sweeps/coldstart/README.md).

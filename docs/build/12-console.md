@@ -78,7 +78,7 @@ CLI, on any run's checkpoint:
     [--at U V] [--arm isolated]
 ```
 
-In simulation (10 worlds × 2 sites × pins/holes × 2, 3, 5, 7 mm, 1000 particles fit on the full seed plate), the median |true printed − target| at the plate center goes from 118 µm drawn as-is to 6 µm corrected (90th percentile 269 → 20 µm; corrected is closer in 98% of cases). With only 8 seed pieces: 118 → 17 µm. Simulation only; a real printer adds effects the model doesn't have. Tests: `tests/test_compensate.py`.
+In simulation (60 worlds × 2 sites × pins/holes × 2, 3, 5, 7 mm, 1000 particles fit on the full seed plate), the median |true printed − target| at the plate center goes from 132 µm drawn as-is to 9 µm corrected (90th percentile 305 → 21 µm; corrected is closer in 97% of cases). With only 8 seed pieces (10 worlds): 118 → 17 µm. The printer-mean interval includes a model-discrepancy term (8.6 µm, `DISCREPANCY_MM`) for what the model doesn't capture: without it the 90% interval covered 69% of true sizes; with it, two-fold cross-validated coverage is 81–96% (`hpc/sweeps/relevance/README.md` section 12). Simulation only; a real printer adds effects the model doesn't have. Tests: `tests/test_compensate.py`.
 
 **Stop run** is cooperative: it stops at the next plate or at an open prompt. Finished rounds stay in the checkpoint.
 
