@@ -173,15 +173,15 @@ async function main() {
   T(s, [{ text: "Never leaves the lab: ", options: { bold: true, color: C.teal } },
         { text: "patient scans, part geometry, measurements, machine settings. A replayable privacy audit checks every crossing: 0 measurements crossed.", options: { color: C.ink } }],
     { x: M + 0.9, y: 3.88, w: 7.8, h: 0.82, fontSize: 13, valign: "middle" });
-  s.addNotes("0:25–0:45. That's the whole interface: three numbers out, nothing else. Errors every printer shares (small features shrink, edges drift) are learned together; everything else stays local. Results are scored on simulated printers whose true behavior we know.");
+  s.addNotes("0:25–0:50. That's the whole interface: three numbers out, nothing else. Errors every printer shares (small features shrink, edges drift) are learned together; everything else stays local. Results are scored on simulated printers whose true behavior we know.");
 
   // 4 · live run
   s = pres.addSlide({ masterName: "DARK" });
-  head(s, "Live run · simulation", "The network learns faster, and shrugs off a liar");
+  head(s, "Three rounds · simulation", "The network learns faster, and shrugs off a liar");
   lineChart(s, HONEST, M, 1.5, 4.35, 3.2, "All sites honest");
   lineChart(s, LIAR, M + 4.55, 1.5, 4.35, 3.2, "One site lies (the honest site's error)");
   foot(s, `20 simulated worlds, registered config, error on held-out pieces. A liar spikes the honest site to ${LIAR.networked[0]} µm in round 1; trust collapses and it is back to ${LIAR.networked[2]} µm by round 3. With the consistency check on, round 1 stays at ${CHECKED.networked[0]} µm.`);
-  s.addNotes("0:45–1:30. Left: the network tracks the pooled-data line and beats learning alone every round. Right: one site broadcasts lies; error spikes in round 1, trust collapses to 0.01 once held-out pieces expose it, and by round 3 it is level. With the consistency check the lie is set aside at the boundary: no spike. The live 3D view is viewer/demo.html.");
+  s.addNotes("0:50–1:10. Twenty seconds, two points. Left: the network tracks the pooled-data line and beats learning alone every round. Right: a site that lies costs one round, then trust cuts it off; the consistency check removes even that round. Don't walk through it; the 3D view (viewer/demo.html) is for Q&A.");
 
   // 5 · results
   s = pres.addSlide({ masterName: "DARK" });
@@ -199,7 +199,7 @@ async function main() {
     T(s, sub, { x: x + 0.2, y: 2.75, w: 1.72, h: 1.7, fontSize: 12.5, color: C.muted });
   });
   foot(s, "Hidden-truth simulation, registered config, paired per world. The consistency check is an added option, off in the registered config. The agent layer adds nothing measurable. At two sites the gain is 1.6 µm, below what a real part can show.");
-  s.addNotes("1:30–2:00. Simulation numbers, said plainly. The gain comes from sharing between sites, not from the agents. It grows with the number of data-poor sites. And what a lab actually gets is a corrected design: 9 µm off instead of 132.");
+  s.addNotes("1:10–1:40. Simulation numbers, said plainly. The gain comes from sharing between sites, not from the agents. It grows with the number of data-poor sites. And what a lab actually gets is a corrected design: 9 µm off instead of 132.");
 
   // 6 · rigor
   s = pres.addSlide({ masterName: "DARK" });
@@ -224,7 +224,7 @@ async function main() {
   const checks = [["Inside the vendor's ±0.08 mm spec", C.teal], ["Inside the simulator, at its small edge", C.amber], ["One pin: a sanity check, not a model fit", C.muted]];
   checks.forEach(([t, col], i) => T(s, [{ text: "●  ", options: { color: col } }, { text: t, options: { color: C.ink } }],
     { x: 5.95, y: 3.45 + i * 0.36, w: 3.35, h: 0.32, fontSize: 12 }));
-  s.addNotes("2:00–2:25. Hold up the printed plate. The real printer tells us the simulator is the right size: this pin is inside its range, at the small edge (1.8th percentile), so say 'edge', not 'middle'. The negative control shows the simulator doesn't hand us the result. Don't claim a fit on the real printer.");
+  s.addNotes("1:40–2:05. Hold up the printed plate. The real printer tells us the simulator is the right size: this pin is inside its range, at the small edge (1.8th percentile), so say 'edge', not 'middle'. The negative control shows the simulator doesn't hand us the result. Don't claim a fit on the real printer.");
 
   // 7 · who it's for
   s = pres.addSlide({ masterName: "DARK" });
@@ -251,7 +251,7 @@ async function main() {
     valAxisHidden: true, valGridLine: { style: "none" }, catGridLine: { style: "none" }, valAxisMinVal: 0, valAxisMaxVal: 42,
   });
   foot(s, "Buyers are our hypothesis, not yet validated with customers. Chart: lower error than learning alone at 2 / 4 / 8 data-poor sites, simulation. On sub-millimetre features the gain holds at 7–9% in simulation; bioprinting is direction, not a result.");
-  s.addNotes("2:25–2:50. Name the buyer and why pooling is off the table: patient data and process IP. Then the bars: value grows with every lab that joins, a network effect. If asked about bioprinting: the gain holds on sub-mm features in simulation; real bioprinting is the direction, not a result.");
+  s.addNotes("2:05–2:45. Name the buyer and why pooling is off the table: patient data and process IP. Then the bars: value grows with every lab that joins, a network effect. If asked about bioprinting: the gain holds on sub-mm features in simulation; real bioprinting is the direction, not a result.");
 
   // 8 · close
   s = pres.addSlide({ masterName: "DARK" });
@@ -259,7 +259,7 @@ async function main() {
   T(s, "Print anywhere, trust the part", { x: M, y: 2.15, w: 9, h: 0.8, fontFace: HEAD, fontSize: 38, bold: true });
   T(s, "Labs learn their printers together. Their data stays home.", { x: M, y: 2.95, w: 9, h: 0.5, fontSize: 18, color: C.accent });
   T(s, "github.com/matte-realize/prebuilt  ·  all sharing results in simulation", { x: M, y: 4.55, w: 9, h: 0.3, fontSize: 11, color: C.faint });
-  s.addNotes("2:50–3:00. End on the line. Stop talking.");
+  s.addNotes("2:45–3:00. End on the line. Stop talking.");
 
   // 9 · appendix
   s = pres.addSlide({ masterName: "DARK" });

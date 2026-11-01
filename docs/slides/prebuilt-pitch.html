@@ -133,80 +133,94 @@ body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; 
 .slide header .kick { display: inline-flex; align-items: center; gap: .6em; }
 .slide header .kick .logo { width: 1.5em; height: 1.5em; flex: none; }
 
-/* Pitch: projected, so bigger type and content centred in the frame. */
-.slide { grid-template-rows: auto auto 1fr; }
-.slide h2 { font-size: 4.8cqw; }
-.slide .body { font-size: 2.1cqw; align-content: center; }
-.lede { font-size: 2.9cqw; }
-.foot { font-size: 1.6cqw; }
-.big-q { font: 600 2.6cqw/1.25 var(--display); color: var(--amber); max-width: 34ch; }
-.fig figcaption { font: 1.3cqw var(--mono); color: var(--muted); margin-top: .8cqw; text-align: center; }
-.plate { max-width: 34cqw; }
-.timeline > div { font-size: 2cqw; } .t { font-size: 1.5cqw; }
-.hero .big { font-size: 8cqw; } .hero .cell p { font-size: 2cqw; }
-.sites-chart { width: 100%; max-width: 38cqw; height: auto; display: block; }
-.sites-chart .bar { fill: var(--net); } .sites-chart .axis { stroke: var(--line); stroke-width: 1.5; }
-.sites-chart .val { font: 700 26px var(--display); fill: var(--ink); }
-.sites-chart .lab { font: 600 15px var(--body); fill: var(--ink); } .sites-chart .sub { font: 12px var(--mono); fill: var(--muted); }
-
-.arch { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 2cqw; align-items: center; }
-.node { border: 2px solid var(--ink); border-radius: 8px; padding: 2cqw; display: grid; gap: .6cqw; text-align: center; }
-.node h3 { font: 700 3cqw var(--display); margin: 0; }
-.node p { font-size: 1.8cqw; color: var(--muted); max-width: none; }
-.proc { font: 600 1.4cqw var(--mono); letter-spacing: .1em; color: var(--muted); }
-.link { display: grid; justify-items: center; gap: .8cqw; border-left: 3px dashed var(--amber); border-right: 3px dashed var(--amber); padding: 1.5cqw 1cqw; }
-.msg { font: 600 1.9cqw var(--mono); background: var(--net); color: #fff; border-radius: 999px; padding: .7cqw 1.6cqw; text-align: center; }
-.arrow { font-size: 5cqw; line-height: 1; color: var(--net); }
-.wall-tag { font: 600 1.3cqw var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--amber); text-align: center; }
-.stays { font-size: 2cqw; border-top: 1px dashed var(--line); padding-top: 1.2cqw; }
-
-.slide:has(.demo) .body { grid-template-columns: 1fr; }   /* the template splits slides that hold a .chart */
-.demo { display: grid; grid-template-columns: 1fr 1.1fr; gap: 1.2cqw 2cqw; align-items: center; }
-.demo svg { width: 100%; height: auto; display: block; }
-.demo .chart { background: none; padding: 0; }   /* the template's .chart is a light card for a PNG */
-.demo .say { grid-column: 1 / -1; font: 600 2.2cqw/1.3 var(--display); margin: 0; min-height: 2.9cqw; max-width: none; }
-.demo .ctl { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 1cqw; align-items: center; }
-.demo button { font: 600 1.4cqw var(--body); color: var(--ink); background: var(--sheet); border: 1px solid var(--line);
-  border-radius: 6px; padding: .6cqw 1.3cqw; cursor: pointer; }
-.demo button[aria-pressed="true"] { border-color: var(--amber); color: var(--amber); }
-.demo button:disabled { opacity: .4; cursor: not-allowed; }
-.demo .tiny { font: 13px var(--mono); fill: var(--muted); color: var(--muted); }
-.demo .ctl .tiny { font-size: 1.2cqw; }
-.demo .lbl { font: 700 22px var(--display); fill: var(--ink); }
-.demo .count { font: 700 30px var(--display); fill: var(--ink); font-variant-numeric: tabular-nums; }
-.demo .crossed { font: 600 15px var(--mono); fill: var(--ora); }
-.demo .box { fill: var(--bg); stroke: var(--line); stroke-width: 1.5; }
-.demo .wall-line { stroke: var(--amber); stroke-width: 3; stroke-dasharray: 7 6; }
-.demo .pkt rect { fill: var(--net); } .demo .pkt text { font: 600 14px var(--mono); fill: #fff; }
-.demo .pkt { opacity: 0; } .demo .pkt.bad rect { fill: #c2342b; }
-.demo .track { fill: var(--line); } .demo .trust { fill: var(--ora); transition: width .6s ease; }
-.demo .trust.low { fill: #c2342b; }
-.demo .grid { stroke: var(--line); stroke-dasharray: 2 4; }
-.demo .ln { fill: none; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
-.demo .ln.oracle { stroke-dasharray: 8 6; }
-.demo .tick { font: 13px var(--mono); fill: var(--muted); }
-.demo .end { font: 600 15px var(--body); }
-.demo .spike { font: 700 15px var(--body); fill: var(--net); }
-.who { display: grid; gap: 0; align-content: start; }
-.who > div { display: grid; grid-template-columns: 1fr 1.5fr; gap: 1.6cqw; padding: 1cqw 0; border-top: 1px solid var(--line); }
-.who > div b { font: 700 2cqw/1.2 var(--display); }
-.who > div span { font-size: 1.7cqw; color: var(--muted); }
-.who .who-h { border-top: 0; padding-top: 0; }
-.who .who-h span { font: 600 1.2cqw var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-.who .next b { color: var(--amber); }
-.who .get { font-size: 1.8cqw; margin: 1.2cqw 0 0; border-top: 3px solid var(--net); padding-top: 1cqw; max-width: none; }
-.close { font: 700 3cqw var(--display); margin: 0; display: flex; flex-wrap: wrap; gap: 2cqw; align-items: baseline; max-width: none; }
-.close .meta { font-size: 1.3cqw; font-weight: 400; }
+/* Pitch: always dark, the same palette as the PowerPoint deck. */
+:root, :root[data-theme="light"], :root[data-theme="dark"] {
+  --bg: #0b121c; --sheet: #0b121c; --ink: #eef2f7; --muted: #9aa9bc; --line: #2a3a52; --plate: #3b4f5b;
+  --card: #142030; --card2: #1b2a3e; --accent: #f07a48; --net: #f07a48; --ora: #2fc2b0; --iso: #8d9bad; --amber: #f0a43a; --teal: #2fc2b0;
+}
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg: #0b121c; --sheet: #0b121c; --ink: #eef2f7; --muted: #9aa9bc; --line: #2a3a52; } }
+body { background: #05090f; }
+.slide { background: var(--bg); grid-template-rows: auto auto 1fr; }
+.slide header .kick { color: var(--accent); }
+.slide h2 { font-size: 4.2cqw; }
+.slide .body { font-size: 1.9cqw; align-content: center; gap: 1.6cqw; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 1cqw; }
+.tile { display: inline-grid; place-items: center; width: 4.6cqw; height: 4.6cqw; border-radius: .9cqw; flex: none;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); border: 1px solid var(--accent); font-size: 2.3cqw; }
+.tile.teal { color: var(--teal); background: color-mix(in srgb, var(--teal) 16%, transparent); border-color: var(--teal); }
+.foot { font-size: 1.25cqw; color: var(--muted); border-top: 0; padding-top: 0; max-width: none; }
+.muted { color: var(--muted); }
+.two { display: grid; grid-template-columns: 1.6fr 1fr; gap: 3cqw; align-items: center; }
+.two.wide { grid-template-columns: 1.8fr 1fr; }
+.rows { display: grid; gap: 2cqw; }
+.row { display: flex; gap: 2cqw; align-items: flex-start; }
+.row b, .step b, .who b { display: block; font: 700 1.9cqw/1.25 var(--display); }
+.row span, .step span, .who span { display: block; color: var(--muted); font-size: 1.6cqw; margin-top: .4cqw; }
+.q { font: 700 1.8cqw/1.3 var(--display); color: var(--accent); margin: .4cqw 0 0; max-width: none; }
+.fig { margin: 0; padding: 2cqw; display: grid; justify-items: center; gap: 1cqw; }
+.fig figcaption { font-size: 1.2cqw; color: var(--muted); text-align: left; }
+.plate { width: 100%; max-width: 26cqw; } .plate .pl { fill: var(--plate); } .plate .cut { fill: #d7dee3; }
+.plate .pin { fill: #d7dee3; } .plate .hole { fill: var(--bg); stroke: #6e8290; stroke-width: .5; } .plate .ho { stroke: var(--amber); stroke-width: .9; }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2cqw; }
+.step { padding: 2.2cqw; display: grid; gap: 1.2cqw; align-content: start; }
+.banner { display: flex; gap: 2cqw; align-items: center; padding: 1.6cqw 2cqw; background: var(--card2); }
+.banner p { margin: 0; font-size: 1.65cqw; max-width: none; } .banner b { color: var(--teal); }
+.charts { display: grid; grid-template-columns: 1fr 1fr; gap: 2cqw; }
+.charts .card { padding: 1cqw 1.4cqw; }
+.lchart { width: 100%; height: auto; display: block; }
+.lchart .ct, .sites-chart .ct { font: 600 15px var(--body); fill: var(--ink); }
+.lchart .grid { stroke: var(--line); stroke-width: 1; } .lchart .tick { font: 12px var(--body); fill: var(--muted); }
+.lchart .ln { fill: none; stroke-width: 3.5; stroke-linejoin: round; stroke-linecap: round; }
+.lchart .iso { stroke: var(--iso); fill: var(--iso); } .lchart .net { stroke: var(--net); fill: var(--net); } .lchart .ora { stroke: var(--ora); fill: var(--ora); }
+.lchart polyline.iso, .lchart polyline.net, .lchart polyline.ora { fill: none; }
+.legend { display: flex; flex-wrap: wrap; gap: .8cqw 2.4cqw; align-items: center; justify-content: center; font-size: 1.4cqw; color: var(--muted); margin: 0; max-width: none; }
+.legend .k { display: inline-block; width: 2cqw; height: .5cqw; border-radius: 1cqw; margin-right: -1.6cqw; }
+.legend .k.iso { background: var(--iso); } .legend .k.net { background: var(--net); } .legend .k.ora { background: var(--ora); }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.8cqw; }
+.stat { padding: 2.2cqw; display: grid; gap: 1.4cqw; align-content: start; min-height: 22cqw; }
+.stat .n, .pin .n { font: 700 5.2cqw/1 var(--display); font-variant-numeric: tabular-nums; }
+.stat .n.sm { font-size: 3.6cqw; line-height: 1.45; }
+.stat .n.net { color: var(--net); } .stat .n.ora { color: var(--ora); } .stat .n.amb { color: var(--amber); }
+.stat > span:last-child { color: var(--muted); font-size: 1.6cqw; }
+.tl { list-style: none; margin: 0; padding: 0; display: grid; gap: 2.4cqw; }
+.tl li { position: relative; padding-left: 4cqw; }
+.tl li::before { content: ""; position: absolute; left: 0; top: .3cqw; width: 2cqw; height: 2cqw; border-radius: 50%; background: var(--accent); }
+.tl li:not(:last-child)::after { content: ""; position: absolute; left: .95cqw; top: 2.6cqw; bottom: -2.2cqw; width: 2px; background: var(--line); }
+.tl b { display: block; font: 700 2cqw var(--display); } .tl span { display: block; color: var(--muted); font-size: 1.65cqw; margin-top: .4cqw; }
+.pin { padding: 2.4cqw; display: grid; gap: 1cqw; background: var(--card2); }
+.pin .lbl { font: 700 1.15cqw var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--teal); }
+.pin .n small { font: 400 2cqw var(--body); color: var(--muted); }
+.pin .muted { font-size: 1.5cqw; }
+.pin ul { list-style: none; margin: .6cqw 0 0; padding: 0; display: grid; gap: .8cqw; font-size: 1.6cqw; }
+.pin li::before { content: "●"; margin-right: 1cqw; color: var(--muted); } .pin li.ok::before { color: var(--teal); } .pin li.edge::before { color: var(--amber); }
+.grid4 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6cqw; }
+.who { padding: 1.8cqw; display: grid; grid-template-columns: auto 1fr; gap: .6cqw 1.4cqw; align-items: center; }
+.who .tile { width: 3.8cqw; height: 3.8cqw; font-size: 1.9cqw; }
+.who span { grid-column: 1 / -1; font-size: 1.4cqw; }
+.sites-chart { width: 100%; height: auto; display: block; }
+.sites-chart .bar { fill: var(--accent); } .sites-chart .axis { stroke: var(--line); stroke-width: 1.5; }
+.sites-chart .val { font: 700 22px var(--display); fill: var(--ink); } .sites-chart .lab { font: 600 14px var(--body); fill: var(--muted); }
+.hero-title { display: grid; gap: 1.8cqw; align-content: center; }
+.brandline { display: flex; align-items: center; gap: 2.4cqw; font: 700 9cqw/1 var(--display); }
+.logo-xl { width: 10cqw; height: 10cqw; } .logo-lg { width: 7cqw; height: 7cqw; }
+.tag { font: 700 2.8cqw/1.25 var(--display); color: var(--accent); margin: 0; max-width: none; }
+.sub { font-size: 2cqw; color: var(--muted); margin: 0; max-width: 60ch; }
+.hero-title .meta { font-size: 1.3cqw; color: var(--muted); margin-top: 3cqw; }
+.big-close { font: 700 5.6cqw/1.1 var(--display); margin: 0; max-width: none; }
+.slide.bare header { visibility: hidden; } .slide.bare h2 { display: none; }
+.bench { width: 100%; border-collapse: collapse; font-size: 1.6cqw; }
+.bench th { text-align: left; font: 600 1.25cqw var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: var(--card2); }
+.bench th, .bench td { padding: 1cqw 1.4cqw; border: 1px solid var(--line); }
+.bench tbody tr:nth-child(odd) td { background: var(--card); }
 @media (max-width: 720px) {
-  .slide h2 { font-size: 28px; } .slide .body { font-size: 15px; } .lede { font-size: 19px; } .foot { font-size: 13px; }
-  .sites-chart { max-width: 100%; }
-  .who > div { grid-template-columns: 1fr; gap: 4px; } .who > div b { font-size: 16px; } .who > div span, .who .get { font-size: 14px; }
-  .who .who-h span { font-size: 11px; } .close { font-size: 20px; } .close .meta { font-size: 11px; }
-  .arch, .demo { grid-template-columns: 1fr; } .node h3 { font-size: 20px; } .node p, .stays, .timeline > div { font-size: 14px; }
-  .msg { font-size: 13px; padding: 6px 12px; } .arrow { font-size: 28px; } .wall-tag, .proc, .t { font-size: 11px; }
-  .link { border-left: 0; border-right: 0; border-top: 3px dashed var(--amber); border-bottom: 3px dashed var(--amber); }
-  .demo .say { font-size: 16px; } .demo button, .demo .ctl .tiny { font-size: 14px; }
-  .hero .big { font-size: 40px; } .hero .cell p { font-size: 14px; } .big-q { font-size: 18px; } .fig figcaption { font-size: 11px; }
+  .slide h2 { font-size: 24px; } .slide .body { font-size: 14px; }
+  .two, .two.wide, .steps, .charts, .stats, .grid4 { grid-template-columns: 1fr; }
+  .row b, .step b, .who b, .tl b { font-size: 16px; } .row span, .step span, .who span, .tl span, .stat > span:last-child, .banner p, .pin ul, .pin .muted { font-size: 14px; }
+  .tile, .who .tile { width: 36px; height: 36px; font-size: 18px; } .q { font-size: 16px; } .foot, .legend { font-size: 12px; }
+  .stat .n, .pin .n { font-size: 36px; } .stat .n.sm { font-size: 28px; } .brandline { font-size: 44px; } .logo-xl { width: 48px; height: 48px; }
+  .tag { font-size: 18px; } .sub { font-size: 15px; } .big-close { font-size: 28px; } .bench { font-size: 12px; } .bench th { font-size: 10px; }
+  .tl li { padding-left: 28px; } .tl li::before { width: 14px; height: 14px; } .tl li:not(:last-child)::after { left: 6px; top: 18px; }
+  .legend .k { width: 14px; height: 4px; margin-right: -8px; }
 }
 </style>
 
@@ -218,104 +232,122 @@ body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; 
       <button id="present" type="button">Present (→ ← Esc)</button>
     </div>
   </div>
-<section class="slide" id="s1" aria-label="Slide 1: Every shop re-learns its own printer">
-  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" width="16" height="16" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>The problem</span><span class="num">1 / 6</span></header>
-  <h2>Every shop re-learns its own printer</h2>
-  <div class="body"><div class="split">
-  <div class="stack">
-    <p class="lede">No printed part matches its file. Holes come out small, pins come out fat, by tens to hundreds of microns, and that decides whether parts fit.</p>
-    <p>The error belongs to your machine today: its resin, settings and wear. No datasheet knows it; you learn it by printing. Every site does that from scratch, and can't pool the data, because measurements expose process know-how and customer parts.</p>
-    <p class="big-q">Can printers learn from each other without sharing a single measurement?</p>
-  </div>
-  <figure class="fig"><svg viewBox="-6 -6 112 112" class="plate" role="img" aria-label="The seed test plate: pins and holes, 1 to 7 mm"><rect x="0" y="0" width="100" height="100" rx="1.2" class="pl"/><rect x="47" y="97.5" width="6" height="2.6" class="cut"/><rect x="3" y="3" width="4" height="4" class="cut"/><rect x="93" y="3" width="4" height="4" class="cut"/><rect x="3" y="93" width="4" height="4" class="cut"/><circle cx="25" cy="15" r="2.45" class="pin"/><circle cx="45" cy="15" r="2.05" class="pin ho"/><circle cx="75" cy="15" r="0.75" class="pin"/><circle cx="15" cy="25" r="1.15" class="hole"/><circle cx="75" cy="25" r="1.85" class="hole ho"/><circle cx="85" cy="25" r="2.65" class="hole"/><circle cx="25" cy="35" r="3.5" class="pin ho"/><circle cx="35" cy="45" r="0.75" class="hole"/><circle cx="45" cy="45" r="3.1" class="hole"/><circle cx="55" cy="45" r="0.55" class="hole ho"/><circle cx="85" cy="45" r="3.5" class="pin"/><circle cx="45" cy="55" r="2.0" class="pin"/><circle cx="55" cy="55" r="2.85" class="pin"/><circle cx="85" cy="55" r="2.9" class="pin ho"/><circle cx="25" cy="65" r="3.1" class="pin"/><circle cx="35" cy="65" r="2.65" class="hole ho"/><circle cx="55" cy="65" r="3.5" class="hole"/><circle cx="65" cy="65" r="2.25" class="hole"/><circle cx="25" cy="75" r="1.6" class="pin"/><circle cx="65" cy="75" r="3.65" class="pin ho"/><circle cx="75" cy="75" r="1.15" class="pin"/><circle cx="15" cy="85" r="2.4" class="hole ho"/><circle cx="25" cy="85" r="1.8" class="hole"/><circle cx="45" cy="85" r="1.4" class="hole"/></svg><figcaption>The test plate: pins and holes, 1–7 mm. Print it, measure it, and you know your printer.</figcaption></figure>
+<section class="slide bare" id="s1" aria-label="Slide 1: Prebuilt">
+  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg></span><span class="num">1 / 9</span></header>
+  <h2>Prebuilt</h2>
+  <div class="body"><div class="hero-title">
+  <div class="brandline"><svg class="logo-xl" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg><span>Prebuilt</span></div>
+  <p class="tag">Precision printing for labs that can't share their data</p>
+  <p class="sub">Printers learn their errors from each other. Patient scans, part geometry and measurements never leave the lab.</p>
+  <p class="meta">ScienceClaw · Manufacturing &amp; Materials · MIT Media Lab</p>
 </div></div>
-  <aside class="note">0:00–0:25. Hold up a printed plate. The point: precision is a property of your machine, and the only way to learn it is to print.</aside>
+  <aside class="note">0:00. Open on the one-liner and hold up the printed plate.</aside>
 </section>
-<section class="slide" id="s2" aria-label="Slide 2: Two printer sites, one boundary, only beliefs cross">
-  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" width="16" height="16" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>What we built</span><span class="num">2 / 6</span></header>
-  <h2>Two printer sites, one boundary, only beliefs cross</h2>
-  <div class="body"><div class="arch">
-  <div class="node"><span class="proc">SLA · simulated</span><h3>Resin site</h3><p>prints, measures, learns its own model</p></div>
-  <div class="link"><span class="msg">μ, σ of 3 shared parameters</span><span class="arrow" aria-hidden="true">⇄</span><span class="wall-tag">schema-checked · on a receipt</span></div>
-  <div class="node"><span class="proc">FDM · simulated</span><h3>PLA site</h3><p>different machine, different physics</p></div>
+<section class="slide" id="s2" aria-label="Slide 2: Labs that print can't share what they learn">
+  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>The problem</span><span class="num">2 / 9</span></header>
+  <h2>Labs that print can't share what they learn</h2>
+  <div class="body"><div class="two">
+  <div class="rows">
+    <div class="row"><span class="tile "><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 448 512" aria-hidden="true" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M443.98 96.25c-11.01-45.22-47.11-82.06-92.01-93.72-32.19-8.36-63 5.1-89.14 24.33-3.25 2.39-6.96 3.73-10.5 5.48l28.32 18.21c7.42 4.77 9.58 14.67 4.8 22.11-4.46 6.95-14.27 9.86-22.11 4.8L162.83 12.84c-20.7-10.85-43.38-16.4-66.81-10.31-44.9 11.67-81 48.5-92.01 93.72-10.13 41.62-.42 80.81 21.5 110.43 23.36 31.57 32.68 68.66 36.29 107.35 4.4 47.16 10.33 94.16 20.94 140.32l7.8 33.95c3.19 13.87 15.49 23.7 29.67 23.7 13.97 0 26.15-9.55 29.54-23.16l34.47-138.42c4.56-18.32 20.96-31.16 39.76-31.16s35.2 12.85 39.76 31.16l34.47 138.42c3.39 13.61 15.57 23.16 29.54 23.16 14.18 0 26.48-9.83 29.67-23.7l7.8-33.95c10.61-46.15 16.53-93.16 20.94-140.32 3.61-38.7 12.93-75.78 36.29-107.35 21.95-29.61 31.66-68.8 21.53-110.43z"></path></svg></span><div><b>Guides, crowns and implants from patient scans</b><span>They must seat on the first print, and the scans are protected health data.</span></div></div>
+    <div class="row"><span class="tile "><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 448 512" aria-hidden="true" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M437.2 403.5L320 215V64h8c13.3 0 24-10.7 24-24V24c0-13.3-10.7-24-24-24H120c-13.3 0-24 10.7-24 24v16c0 13.3 10.7 24 24 24h8v151L10.8 403.5C-18.5 450.6 15.3 512 70.9 512h306.2c55.7 0 89.4-61.5 60.1-108.5zM137.9 320l48.2-77.6c3.7-5.2 5.8-11.6 5.8-18.4V64h64v160c0 6.9 2.2 13.2 5.8 18.4l48.2 77.6h-172z"></path></svg></span><div><b>Microfluidic chips and bioprinted scaffolds</b><span>Sub-millimetre features, and every test print costs days and material.</span></div></div>
+    <div class="row"><span class="tile "><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" aria-hidden="true" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M448 192V77.25c0-8.49-3.37-16.62-9.37-22.63L393.37 9.37c-6-6-14.14-9.37-22.63-9.37H96C78.33 0 64 14.33 64 32v160c-35.35 0-64 28.65-64 64v112c0 8.84 7.16 16 16 16h48v96c0 17.67 14.33 32 32 32h320c17.67 0 32-14.33 32-32v-96h48c8.84 0 16-7.16 16-16V256c0-35.35-28.65-64-64-64zm-64 256H128v-96h256v96zm0-224H128V64h192v48c0 8.84 7.16 16 16 16h48v96zm48 72c-13.25 0-24-10.75-24-24 0-13.26 10.75-24 24-24s24 10.74 24 24c0 13.25-10.75 24-24 24z"></path></svg></span><div><b>Every printer is wrong in its own way</b><span>Holes print small and pins fat, by tens to hundreds of µm. Only printing reveals it.</span></div></div>
+    <p class="q">Can printers learn from each other without sharing a single measurement?</p>
+  </div>
+  <figure class="card fig"><svg viewBox="-6 -6 112 112" class="plate" role="img" aria-label="The test plate: pins and holes, 1 to 7 mm"><rect x="0" y="0" width="100" height="100" rx="1.2" class="pl"/><rect x="47" y="97.5" width="6" height="2.6" class="cut"/><rect x="3" y="3" width="4" height="4" class="cut"/><rect x="93" y="3" width="4" height="4" class="cut"/><rect x="3" y="93" width="4" height="4" class="cut"/><circle cx="25" cy="15" r="2.45" class="pin"/><circle cx="45" cy="15" r="2.05" class="pin ho"/><circle cx="75" cy="15" r="0.75" class="pin"/><circle cx="15" cy="25" r="1.15" class="hole"/><circle cx="75" cy="25" r="1.85" class="hole ho"/><circle cx="85" cy="25" r="2.65" class="hole"/><circle cx="25" cy="35" r="3.5" class="pin ho"/><circle cx="35" cy="45" r="0.75" class="hole"/><circle cx="45" cy="45" r="3.1" class="hole"/><circle cx="55" cy="45" r="0.55" class="hole ho"/><circle cx="85" cy="45" r="3.5" class="pin"/><circle cx="45" cy="55" r="2.0" class="pin"/><circle cx="55" cy="55" r="2.85" class="pin"/><circle cx="85" cy="55" r="2.9" class="pin ho"/><circle cx="25" cy="65" r="3.1" class="pin"/><circle cx="35" cy="65" r="2.65" class="hole ho"/><circle cx="55" cy="65" r="3.5" class="hole"/><circle cx="65" cy="65" r="2.25" class="hole"/><circle cx="25" cy="75" r="1.6" class="pin"/><circle cx="65" cy="75" r="3.65" class="pin ho"/><circle cx="75" cy="75" r="1.15" class="pin"/><circle cx="15" cy="85" r="2.4" class="hole ho"/><circle cx="25" cy="85" r="1.8" class="hole"/><circle cx="45" cy="85" r="1.4" class="hole"/></svg><figcaption>The test plate: 24 pins and holes, 1–7 mm. Print it, measure it, know your printer.</figcaption></figure>
+</div></div>
+  <aside class="note">0:00–0:25. Hold up a printed plate. Hospitals, dental and bio labs print parts that must fit. The error belongs to each machine, you learn it by printing, and these labs can't pool what they learn: patient scans and process recipes can't leave.</aside>
+</section>
+<section class="slide" id="s3" aria-label="Slide 3: Learn locally, share three numbers">
+  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>How it works</span><span class="num">3 / 9</span></header>
+  <h2>Learn locally, share three numbers</h2>
+  <div class="body"><div class="steps">
+  <div class="card step"><span class="tile "><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" aria-hidden="true" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M448 192V77.25c0-8.49-3.37-16.62-9.37-22.63L393.37 9.37c-6-6-14.14-9.37-22.63-9.37H96C78.33 0 64 14.33 64 32v160c-35.35 0-64 28.65-64 64v112c0 8.84 7.16 16 16 16h48v96c0 17.67 14.33 32 32 32h320c17.67 0 32-14.33 32-32v-96h48c8.84 0 16-7.16 16-16V256c0-35.35-28.65-64-64-64zm-64 256H128v-96h256v96zm0-224H128V64h192v48c0 8.84 7.16 16 16 16h48v96zm48 72c-13.25 0-24-10.75-24-24 0-13.26 10.75-24 24-24s24 10.74 24 24c0 13.25-10.75 24-24 24z"></path></svg></span><b>1&nbsp; Print a test plate</b><span>24 pins and holes. Measure them by micrometer or flatbed scanner.</span></div>
+  <div class="card step"><span class="tile "><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" aria-hidden="true" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M160 288h-56c-4.42 0-8-3.58-8-8v-16c0-4.42 3.58-8 8-8h56v-64h-56c-4.42 0-8-3.58-8-8v-16c0-4.42 3.58-8 8-8h56V96h-56c-4.42 0-8-3.58-8-8V72c0-4.42 3.58-8 8-8h56V32c0-17.67-14.33-32-32-32H32C14.33 0 0 14.33 0 32v448c0 2.77.91 5.24 1.57 7.8L160 329.38V288zm320 64h-32v56c0 4.42-3.58 8-8 8h-16c-4.42 0-8-3.58-8-8v-56h-64v56c0 4.42-3.58 8-8 8h-16c-4.42 0-8-3.58-8-8v-56h-64v56c0 4.42-3.58 8-8 8h-16c-4.42 0-8-3.58-8-8v-56h-41.37L24.2 510.43c2.56.66 5.04 1.57 7.8 1.57h448c17.67 0 32-14.33 32-32v-96c0-17.67-14.33-32-32-32z"></path></svg></span><b>2&nbsp; Learn your printer</b><span>A physics model of your machine, fit locally on your own data.</span></div>
+  <div class="card step"><span class="tile "><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" aria-hidden="true" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M0 168v-16c0-13.255 10.745-24 24-24h360V80c0-21.367 25.899-32.042 40.971-16.971l80 80c9.372 9.373 9.372 24.569 0 33.941l-80 80C409.956 271.982 384 261.456 384 240v-48H24c-13.255 0-24-10.745-24-24zm488 152H128v-48c0-21.314-25.862-32.08-40.971-16.971l-80 80c-9.372 9.373-9.372 24.569 0 33.941l80 80C102.057 463.997 128 453.437 128 432v-48h360c13.255 0 24-10.745 24-24v-16c0-13.255-10.745-24-24-24z"></path></svg></span><b>3&nbsp; Share three numbers</b><span>Mean and spread of 3 parameters every printer shares. Schema-checked, logged on a receipt.</span></div>
 </div>
-<div class="stays"><b>Stays home:</b> every measurement, every machine-specific parameter.</div></div>
-  <aside class="note">0:25–0:45. Point at the middle: that's the whole interface. Errors that every printer shares (small features shrink, edges drift) are learned together; everything else stays local. Both sites are simulated printers whose true behavior we know, which is how every result is scored.</aside>
+<div class="card banner"><span class="tile teal"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 448 512" aria-hidden="true" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M400 224h-24v-72C376 68.2 307.8 0 224 0S72 68.2 72 152v72H48c-26.5 0-48 21.5-48 48v192c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V272c0-26.5-21.5-48-48-48zm-104 0H152v-72c0-39.7 32.3-72 72-72s72 32.3 72 72v72z"></path></svg></span><p><b>Never leaves the lab:</b> patient scans, part geometry, measurements, machine settings. A replayable privacy audit checks every crossing: 0 measurements crossed.</p></div></div>
+  <aside class="note">0:25–0:50. That's the whole interface: three numbers out, nothing else. Errors every printer shares (small features shrink, edges drift) are learned together; everything else stays local. Results are scored on simulated printers whose true behavior we know.</aside>
 </section>
-<section class="slide" id="s3" aria-label="Slide 3: Watch the network learn">
-  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" width="16" height="16" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>Live run</span><span class="num">3 / 6</span></header>
-  <h2>Watch the network learn</h2>
-  <div class="body"><div class="demo" id="demo">
-  <svg class="sites" viewBox="0 0 440 300" aria-label="Two sites exchanging belief summaries across a boundary">
-    <g id="trustG"><text x="220" y="22" text-anchor="middle" class="tiny">resin's trust in PLA</text>
-      <rect x="150" y="32" width="140" height="10" rx="5" class="track"/><rect x="150" y="32" width="140" height="10" rx="5" class="trust" id="trustBar"/>
-      <text x="298" y="42" class="tiny" id="trustTxt">1.00</text></g>
-    <line x1="220" y1="60" x2="220" y2="246" class="wall-line"/>
-    <text x="220" y="262" class="tiny" text-anchor="middle">site boundary</text>
-    <rect x="12" y="74" width="168" height="150" rx="8" class="box"/>
-    <text x="96" y="104" text-anchor="middle" class="lbl">Resin</text>
-    <text x="96" y="134" text-anchor="middle" class="count" id="measA">24</text>
-    <text x="96" y="154" text-anchor="middle" class="tiny">measurements here</text>
-    <text x="96" y="204" text-anchor="middle" class="tiny" id="platesA">seed plate</text>
-    <rect x="260" y="74" width="168" height="150" rx="8" class="box"/>
-    <text x="344" y="104" text-anchor="middle" class="lbl" id="nameB">PLA</text>
-    <text x="344" y="134" text-anchor="middle" class="count" id="measB">24</text>
-    <text x="344" y="154" text-anchor="middle" class="tiny">measurements here</text>
-    <text x="344" y="204" text-anchor="middle" class="tiny" id="platesB">seed plate</text>
-    <g id="pktAB" class="pkt"><rect x="-44" y="-14" width="88" height="28" rx="14"/><text y="5" text-anchor="middle">μ, σ ×3</text></g>
-    <g id="pktBA" class="pkt"><rect x="-44" y="-14" width="88" height="28" rx="14"/><text y="5" text-anchor="middle">μ, σ ×3</text></g>
-    <text x="220" y="292" text-anchor="middle" class="crossed" id="crossed">crossed: 0 measurements · 0 numbers</text>
-  </svg>
-  <svg class="chart" id="chart" viewBox="0 0 480 300" aria-label="Held-out error by round for isolated, networked and oracle"></svg>
-  <p class="say" id="say">Two sites, each starting from one seed plate. Press Play.</p>
-  <div class="ctl">
-    <button type="button" id="play">▶ Play (P)</button>
-    <button type="button" id="liar" aria-pressed="false">Make PLA lie (L)</button>
-    <button type="button" id="check" aria-pressed="false" disabled>Check notes (C)</button>
-    <span class="tiny" id="cap">Simulation with hidden truth, frozen config, 20 worlds. Model error on held-out pieces, µm.</span>
-  </div>
-</div></div>
-  <aside class="note">0:45–1:30. In Present mode it plays by itself. Narrate the caption line. Then L: resin's error spikes in round 1, trust collapses to 0.01 once held-out pieces expose the lie, and by round 3 resin is back level with learning alone. Without a check, a liar costs one round. Then C: the consistency check sets PLA's note aside at the boundary, no spike. With the check, none (slide 4).</aside>
+<section class="slide" id="s4" aria-label="Slide 4: The network learns faster, and shrugs off a liar">
+  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>Three rounds · simulation</span><span class="num">4 / 9</span></header>
+  <h2>The network learns faster, and shrugs off a liar</h2>
+  <div class="body"><div class="charts">
+  <div class="card"><svg viewBox="0 0 440 260" class="lchart" role="img" aria-label="All sites honest"><text x="220.0" y="20" text-anchor="middle" class="ct">All sites honest</text><line x1="46" x2="420" y1="210.0" y2="210.0" class="grid"/><text x="38" y="214.0" text-anchor="end" class="tick">0</text><line x1="46" x2="420" y1="167.5" y2="167.5" class="grid"/><text x="38" y="171.5" text-anchor="end" class="tick">5</text><line x1="46" x2="420" y1="125.0" y2="125.0" class="grid"/><text x="38" y="129.0" text-anchor="end" class="tick">10</text><line x1="46" x2="420" y1="82.5" y2="82.5" class="grid"/><text x="38" y="86.5" text-anchor="end" class="tick">15</text><line x1="46" x2="420" y1="40.0" y2="40.0" class="grid"/><text x="38" y="44.0" text-anchor="end" class="tick">20</text><text x="46.0" y="232" text-anchor="middle" class="tick">Round 1</text><text x="233.0" y="232" text-anchor="middle" class="tick">Round 2</text><text x="420.0" y="232" text-anchor="middle" class="tick">Round 3</text><polyline points="46.0,68.9 233.0,79.9 420.0,91.0" class="ln iso"/><circle cx="46.0" cy="68.9" r="4.5" class="dot iso"/><circle cx="233.0" cy="79.9" r="4.5" class="dot iso"/><circle cx="420.0" cy="91.0" r="4.5" class="dot iso"/><polyline points="46.0,83.3 233.0,98.7 420.0,99.5" class="ln ora"/><circle cx="46.0" cy="83.3" r="4.5" class="dot ora"/><circle cx="233.0" cy="98.7" r="4.5" class="dot ora"/><circle cx="420.0" cy="99.5" r="4.5" class="dot ora"/><polyline points="46.0,83.3 233.0,102.9 420.0,107.2" class="ln net"/><circle cx="46.0" cy="83.3" r="4.5" class="dot net"/><circle cx="233.0" cy="102.9" r="4.5" class="dot net"/><circle cx="420.0" cy="107.2" r="4.5" class="dot net"/><text x="14" y="125.0" transform="rotate(-90 14 125.0)" text-anchor="middle" class="tick">model error, µm</text></svg></div>
+  <div class="card"><svg viewBox="0 0 440 260" class="lchart" role="img" aria-label="One site lies (the honest site's error)"><text x="220.0" y="20" text-anchor="middle" class="ct">One site lies (the honest site's error)</text><line x1="46" x2="420" y1="210.0" y2="210.0" class="grid"/><text x="38" y="214.0" text-anchor="end" class="tick">0</text><line x1="46" x2="420" y1="168.4" y2="168.4" class="grid"/><text x="38" y="172.4" text-anchor="end" class="tick">22</text><line x1="46" x2="420" y1="126.9" y2="126.9" class="grid"/><text x="38" y="130.9" text-anchor="end" class="tick">44</text><line x1="46" x2="420" y1="85.3" y2="85.3" class="grid"/><text x="38" y="89.3" text-anchor="end" class="tick">66</text><line x1="46" x2="420" y1="43.8" y2="43.8" class="grid"/><text x="38" y="47.8" text-anchor="end" class="tick">88</text><text x="46.0" y="232" text-anchor="middle" class="tick">Round 1</text><text x="233.0" y="232" text-anchor="middle" class="tick">Round 2</text><text x="420.0" y="232" text-anchor="middle" class="tick">Round 3</text><polyline points="46.0,182.6 233.0,185.1 420.0,187.7" class="ln iso"/><circle cx="46.0" cy="182.6" r="4.5" class="dot iso"/><circle cx="233.0" cy="185.1" r="4.5" class="dot iso"/><circle cx="420.0" cy="187.7" r="4.5" class="dot iso"/><polyline points="46.0,183.7 233.0,190.2 420.0,190.5" class="ln ora"/><circle cx="46.0" cy="183.7" r="4.5" class="dot ora"/><circle cx="233.0" cy="190.2" r="4.5" class="dot ora"/><circle cx="420.0" cy="190.5" r="4.5" class="dot ora"/><polyline points="46.0,54.7 233.0,178.3 420.0,186.0" class="ln net"/><circle cx="46.0" cy="54.7" r="4.5" class="dot net"/><circle cx="233.0" cy="178.3" r="4.5" class="dot net"/><circle cx="420.0" cy="186.0" r="4.5" class="dot net"/><text x="14" y="125.0" transform="rotate(-90 14 125.0)" text-anchor="middle" class="tick">model error, µm</text></svg></div>
+</div>
+<p class="legend"><span class="k iso"></span>Learning alone<span class="k net"></span>Prebuilt network<span class="k ora"></span>Pooled raw data</p>
+<p class="foot">20 simulated worlds, registered config, error on held-out pieces. A liar spikes the honest site to 82.2 µm in round 1; trust collapses and it is back to 12.7 µm by round 3. With the consistency check on, round 1 stays at 13.3 µm.</p></div>
+  <aside class="note">0:50–1:10. Twenty seconds, two points. Left: the network tracks the pooled-data line and beats learning alone every round. Right: a site that lies costs one round, then trust cuts it off; the consistency check removes even that round. Don't walk through it; the 3D view (viewer/demo.html) is for Q&A.</aside>
 </section>
-<section class="slide" id="s4" aria-label="Slide 4: The win is many sites, not many agents">
-  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" width="16" height="16" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>Results, in simulation</span><span class="num">4 / 6</span></header>
+<section class="slide" id="s5" aria-label="Slide 5: The win is many sites, not many agents">
+  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>Results · simulation</span><span class="num">5 / 9</span></header>
   <h2>The win is many sites, not many agents</h2>
-  <div class="body"><div class="cols3 hero">
-  <div class="cell"><span class="big">12%</span><p>lower error than learning alone, in 75 of 100 worlds. Pooling all the raw data: also 12%.</p></div>
-  <div class="cell"><span class="big">35%</span><p>with eight sites that each know little, better in 20 of 20 worlds. Many data-poor sites is where sharing pays.</p></div>
-  <div class="cell"><span class="big">0 rounds</span><p>for a liar: a consistency check catches its notes on arrival (180 of 180, 0 honest notes dropped). Without it, a liar costs one round.</p></div>
+  <div class="body"><div class="stats">
+  <div class="card stat"><span class="n net">12%</span><span>lower error than learning alone, in 75 of 100 worlds. Pooling all raw data: also 12%.</span></div>
+  <div class="card stat"><span class="n ora">35%</span><span>with eight data-poor sites, better in 20 of 20 worlds.</span></div>
+  <div class="card stat"><span class="n amb sm">0 rounds</span><span>lost to a liar with the consistency check: 180 of 180 lies caught, 0 honest notes dropped.</span></div>
+  <div class="card stat"><span class="n">9&nbsp;µm</span><span>size error from a corrected design, against 132 µm drawn as-is (median, 60 worlds).</span></div>
 </div>
-<p class="foot">Simulation with hidden truth, frozen config, paired per world. The consistency check is an added protocol option, off in the registered config, tested in 60 worlds. The agent layer adds nothing measurable: with messages cut, learned credibility ties equal votes. At two sites the gain is 1.6 µm, below what you can measure on a real part, so we don't claim it there.</p></div>
-  <aside class="note">1:30–2:00. Say it plainly: these are simulation numbers, the gain comes from sharing between sites, not from the agents, and at two sites it is a couple of microns. It grows with the number of data-poor sites.</aside>
+<p class="foot">Hidden-truth simulation, registered config, paired per world. The consistency check is an added option, off in the registered config. The agent layer adds nothing measurable. At two sites the gain is 1.6 µm, below what a real part can show.</p></div>
+  <aside class="note">1:10–1:40. Simulation numbers, said plainly. The gain comes from sharing between sites, not from the agents. It grows with the number of data-poor sites. And what a lab actually gets is a corrected design: 9 µm off instead of 132.</aside>
 </section>
-<section class="slide" id="s5" aria-label="Slide 5: Grounded in a real printer, scored in simulation">
-  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" width="16" height="16" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>Rigor</span><span class="num">5 / 6</span></header>
-  <h2>Grounded in a real printer, scored in simulation</h2>
-  <div class="body"><div class="timeline">
-  <div><span class="t">Real printer</span><p>Formlabs Form Studio 1: a 1.5 mm pin measured 1.41–1.48 mm by micrometer, 24–89 µm small.</p></div>
-  <div><span class="t">Vendor spec</span><p>±0.08 mm on 1–30 mm features. Real error is tens of µm, as the spec says.</p></div>
-  <div><span class="t">Simulator</span><p>Simulated resin pins miss by −0.1 to +0.27 mm. The real pin is inside, at the small edge: each printer must learn its own error.</p></div>
-  <div><span class="t">Why not real</span><p>The sharing gain is 1.6 µm. Two readings of one pin differed by 65 µm. Only hidden truth can score it.</p></div>
-</div>
-<p class="foot">Registered before printing: two printers can't show the sharing gain on real parts. Negative control: when printers share no physics, sharing gains nothing, so the gain isn't built into the scoring. The simulator says when the gain becomes measurable: many sites, each with little data.</p></div>
-  <aside class="note">2:00–2:25. Judge beat: this is the rigor slide. Hold up the printed plate. The real printer tells us the simulator is the right size (this pin sits at its small edge, 1.8th percentile, so say 'edge', not 'middle'); the simulator is the only place a 1.6 µm gain can be scored; the negative control shows the simulator doesn't hand us the result. Don't claim the model was fit on the real printer: one pin, two readings, isn't enough.</aside>
-</section>
-<section class="slide" id="s6" aria-label="Slide 6: Fleets where fit decides and data can't leave">
-  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" width="16" height="16" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>Who it's for</span><span class="num">6 / 6</span></header>
-  <h2>Fleets where fit decides and data can't leave</h2>
-  <div class="body"><div class="split">
-  <div class="who">
-    <div class="who-h"><span>Who</span><span>Why they can't pool data</span></div>
-    <div><b>Dental labs</b><span>Patient scans. Crowns, models and guides must seat on the first print.</span></div>
-    <div><b>Print farms, service bureaus</b><span>Customer geometry is the customer's IP. Many machines, every job must fit.</span></div>
-    <div><b>Distributed manufacturing</b><span>One part, many vendors. Each vendor's process is its edge.</span></div>
-    <div class="next"><b>Next: microfluidics, bioprinting</b><span>Smaller features, costlier tests, stricter data rules. Direction, not a result.</span></div>
-    <p class="get"><b>What they get:</b> parts that fit the first time (corrected designs: size error 132 → 9 µm), and sharing that stays safe when printers differ.</p>
+<section class="slide" id="s6" aria-label="Slide 6: A real printer for scale, simulation to score">
+  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>Rigor</span><span class="num">6 / 9</span></header>
+  <h2>A real printer for scale, simulation to score</h2>
+  <div class="body"><div class="two">
+  <ol class="tl">
+    <li><b>Registered first</b><span>Claims and the prediction that two printers can't show the gain were committed before printing.</span></li>
+    <li><b>Negative control</b><span>When printers share no physics, sharing gains nothing. The gain isn't built into the scoring.</span></li>
+    <li><b>Why simulation</b><span>The two-site gain is 1.6 µm; two readings of one pin differ by 65 µm. Only hidden truth can score it.</span></li>
+  </ol>
+  <div class="card pin">
+    <span class="lbl">Real printer · Form Studio 1</span>
+    <span class="n">1.44<small> mm</small></span>
+    <span class="muted">a 1.50 mm pin, by micrometer (two readings: 1.41 and 1.48)</span>
+    <ul><li class="ok">Inside the vendor's ±0.08&nbsp;mm spec</li><li class="edge">Inside the simulator, at its small edge</li><li>One pin: a sanity check, not a model fit</li></ul>
   </div>
-  <figure class="fig"><svg viewBox="0 0 360 230" class="sites-chart" role="img" aria-label="Lower error than learning alone: 2 sites 11%, 4 sites 28%, 8 sites 35%"><line x1="20" x2="340" y1="186" y2="186" class="axis"/><rect x="20.0" y="145.7" width="74" height="40.3" rx="3" class="bar"/><text x="57.0" y="135.7" text-anchor="middle" class="val">11%</text><text x="57.0" y="206" text-anchor="middle" class="lab">2 sites</text><text x="57.0" y="223" text-anchor="middle" class="sub">39/60 worlds</text><rect x="143.0" y="77.8" width="74" height="108.2" rx="3" class="bar"/><text x="180.0" y="67.8" text-anchor="middle" class="val">28%</text><text x="180.0" y="206" text-anchor="middle" class="lab">4 sites</text><text x="180.0" y="223" text-anchor="middle" class="sub">35/40 worlds</text><rect x="266.0" y="54.2" width="74" height="131.8" rx="3" class="bar"/><text x="303.0" y="44.2" text-anchor="middle" class="val">35%</text><text x="303.0" y="206" text-anchor="middle" class="lab">8 sites</text><text x="303.0" y="223" text-anchor="middle" class="sub">20/20 worlds</text></svg><figcaption>Where it pays: lower error than learning alone, by number of data-poor sites. Round 3, simulation.</figcaption></figure>
+</div></div>
+  <aside class="note">1:40–2:05. Hold up the printed plate. The real printer tells us the simulator is the right size: this pin is inside its range, at the small edge (1.8th percentile), so say 'edge', not 'middle'. The negative control shows the simulator doesn't hand us the result. Don't claim a fit on the real printer.</aside>
+</section>
+<section class="slide" id="s7" aria-label="Slide 7: Medical and bio labs that print and can't pool data">
+  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>Who it's for</span><span class="num">7 / 9</span></header>
+  <h2>Medical and bio labs that print and can't pool data</h2>
+  <div class="body"><div class="two wide">
+  <div class="grid4">
+    <div class="card who"><span class="tile "><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 448 512" aria-hidden="true" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M448 492v20H0v-20c0-6.627 5.373-12 12-12h20V120c0-13.255 10.745-24 24-24h88V24c0-13.255 10.745-24 24-24h112c13.255 0 24 10.745 24 24v72h88c13.255 0 24 10.745 24 24v360h20c6.627 0 12 5.373 12 12zM308 192h-40c-6.627 0-12 5.373-12 12v40c0 6.627 5.373 12 12 12h40c6.627 0 12-5.373 12-12v-40c0-6.627-5.373-12-12-12zm-168 64h40c6.627 0 12-5.373 12-12v-40c0-6.627-5.373-12-12-12h-40c-6.627 0-12 5.373-12 12v40c0 6.627 5.373 12 12 12zm104 128h-40c-6.627 0-12 5.373-12 12v84h64v-84c0-6.627-5.373-12-12-12zm64-96h-40c-6.627 0-12 5.373-12 12v40c0 6.627 5.373 12 12 12h40c6.627 0 12-5.373 12-12v-40c0-6.627-5.373-12-12-12zm-116 12c0-6.627-5.373-12-12-12h-40c-6.627 0-12 5.373-12 12v40c0 6.627 5.373 12 12 12h40c6.627 0 12-5.373 12-12v-40zM182 96h26v26a6 6 0 0 0 6 6h20a6 6 0 0 0 6-6V96h26a6 6 0 0 0 6-6V70a6 6 0 0 0-6-6h-26V38a6 6 0 0 0-6-6h-20a6 6 0 0 0-6 6v26h-26a6 6 0 0 0-6 6v20a6 6 0 0 0 6 6z"></path></svg></span><b>Hospital 3D-printing labs</b><span>Surgical guides and anatomical models from patient scans. The scans stay in-house.</span></div>
+    <div class="card who"><span class="tile "><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 448 512" aria-hidden="true" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M443.98 96.25c-11.01-45.22-47.11-82.06-92.01-93.72-32.19-8.36-63 5.1-89.14 24.33-3.25 2.39-6.96 3.73-10.5 5.48l28.32 18.21c7.42 4.77 9.58 14.67 4.8 22.11-4.46 6.95-14.27 9.86-22.11 4.8L162.83 12.84c-20.7-10.85-43.38-16.4-66.81-10.31-44.9 11.67-81 48.5-92.01 93.72-10.13 41.62-.42 80.81 21.5 110.43 23.36 31.57 32.68 68.66 36.29 107.35 4.4 47.16 10.33 94.16 20.94 140.32l7.8 33.95c3.19 13.87 15.49 23.7 29.67 23.7 13.97 0 26.15-9.55 29.54-23.16l34.47-138.42c4.56-18.32 20.96-31.16 39.76-31.16s35.2 12.85 39.76 31.16l34.47 138.42c3.39 13.61 15.57 23.16 29.54 23.16 14.18 0 26.48-9.83 29.67-23.7l7.8-33.95c10.61-46.15 16.53-93.16 20.94-140.32 3.61-38.7 12.93-75.78 36.29-107.35 21.95-29.61 31.66-68.8 21.53-110.43z"></path></svg></span><b>Dental labs</b><span>Crowns, models and aligners must seat first time. Patient data can't be pooled.</span></div>
+    <div class="card who"><span class="tile "><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" aria-hidden="true" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M160 320h12v16c0 8.84 7.16 16 16 16h40c8.84 0 16-7.16 16-16v-16h12c17.67 0 32-14.33 32-32V64c0-17.67-14.33-32-32-32V16c0-8.84-7.16-16-16-16h-64c-8.84 0-16 7.16-16 16v16c-17.67 0-32 14.33-32 32v224c0 17.67 14.33 32 32 32zm304 128h-1.29C493.24 413.99 512 369.2 512 320c0-105.88-86.12-192-192-192v64c70.58 0 128 57.42 128 128s-57.42 128-128 128H48c-26.51 0-48 21.49-48 48 0 8.84 7.16 16 16 16h480c8.84 0 16-7.16 16-16 0-26.51-21.49-48-48-48zm-360-32h208c4.42 0 8-3.58 8-8v-16c0-4.42-3.58-8-8-8H104c-4.42 0-8 3.58-8 8v16c0 4.42 3.58 8 8 8z"></path></svg></span><b>Bio and microfluidics labs</b><span>Lab-on-chip and organ-on-chip parts with sub-mm features. Recipes are IP.</span></div>
+    <div class="card who"><span class="tile "><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" aria-hidden="true" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M475.115 163.781L336 252.309v-68.28c0-18.916-20.931-30.399-36.885-20.248L160 252.309V56c0-13.255-10.745-24-24-24H24C10.745 32 0 42.745 0 56v400c0 13.255 10.745 24 24 24h464c13.255 0 24-10.745 24-24V184.029c0-18.917-20.931-30.399-36.885-20.248z"></path></svg></span><b>Medical device makers</b><span>One part, many contract printers. Receipts double as an audit trail.</span></div>
+  </div>
+  <figure class="card fig"><svg viewBox="0 0 360 240" class="sites-chart" role="img" aria-label="Lower error than learning alone: 2 labs 11%, 4 labs 28%, 8 labs 35%"><text x="180.0" y="18" text-anchor="middle" class="ct">Value grows with every lab that joins</text><line x1="24" x2="336" y1="196" y2="196" class="axis"/><rect x="24.0" y="157.6" width="76" height="38.4" rx="3" class="bar"/><text x="62.0" y="147.6" text-anchor="middle" class="val">11%</text><text x="62.0" y="218" text-anchor="middle" class="lab">2 labs</text><rect x="142.0" y="92.9" width="76" height="103.1" rx="3" class="bar"/><text x="180.0" y="82.9" text-anchor="middle" class="val">28%</text><text x="180.0" y="218" text-anchor="middle" class="lab">4 labs</text><rect x="260.0" y="70.5" width="76" height="125.5" rx="3" class="bar"/><text x="298.0" y="60.5" text-anchor="middle" class="val">35%</text><text x="298.0" y="218" text-anchor="middle" class="lab">8 labs</text></svg></figure>
 </div>
-<p class="close">Print anywhere, trust the part. <span class="meta mono">github.com/matte-realize/prebuilt · all numbers simulation</span></p></div>
-  <aside class="note">2:25–3:00. Investor beat: name the buyer and why pooling is off the table for them, then the bars: value grows with the number of sites, which is a network effect. Mixed fleets answers 'what if printers differ': trust makes sharing safe, it doesn't yet identify bad partners. Bioprinting is direction. End on the line. Stop talking.</aside>
+<p class="foot">Buyers are our hypothesis, not yet validated with customers. Chart: lower error than learning alone at 2 / 4 / 8 data-poor sites, simulation. On sub-millimetre features the gain holds at 7–9% in simulation; bioprinting is direction, not a result.</p></div>
+  <aside class="note">2:05–2:45. Name the buyer and why pooling is off the table: patient data and process IP. Then the bars: value grows with every lab that joins, a network effect. If asked about bioprinting: the gain holds on sub-mm features in simulation; real bioprinting is the direction, not a result.</aside>
+</section>
+<section class="slide bare" id="s8" aria-label="Slide 8: Print anywhere, trust the part">
+  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg></span><span class="num">8 / 9</span></header>
+  <h2>Print anywhere, trust the part</h2>
+  <div class="body"><div class="hero-title">
+  <svg class="logo-lg" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>
+  <p class="big-close">Print anywhere, trust the part</p>
+  <p class="tag">Labs learn their printers together. Their data stays home.</p>
+  <p class="meta">github.com/matte-realize/prebuilt · all sharing results in simulation</p>
+</div></div>
+  <aside class="note">2:45–3:00. End on the line. Stop talking.</aside>
+</section>
+<section class="slide" id="s9" aria-label="Slide 9: Many sites beat one; agents don't beat random">
+  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>Appendix · validation and benchmarks</span><span class="num">9 / 9</span></header>
+  <h2>Many sites beat one; agents don't beat random</h2>
+  <div class="body"><table class="bench"><thead><tr><th>Round 3, paired simulated worlds</th><th>Gain</th><th>Worlds better</th><th>p</th></tr></thead><tbody>
+<tr><td>Network vs single site alone</td><td>12.3% (1.6&nbsp;µm)</td><td>75 / 100</td><td>&lt;0.001</td></tr>
+<tr><td>Pooled raw data (upper bound) vs alone</td><td>12.2%</td><td>64 / 100</td><td></td></tr>
+<tr><td>Agents only, messages cut, vs alone</td><td>2.4%</td><td>56 / 100</td><td>0.27</td></tr>
+<tr><td>Agent auction vs random pieces</td><td>+1.0%</td><td>31 / 60</td><td>0.90</td></tr>
+<tr><td>4 / 8 data-poor sites vs alone</td><td>28.5% / 34.7%</td><td>35/40 · 20/20</td><td>&lt;0.001</td></tr>
+<tr><td>Negative control: nothing shared</td><td>−13.0% (adaptive spread −0.4%)</td><td>19 / 60</td><td>0.006</td></tr>
+</tbody></table>
+<p class="foot">Hidden-truth simulator, registered config, error against true size on held-out pieces, sign test over worlds. 90% intervals cover 90–91%. GPU posterior up to 84× NumPy on an H100. Reproduce: docs/validation-and-benchmarks.md.</p></div>
+  <aside class="note">Backup for Q&A: the multi-agent vs single-agent comparison. Many sites beat one site; many agents inside a site don't beat random. Say both.</aside>
 </section>
 </main>
 
@@ -348,125 +380,5 @@ body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; 
   document.addEventListener('click', e => {
     if (document.body.classList.contains('present') && e.target.closest('.slide')) show(i + 1);
   });
-})();
-</script>
-
-<script>
-(() => {
-  const DATA = {"honest": {"isolated": [16.6, 15.3, 14.0], "networked": [14.9, 12.6, 12.1], "oracle": [14.9, 13.1, 13.0]}, "liar": {"isolated": [14.5, 13.2, 11.8], "networked": [82.2, 16.8, 12.7], "oracle": [13.9, 10.5, 10.3]}, "check": {"isolated": [14.5, 13.4, 10.2], "networked": [13.3, 12.4, 11.8], "oracle": [13.9, 10.9, 10.2]}};
-  const COL = { isolated: 'var(--iso)', networked: 'var(--net)', oracle: 'var(--ora)' };
-  const PER_ROUND = 26, SEED = 24, NUMBERS = 6;   // pieces per round plate, seed plate; numbers per message
-  const chart = document.getElementById('chart'), NS = 'http://www.w3.org/2000/svg';
-  const $ = id => document.getElementById(id);
-  const el = (tag, attrs, text) => { const e = document.createElementNS(NS, tag);
-    for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; };
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let mode = 'honest', shown = 3, timer = null, run = 0;
-  const SAY = {
-    honest: ['Each round both sites print and measure a plate. Only belief summaries cross.',
-      'Round 1: networked (orange) already beats learning alone (blue).',
-      'Round 2: it matches pooling all the raw data (green), which never moved.',
-      'Round 3: 12% lower error than alone, and still zero measurements crossed.'],
-    liar: ['PLA now sends confident, wrong beliefs. Resin trusts it by default.',
-      `Round 1: resin is misled, ${DATA.liar.networked[0].toFixed(0)} µm. Its held-out pieces expose the lie.`,
-      'Round 2: trust in PLA drops from 1.00 to 0.01. Resin recovers.',
-      'Round 3: back level with learning alone. A liar costs one round.'],
-    check: ['PLA lies again. Now resin checks each note against its own plate first.',
-      `Round 1: PLA's note contradicts resin's data, so it's set aside. No spike: ${DATA.check.networked[0].toFixed(1)} µm.`,
-      'Round 2: set aside again. Every note is re-checked, every round.',
-      'Round 3: the liar never got through. With the check, a liar costs zero rounds.'],
-  };
-  function draw() {
-    const d = DATA[mode], X0 = 54, X1 = 330, Y0 = 254, Y1 = 30, bad = mode !== 'honest';
-    const lo = 10, hi = mode === 'liar' ? 30 : 18, step = mode === 'liar' ? 5 : 2;
-    const x = i => X0 + (X1 - X0) * i / 2, y = v => Y0 - (Y0 - Y1) * (Math.min(v, hi) - lo) / (hi - lo);
-    chart.replaceChildren();
-    for (let v = lo; v <= hi; v += step) {
-      chart.append(el('line', { x1: X0, x2: X1, y1: y(v), y2: y(v), class: 'grid' }));
-      chart.append(el('text', { x: X0 - 10, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v));
-    }
-    [1, 2, 3].forEach((r, i) => chart.append(el('text', { x: x(i), y: Y0 + 24, 'text-anchor': 'middle', class: 'tick' }, 'round ' + r)));
-    chart.append(el('text', { x: X0 - 44, y: 16, class: 'tick' }, bad ? 'µm, resin site' : 'µm, both sites'));
-    const ends = [];
-    for (const arm of ['isolated', 'oracle', 'networked']) {
-      const v = d[arm].slice(0, shown);
-      if (v.length > 1) chart.append(el('polyline', { points: v.map((a, i) => `${x(i)},${y(a)}`).join(' '), class: 'ln ' + arm, stroke: COL[arm] }));
-      v.forEach((a, i) => {
-        chart.append(el('circle', { cx: x(i), cy: y(a), r: 6, fill: COL[arm], stroke: 'var(--sheet)', 'stroke-width': 2 }));
-        if (a > hi) chart.append(el('text', { x: x(i) + 12, y: y(a) + 5, class: 'spike' }, `↑ ${Math.round(a)} µm`));
-      });
-      if (shown) ends.push([arm, y(v[v.length - 1]), v[v.length - 1]]);
-    }
-    ends.sort((a, b) => a[1] - b[1]);
-    const ys = [];   // direct labels at the line ends: pushed apart, then lifted to stay above the axis
-    for (const [, yy] of ends) ys.push(ys.length ? Math.max(yy, ys[ys.length - 1] + 19) : yy);
-    const lift = Math.max(0, ys[ys.length - 1] - (Y0 - 4));
-    ends.forEach(([arm, , v], i) => chart.append(el('text', { x: x(shown - 1) + 14, y: ys[i] - lift + 5,
-      class: 'end', fill: 'var(--ink)' }, `${arm} ${v.toFixed(1)}`)));
-    const t = mode === 'liar' && shown >= 2 ? 0.01 : 1.0;
-    $('trustBar').setAttribute('width', 140 * t); $('trustBar').classList.toggle('low', t < 0.5);
-    $('trustTxt').textContent = mode === 'check' && shown ? `${t.toFixed(2)} · note set aside` : t.toFixed(2);
-    $('trustG').style.opacity = bad ? 1 : 0.3;
-    $('nameB').textContent = bad ? 'PLA (lying)' : 'PLA';
-    const label = shown ? `round ${shown} plate measured` : 'seed plate measured';
-    $('platesA').textContent = $('platesB').textContent = label;
-    $('measA').textContent = $('measB').textContent = SEED + PER_ROUND * shown;
-    $('crossed').textContent = `crossed: 0 measurements · ${2 * NUMBERS * shown} numbers`;
-    $('say').textContent = SAY[mode][shown];
-  }
-  function packets(onDone) {
-    const a = $('pktAB'), b = $('pktBA');
-    b.classList.toggle('bad', mode !== 'honest');
-    const stop = mode === 'check' ? 0.5 : 1;   // with the check, PLA's note halts at the boundary
-    if (reduce) return onDone();
-    const t0 = performance.now(), dur = 1100;
-    (function frame(now) {
-      const k = Math.min(1, (now - t0) / dur), e = k < .5 ? 2 * k * k : 1 - 2 * (1 - k) * (1 - k);
-      a.setAttribute('transform', `translate(${96 + 248 * e},178)`); a.style.opacity = k < 1 ? 1 : 0;
-      b.setAttribute('transform', `translate(${344 - 248 * stop * e},120)`); b.style.opacity = k < 1 ? (stop < 1 ? 1 - 0.6 * k : 1) : 0;
-      k < 1 ? requestAnimationFrame(frame) : onDone();
-    })(t0);
-  }
-  function play() {
-    const me = ++run; clearTimeout(timer); shown = 0; draw();
-    const next = () => { if (me !== run || shown >= 3) return;
-      packets(() => { if (me !== run) return; shown += 1; draw(); timer = setTimeout(next, 1600); }); };
-    timer = setTimeout(next, 1200);
-  }
-  function toggleCheck() {
-    if (mode === 'honest') return;
-    mode = mode === 'check' ? 'liar' : 'check';
-    $('check').setAttribute('aria-pressed', String(mode === 'check'));
-    $('cap').textContent = mode === 'check'
-      ? 'Consistency check on (an added option, off in the registered config). Resin site, 10 worlds, µm.'
-      : 'PLA broadcasts confident, wrong beliefs. Resin site, 10 worlds, model error on held-out pieces, µm.';
-    play();
-  }
-  function toggleLiar() {
-    mode = mode === 'honest' ? 'liar' : 'honest';
-    $('check').disabled = mode === 'honest'; $('check').setAttribute('aria-pressed', 'false');
-    $('liar').setAttribute('aria-pressed', String(mode === 'liar'));
-    $('liar').textContent = mode === 'liar' ? 'Make PLA honest (L)' : 'Make PLA lie (L)';
-    $('cap').textContent = mode === 'liar'
-      ? 'PLA broadcasts confident, wrong beliefs. Resin site, 10 worlds, model error on held-out pieces, µm.'
-      : 'Simulation with hidden truth, frozen config, 20 worlds. Model error on held-out pieces, µm.';
-    play();
-  }
-  $('play').addEventListener('click', play);
-  $('liar').addEventListener('click', toggleLiar);
-  $('check').addEventListener('click', toggleCheck);
-  $('demo').addEventListener('click', e => e.stopPropagation());   // clicks here don't advance slides
-  const s3 = $('demo').closest('.slide');
-  const onScreen = () => !document.body.classList.contains('present') || s3.classList.contains('on');
-  document.addEventListener('keydown', e => {
-    if (!onScreen() || e.metaKey || e.ctrlKey) return;
-    if (e.key === 'p' || e.key === 'P') play();
-    if (e.key === 'l' || e.key === 'L') toggleLiar();
-    if (e.key === 'c' || e.key === 'C') toggleCheck();
-  });
-  new MutationObserver(() => {   // Present mode: play when the demo slide comes up
-    if (document.body.classList.contains('present') && s3.classList.contains('on')) play();
-  }).observe(s3, { attributes: true, attributeFilter: ['class'] });
-  draw();
 })();
 </script>
