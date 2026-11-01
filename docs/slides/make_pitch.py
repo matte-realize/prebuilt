@@ -134,11 +134,11 @@ SLIDES = [
      """<div class="timeline">
   <div><span class="t">Real printer</span><p>Formlabs Form Studio 1: a 1.5 mm pin measured 1.41–1.48 mm by micrometer, 24–89 µm small.</p></div>
   <div><span class="t">Vendor spec</span><p>±0.08 mm on 1–30 mm features. Real error is tens of µm, as the spec says.</p></div>
-  <div><span class="t">Simulator</span><p>Simulated resin pins miss by −0.1 to +0.27 mm and holes by up to −0.35 mm: the real printer sits inside.</p></div>
+  <div><span class="t">Simulator</span><p>Simulated resin pins miss by −0.1 to +0.27 mm. The real pin is inside, at the small edge: each printer must learn its own error.</p></div>
   <div><span class="t">Why not real</span><p>The sharing gain is 1.6 µm. Two readings of one pin differed by 65 µm. Only hidden truth can score it.</p></div>
 </div>
 <p class="foot">Registered before printing: two printers can't show the sharing gain on real parts. Negative control: when printers share no physics, sharing gains nothing, so the gain isn't built into the scoring. The simulator says when the gain becomes measurable: many sites, each with little data.</p>""",
-     "Judge beat: this is the rigor slide. Hold up the printed plate. The real printer tells us the simulator is the right size; the simulator is the only place a 1.6 µm gain can be scored; the negative control shows the simulator doesn't hand us the result. Don't claim the model was fit on the real printer: three pieces aren't enough."),
+     "Judge beat: this is the rigor slide. Hold up the printed plate. The real printer tells us the simulator is the right size (this pin sits at its small edge, 1.8th percentile, so say 'edge', not 'middle'); the simulator is the only place a 1.6 µm gain can be scored; the negative control shows the simulator doesn't hand us the result. Don't claim the model was fit on the real printer: one pin, two readings, isn't enough."),
 
     ("2:25–3:00 · Who it's for", "Fleets where fit decides and data can't leave",
      f"""<div class="split">

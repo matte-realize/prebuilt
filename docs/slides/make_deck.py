@@ -131,8 +131,8 @@ slide("Sim-to-real", "Grounded in a real printer, scored in simulation",
   <div><span class="t">Real printer</span><p>One Formlabs Form Studio 1, Alpha Fast resin. The 1.5 mm pin measured 1.41–1.48 mm by micrometer: inside the simulator's range, at its small edge (1.8th percentile).</p></div>
   <div><span class="t">Why not real</span><p>The two-site gain is 1.6 µm; two readings of one pin differed by 65 µm. Only hidden truth can score it.</p></div>
 </div>
-<p class="foot">The real printer checks the simulator's scale. No model was fit on the real printer (three pieces aren't enough) and no sharing gain is claimed there. The plate, a hand-measurement sheet and the scanner pipeline are ready for real sites.</p>""",
-      "Simulated resin pins miss by −0.1 to +0.27 mm and holes by up to −0.35 mm; the real pin sits inside. Don't claim a real fit or real rounds.")
+<p class="foot">The real printer checks the simulator's scale. No model was fit on the real printer (one pin, two readings, isn't enough) and no sharing gain is claimed there. The plate, a hand-measurement sheet and the scanner pipeline are ready for real sites.</p>""",
+      "Simulated resin pins miss by −0.1 to +0.27 mm and holes by up to −0.35 mm; for this pin the real readings sit at the 1.8th percentile of 500 simulated printers, and below the prior's 90% interval. Inside, at the edge. Don't claim a real fit or real rounds. Source: docs/validation-and-benchmarks.md section 7.")
 
 slide("Result · simulation", "Sharing matches pooling the raw data",
       f"""<figure class="chart"><img src="data:image/png;base64,{CHART}" alt="Held-out error falls with pieces printed; networked tracks the pooled-data oracle below isolated in every round."></figure>
@@ -176,6 +176,19 @@ slide("Is the simulator built to confirm itself?", "Negative control: share noth
 </div>
 <p class="foot">{NEG["worlds"]} worlds, round 3, paired per world. The gain isn't built into the scoring: it comes from physics the printers share. The flip side: with the registered fixed spread, printers that share less than the model assumes are hurt. The consistency check alone cuts that to −{-NEG["control"]["check"]["together_vs_alone"]["pct"]:.0f}% (drops {NEG["control"]["check"]["dropped"]} of {NEG["control"]["check"]["notes"]} notes); adaptive spread removes it. Both are added options, off in the registered config. <span class="flag">Simulation only.</span></p>""",
       "Sources: viewer/evidence.json negative_control, hpc/sweeps/relevance/README.md sections 6 and 8.")
+
+slide("Validation and benchmarks · simulation", "Multi-site beats single site; the agents don't beat random",
+      """<table class="nums"><thead><tr><th>Round 3, paired worlds</th><th>Gain</th><th>Worlds better</th><th>p</th></tr></thead>
+<tbody>
+<tr><td>Networked vs single site alone</td><td>12.3% (1.6 µm)</td><td>75 / 100</td><td>&lt;0.001</td></tr>
+<tr><td>Pooled raw data (upper bound) vs alone</td><td>12.2%</td><td>64 / 100</td><td></td></tr>
+<tr><td>Agents only, messages cut, vs alone</td><td>2.4%</td><td>56 / 100</td><td>0.27</td></tr>
+<tr><td>Agent auction vs random pieces</td><td>+1.0%</td><td>31 / 60</td><td>0.90</td></tr>
+<tr><td>4 / 8 data-poor sites vs alone</td><td>28.5% / 34.7%</td><td>35 / 40 · 20 / 20</td><td>&lt;0.001</td></tr>
+<tr><td>Negative control: nothing shared</td><td>−13.0% (adaptive spread: −0.4%)</td><td>19 / 60</td><td>0.006</td></tr>
+</tbody></table>
+<p class="foot">Hidden-truth simulator, registered config, error against true size on held-out pieces, sign test over worlds. 90% intervals cover 90–91%. GPU posterior up to 84× NumPy on an H100. Real printer: one Form Studio 1 pin, inside the vendor spec, at the simulator's small edge. Commands to reproduce every row: docs/validation-and-benchmarks.md. <span class="flag">Simulation only.</span></p>""",
+      "The rubric's multi-agent vs single-agent comparison: many sites beat one site; many agents inside a site don't beat random. Say both. Source: docs/validation-and-benchmarks.md sections 1-4, 6.")
 
 slide("Next", "Print anywhere, trust the part",
       f"""<div class="split">
