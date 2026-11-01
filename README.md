@@ -36,7 +36,8 @@ python -m console --share                            # same, with a public link 
 
 python -m viewer.export --open                       # 3D demo (works offline)
 python -m viewer.export --fleet 8 --open             # eight printers in 3D (same setup as the 8-site result, ~4 min to build)
-open docs/slides/prebuilt-pitch.html                 # 3-minute pitch; demo on slide 3 (P, L, C)
+open docs/slides/prebuilt-pitch.pptx                 # the pitch deck (PowerPoint / Keynote; node docs/slides/make_pptx.js rebuilds it)
+open docs/slides/prebuilt-pitch.html                 # the same pitch in a browser, with the live run on slide 3 (P, L, C)
 python -m model.compensate --checkpoint <state.pkl> --site resin --kind hole --target 5.0   # corrected design size
 ```
 
