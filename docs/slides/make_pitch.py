@@ -89,7 +89,7 @@ def sites_svg() -> str:
     y = lambda v: Y0 - (Y0 - Y1) * v / top
     parts = [f'<svg viewBox="0 0 {W} {H}" class="sites-chart" role="img" aria-label="Lower error than learning alone: '
              + ", ".join(f'{r["sites"]} labs {round(r["pct"])}%' for r in SITES) + '">',
-             f'<text x="{W / 2}" y="18" text-anchor="middle" class="ct">Value grows with every lab that joins</text>',
+             f'<text x="{W / 2}" y="18" text-anchor="middle" class="ct">Value grows with every lab that joins (simulation)</text>',
              f'<line x1="{X0}" x2="{W - X0}" y1="{Y0}" y2="{Y0}" class="axis"/>']
     for i, r in enumerate(SITES):
         x = X0 + i * (bw + gap)
@@ -106,8 +106,8 @@ SLIDES = [
     ("title", "", "Prebuilt",
      f"""<div class="hero-title">
   <div class="brandline">{logo("logo-xl")}<span>Prebuilt</span></div>
-  <p class="tag">Precision printing for labs that can't share their data</p>
-  <p class="sub">Printers learn their errors from each other. Patient scans, part geometry and measurements never leave the lab.</p>
+  <p class="tag">Every printer learns from every other. No data leaves.</p>
+  <p class="sub">Precision manufacturing for labs that can't share their data: each machine learns its own errors and gets better with every machine that joins. Patient scans, part geometry and measurements stay home.</p>
   <p class="meta">ScienceClaw · Manufacturing &amp; Materials · MIT Media Lab</p>
 </div>""",
      "0:00. Open on the one-liner and hold up the printed plate."),
@@ -147,8 +147,7 @@ SLIDES = [
   <div class="card">{line_svg(HONEST, "All sites honest")}</div>
   <div class="card">{line_svg(LIAR, "One site lies (the honest site's error)")}</div>
 </div>
-{LEGEND}
-<p class="foot">Average over 20 simulated fleets, registered config, error on held-out pieces. A liar spikes the honest site to {LIAR["networked"][0]} µm in round 1; trust collapses and it is back to {LIAR["networked"][2]} µm by round 3. With the consistency check on, round 1 stays at {CHECKED["networked"][0]} µm.</p>""",
+{LEGEND}""",
      "1:00–1:15. Fifteen seconds, two points. Left: the network tracks the pooled-data line and beats learning alone every round. Right: a site that lies costs one round, then trust cuts it off; the consistency check removes even that round. Don't walk through it; the 3D view (viewer/demo.html) is for Q&A."),
 
     ("", "Results · simulation", "Parts that fit, and new labs get there faster",
@@ -157,8 +156,7 @@ SLIDES = [
   <div class="card stat"><span class="n ora">{round(SITES[2]["pct"])}%</span><span>lower error for labs with little data when eight share. The network won {SITES[2]["wins"]} of {SITES[2]["n"]} simulated fleets.</span></div>
   <div class="card stat"><span class="n">12%</span><span>lower error with just two labs, matching what pooling all raw data gives (won 75 of 100 fleets).</span></div>
   <div class="card stat"><span class="n amb sm">0 rounds</span><span>lost to a lying lab with the consistency check: {CHECK["liar_caught"]} of {CHECK["liar_notes"]} lies caught, {CHECK["honest_dropped"]} honest notes dropped.</span></div>
-</div>
-<p class="foot">Error: how far the predicted size of a pin or hole is from its true printed size, on held-out pieces. Each simulated fleet is run both ways and compared head to head. The gain comes from labs sharing, confirmed by ablation (benchmarks slide).</p>""",
+</div>""",
      "1:15–1:45. Lead with what a lab gets: a corrected design that misses by 9 microns instead of 132, well under the ~120 micron margin a dental crown needs. Then the network: labs with little data get 35% lower error when eight share, so new labs need fewer test prints. Two labs already match pooling the data. A lying lab costs nothing with the check. If asked about agents: the win is sharing between labs, not smarter piece selection, and we say so."),
 
     ("", "Rigor", "A real printer for scale, simulation to score",
@@ -186,10 +184,17 @@ SLIDES = [
     <div class="card who">{tile("FaIndustry")}<b>Medical device makers</b><span>One part, many contract printers. Receipts double as an audit trail.</span></div>
   </div>
   <figure class="card fig">{sites_svg()}</figure>
-</div>
-<p class="foot">First markets we're targeting. Chart: lower error than learning alone at 2 / 4 / 8 data-poor labs, simulation. On sub-millimetre features the gain holds at 7–9% in simulation. Next: bioprinting.</p>""",
-     "2:05–2:45. Name the buyer and why pooling is off the table: patient data and process IP. Then the bars: value grows with every lab that joins, a network effect. If asked about bioprinting: the gain holds on sub-mm features in simulation; real bioprinting is the direction, not a result."),
+</div>""",
+     "2:05–2:30. Name the buyer and why pooling is off the table: patient data and process IP. Then the bars: value grows with every lab that joins, a network effect. If asked about bioprinting: the gain holds on sub-mm features in simulation; real bioprinting is the direction, not a result."),
 
+    ("", "Where this goes", "Today printed parts. Next, every precision machine",
+     f"""<div class="steps ladder">
+  <div class="card step">{tile("FaPrint")}<span class="lbl net">Today · 3D printing</span><span class="pn">132 → 9&nbsp;µm</span><span>Medical and bio labs: corrected designs that fit the first time, learned across labs (simulation).</span></div>
+  <div class="card step">{tile("FaDna", "teal")}<span class="lbl">Next · micro-scale</span><span class="pn">Sub-mm</span><span>Microfluidics and bioprinting: the sharing gain holds at 7–9% on sub-millimetre features (simulation).</span></div>
+  <div class="card step">{tile("FaMicrochip", "amb")}<span class="lbl amb">Vision · semiconductors</span><span class="pn">Nanometres</span><span>Fabs and GPU packaging lines: tool data already sits in private silos, and learning across them nears a pooled model (imec, 2021).</span></div>
+</div>
+<div class="card banner"><p><b class="gap">One rule at every scale:</b> machines learn their errors together; recipes, designs and measurements stay home. Fewer misprints, higher yield.</p></div>""",
+     "2:30–2:48. Paint the path: today printed parts for medical and bio labs; next micro-scale, where the gain already holds in simulation; then any precision machine whose owners can't share data. Semiconductor fabs already keep tool data in silos, and imec showed learning across those silos approaches a pooled model. Same rule, nanometre stakes. This is the vision, not today's result."),
     ("", "Validation and benchmarks", "The network beats every single-lab baseline",
      f"""<table class="bench"><thead><tr><th>Round 3, simulated fleets, head to head</th><th>Lower error</th><th>Fleets where it wins</th><th>p</th></tr></thead><tbody>
 <tr><td>Network vs single site alone</td><td>12.3% (1.6&nbsp;µm)</td><td>75 / 100</td><td>&lt;0.001</td></tr>
@@ -205,10 +210,10 @@ SLIDES = [
      f"""<div class="hero-title">
   {logo("logo-lg")}
   <p class="big-close">Print anywhere, trust the part</p>
-  <p class="tag">Labs learn their printers together. Their data stays home.</p>
-  <p class="meta">github.com/matte-realize/prebuilt · all sharing results in simulation</p>
+  <p class="tag">Machines learn their errors together. Their data stays home. From microns today to nanometres next.</p>
+  <p class="meta">github.com/matte-realize/prebuilt</p>
 </div>""",
-     "2:45–3:00. End on the line. Stop talking.")
+     "2:48–3:00. End on the line. Stop talking.")
 ]
 
 EXTRA_CSS = """
@@ -249,6 +254,8 @@ body { background: #05090f; }
 .step .pn { font: 700 3.2cqw/1.1 var(--display); color: var(--ink); }
 .step i { font-size: 1.15cqw; color: var(--muted); opacity: .8; }
 .banner b.gap { color: var(--accent); }
+.step .lbl.net { color: var(--accent); } .step .lbl.amb { color: var(--amber); }
+.tile.amb { color: var(--amber); background: color-mix(in srgb, var(--amber) 16%, transparent); border-color: var(--amber); }
 .banner p { margin: 0; font-size: 1.65cqw; max-width: none; } .banner b { color: var(--teal); }
 .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 2cqw; }
 .charts .card { padding: 1cqw 1.4cqw; }

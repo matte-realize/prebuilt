@@ -127,8 +127,8 @@ async function main() {
   s = pres.addSlide({ masterName: "DARK" });
   s.addImage({ data: LOGO, x: M, y: 1.25, w: 1.05, h: 1.05, altText: "Prebuilt logo" });
   T(s, "Prebuilt", { x: M + 1.3, y: 1.25, w: 6, h: 1.05, fontFace: HEAD, fontSize: 60, bold: true, valign: "middle" });
-  T(s, "Precision printing for labs that can't share their data", { x: M, y: 2.65, w: 8.6, h: 0.6, fontFace: HEAD, fontSize: 24, bold: true, color: C.accent });
-  T(s, "Printers learn their errors from each other. Patient scans, part geometry and measurements never leave the lab.",
+  T(s, "Every printer learns from every other. No data leaves.", { x: M, y: 2.65, w: 8.6, h: 0.6, fontFace: HEAD, fontSize: 24, bold: true, color: C.accent });
+  T(s, "Precision manufacturing for labs that can't share their data: each machine learns its own errors and gets better with every machine that joins. Patient scans, part geometry and measurements stay home.",
     { x: M, y: 3.35, w: 8.2, h: 0.7, fontSize: 16, color: C.muted });
   T(s, "ScienceClaw · Manufacturing & Materials · MIT Media Lab", { x: M, y: 4.6, w: 8, h: 0.3, fontSize: 11, color: C.faint });
   s.addNotes("Open on the one-liner and hold up the printed plate.");
@@ -202,7 +202,6 @@ async function main() {
   head(s, "Three rounds · simulation", "The network learns faster, and shrugs off a liar");
   lineChart(s, HONEST, M, 1.5, 4.35, 3.2, "All sites honest");
   lineChart(s, LIAR, M + 4.55, 1.5, 4.35, 3.2, "One site lies (the honest site's error)");
-  foot(s, `Average over 20 simulated fleets, registered config, error on held-out pieces. A liar spikes the honest site to ${LIAR.networked[0]} µm in round 1; trust collapses and it is back to ${LIAR.networked[2]} µm by round 3. With the consistency check on, round 1 stays at ${CHECKED.networked[0]} µm.`);
   s.addNotes("1:00–1:15. Fifteen seconds, two points. Left: the network tracks the pooled-data line and beats learning alone every round. Right: a site that lies costs one round, then trust cuts it off; the consistency check removes even that round. Don't walk through it; the 3D view (viewer/demo.html) is for Q&A.");
 
   // 5 · results
@@ -220,7 +219,6 @@ async function main() {
     T(s, big, { x: x + 0.2, y: 1.8, w: 1.8, h: 0.75, fontFace: HEAD, fontSize: big.length > 4 ? 26 : 36, bold: true, color: col, valign: "middle" });
     T(s, sub, { x: x + 0.2, y: 2.75, w: 1.72, h: 1.45, fontSize: 12.5, color: C.muted });
   });
-  foot(s, "Error: how far the predicted size of a pin or hole is from its true printed size, on held-out pieces. Each simulated fleet is run both ways and compared head to head. The gain comes from labs sharing, confirmed by ablation (benchmarks slide).");
   s.addNotes("1:15–1:45. Lead with what a lab gets: a corrected design that misses by 9 microns instead of 132, well under the ~120 micron margin a dental crown needs. Then the network: labs with little data get 35% lower error when eight share, so new labs need fewer test prints. Two labs already match pooling the data. A lying lab costs nothing with the check. If asked about agents: the win is sharing between labs, not smarter piece selection, and we say so.");
 
   // 6 · rigor
@@ -268,12 +266,34 @@ async function main() {
   s.addChart(pres.charts.BAR, [{ name: "Lower error than alone", labels: SITES.map((r) => `${r.sites} labs`), values: SITES.map((r) => Math.round(r.pct)) }], {
     x: 6.45, y: 1.58, w: 2.9, h: 2.95, barDir: "col", chartColors: [C.accent], barGapWidthPct: 55,
     showValue: true, dataLabelPosition: "outEnd", dataLabelFormatCode: '0"%"', dataLabelColor: C.ink, dataLabelFontSize: 12, dataLabelFontFace: "+mn-lt",
-    showTitle: true, title: "Value grows with every lab that joins", titleFontSize: 11, titleColor: C.ink, titleFontFace: "+mn-lt",
+    showTitle: true, title: "Value grows with every lab that joins (simulation)", titleFontSize: 11, titleColor: C.ink, titleFontFace: "+mn-lt",
     showLegend: false, catAxisLabelColor: C.muted, catAxisLabelFontSize: 11, catAxisLabelFontFace: "+mn-lt", catAxisLineShow: false,
     valAxisHidden: true, valGridLine: { style: "none" }, catGridLine: { style: "none" }, valAxisMinVal: 0, valAxisMaxVal: 42,
   });
-  foot(s, "First markets we're targeting. Chart: lower error than learning alone at 2 / 4 / 8 data-poor labs, simulation. On sub-millimetre features the gain holds at 7–9% in simulation. Next: bioprinting.");
-  s.addNotes("2:05–2:45. Name the buyer and why pooling is off the table: patient data and process IP. Then the bars: value grows with every lab that joins, a network effect. If asked about bioprinting: the gain holds on sub-mm features in simulation; real bioprinting is the direction, not a result.");
+  s.addNotes("2:05–2:30. Name the buyer and why pooling is off the table: patient data and process IP. Then the bars: value grows with every lab that joins, a network effect. If asked about bioprinting: the gain holds on sub-mm features in simulation; real bioprinting is the direction, not a result.");
+
+  // vision
+  s = pres.addSlide({ masterName: "DARK" });
+  head(s, "Where this goes", "Today printed parts. Next, every precision machine");
+  const ladder = [
+    ["FaPrint", "TODAY · 3D PRINTING", "132 → 9 µm", "Medical and bio labs: corrected designs that fit the first time, learned across labs (simulation).", C.accent],
+    ["FaDna", "NEXT · MICRO-SCALE", "Sub-mm", "Microfluidics and bioprinting: the sharing gain holds at 7–9% on sub-millimetre features (simulation).", C.teal],
+    ["FaMicrochip", "VISION · SEMICONDUCTORS", "Nanometres", "Fabs and GPU packaging lines: tool data already sits in private silos, and learning across them nears a pooled model (imec, 2021).", C.amber],
+  ];
+  for (const [i, [ic, lbl, big, d, col]] of ladder.entries()) {
+    const x = M + i * 3.0;
+    card(s, x, 1.5, 2.8, 2.45);
+    await tile(s, ic, x + 0.25, 1.72, 0.5, col);
+    T(s, lbl, { x: x + 0.25, y: 2.36, w: 2.4, h: 0.25, fontSize: 9.5, bold: true, charSpacing: 2, color: col });
+    T(s, big, { x: x + 0.25, y: 2.62, w: 2.4, h: 0.5, fontFace: HEAD, fontSize: 22, bold: true, valign: "middle" });
+    T(s, d, { x: x + 0.25, y: 3.15, w: 2.35, h: 0.75, fontSize: 11, color: C.muted });
+    if (i < 2) T(s, "→", { x: x + 2.8, y: 2.45, w: 0.2, h: 0.4, fontSize: 18, color: C.faint, align: "center", valign: "middle" });
+  }
+  card(s, M, 4.12, W - 2 * M, 0.62, C.card2);
+  T(s, [{ text: "One rule at every scale: ", options: { bold: true, color: C.accent } },
+        { text: "machines learn their errors together; recipes, designs and measurements stay home. Fewer misprints, higher yield.", options: { color: C.ink } }],
+    { x: M + 0.25, y: 4.12, w: W - 2 * M - 0.5, h: 0.62, fontSize: 13, valign: "middle" });
+  s.addNotes("2:30–2:48. Paint the path: today printed parts for medical and bio labs; next micro-scale, where the gain already holds in simulation; then any precision machine whose owners can't share data. Semiconductor fabs already keep tool data in silos, and imec showed learning across those silos approaches a pooled model. Same rule, nanometre stakes. This is the vision, not today's result.");
 
   // 9 · appendix
   s = pres.addSlide({ masterName: "DARK" });
@@ -298,9 +318,9 @@ async function main() {
   s = pres.addSlide({ masterName: "DARK" });
   s.addImage({ data: LOGO, x: M, y: 1.2, w: 0.75, h: 0.75, altText: "Prebuilt logo" });
   T(s, "Print anywhere, trust the part", { x: M, y: 2.15, w: 9, h: 0.8, fontFace: HEAD, fontSize: 38, bold: true });
-  T(s, "Labs learn their printers together. Their data stays home.", { x: M, y: 2.95, w: 9, h: 0.5, fontSize: 18, color: C.accent });
-  T(s, "github.com/matte-realize/prebuilt  ·  all sharing results in simulation", { x: M, y: 4.55, w: 9, h: 0.3, fontSize: 11, color: C.faint });
-  s.addNotes("2:45–3:00. End on the line. Stop talking.");
+  T(s, "Machines learn their errors together. Their data stays home. From microns today to nanometres next.", { x: M, y: 2.95, w: 9, h: 0.5, fontSize: 18, color: C.accent });
+  T(s, "github.com/matte-realize/prebuilt", { x: M, y: 4.55, w: 9, h: 0.3, fontSize: 11, color: C.faint });
+  s.addNotes("2:48–3:00. End on the line. Stop talking.");
 
   const out = path.join(__dirname, "prebuilt-pitch.pptx");
   await pres.writeFile({ fileName: out });

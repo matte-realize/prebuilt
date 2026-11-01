@@ -1,6 +1,6 @@
 # 3-minute pitch: script, best points, Q&A
 
-Deck: `docs/slides/prebuilt-pitch.pptx` (PowerPoint or Keynote; rebuild with `node docs/slides/make_pptx.js`), PDF `prebuilt-pitch.pdf`, and the same slides in a browser: `prebuilt-pitch.html` (`python docs/slides/make_pitch.py`; double-click a slide for Present mode, arrows to move, Esc to exit). Ten slides, ending on the close; slide 9, validation and benchmarks, is skipped when presenting. There is no live walkthrough: in three minutes it would cost a third of the time, so slide 4 is a static chart of three rounds. The 3D view (`viewer/demo.html`) and the full backup deck (`prebuilt-deck.html`) are for questions.
+Deck: `docs/slides/prebuilt-pitch.pptx` (PowerPoint or Keynote; rebuild with `node docs/slides/make_pptx.js`), PDF `prebuilt-pitch.pdf`, and the same slides in a browser: `prebuilt-pitch.html` (`python docs/slides/make_pitch.py`; double-click a slide for Present mode, arrows to move, Esc to exit). Eleven slides, ending on the close; slide 10, validation and benchmarks, is skipped when presenting. There is no live walkthrough: in three minutes it would cost a third of the time, so slide 4 is a static chart of three rounds. The 3D view (`viewer/demo.html`) and the full backup deck (`prebuilt-deck.html`) are for questions.
 
 ## Who's in the room, and what each needs to hear
 
@@ -20,7 +20,7 @@ Rules for this room:
 
 ## Script (~420 words spoken, ~3:00)
 
-**1 · Title (0:00).** Hold up the printed plate. "Prebuilt: precision printing for labs that can't share their data."
+**1 · Title (0:00).** Hold up the printed plate. "Prebuilt: every printer learns from every other, and no data leaves."
 
 **2 · Problem (0:00–0:22).** "Hospitals, dental labs and bio labs print parts that have to fit: surgical guides and crowns from patient scans, microfluidic chips with sub-millimetre channels. But no printed part matches its file. Holes come out small, pins come out fat, by tens to hundreds of microns, and each machine is wrong in its own way. You learn it by printing, every lab does that from scratch, and they can't pool what they learn: patient scans and process recipes can't leave. So we asked: can printers learn from each other without sharing a single measurement?"
 
@@ -34,11 +34,13 @@ Rules for this room:
 
 **7 · Rigor (1:45–2:05).** "We printed this on a Formlabs Form Studio 1. Its smallest pin should be 1.5 millimeters; by micrometer it's 1.44, inside Formlabs' spec, and inside our simulator's range at its small edge: exactly why each printer has to learn its own error. Simulation lets us score every prediction against the true size, which no real measurement can, and we registered the claims before printing. And the simulator doesn't hand us the result: when printers share no physics, sharing gains nothing."
 
-**8 · Who it's for (2:05–2:45).** "Who needs this: hospital labs printing surgical guides, dental labs, microfluidics and bio labs, and device makers spread across contract printers. Each has many printers, little data per printer, and data that legally or commercially can't be pooled. That's exactly where sharing pays, and the value grows with every lab that joins. Bioprinting is where we're headed; today it's direction, not a result."
+**8 · Who it's for (2:05–2:30).** "Who needs this: hospital labs printing surgical guides, dental labs, microfluidics and bio labs, and device makers spread across contract printers. Each has many printers, little data per printer, and data that legally or commercially can't be pooled. That's exactly where sharing pays, and the value grows with every lab that joins. Bioprinting is where we're headed; today it's direction, not a result."
 
-Slide 9 (validation and benchmarks) is for Q&A: click straight past it.
+**9 · Where this goes (2:30–2:48).** "Today it's printed parts for medical and bio labs. Next, micro-scale: microfluidics and bioprinting, where the gain already holds in simulation. And the same rule fits any precision machine whose owners can't share data. Semiconductor fabs already keep tool data in private silos, and imec has shown that learning across those silos gets close to pooling it. Fewer misprints, higher yield, from microns today to nanometres next."
 
-**10 · Close (2:45–3:00).** "Labs learn their printers together, and their data stays home. Print anywhere, trust the part." Stop talking.
+Slide 10 (validation and benchmarks) is for Q&A: click straight past it.
+
+**11 · Close (2:48–3:00).** "Labs learn their printers together, and their data stays home. Print anywhere, trust the part." Stop talking.
 
 ## The five points to land
 
