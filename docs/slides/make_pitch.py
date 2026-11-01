@@ -175,17 +175,23 @@ SLIDES = [
 </div>""",
      "1:45–2:05. Hold up the printed plate. The real printer tells us the simulator is the right size: this pin is inside its range, at the small edge (1.8th percentile), so say 'edge', not 'middle'. The negative control shows the simulator doesn't hand us the result. Don't claim a fit on the real printer."),
 
-    ("", "Who it's for", "Medical and bio labs that print and can't pool data",
-     f"""<div class="two wide">
-  <div class="grid4">
-    <div class="card who">{tile("FaHospital")}<b>Hospital 3D-printing labs</b><span>Surgical guides and anatomical models from patient scans. The scans stay in-house.</span></div>
-    <div class="card who">{tile("FaTooth")}<b>Dental labs</b><span>Crowns, models and aligners must seat first time. Patient data can't be pooled.</span></div>
-    <div class="card who">{tile("FaMicroscope")}<b>Bio and microfluidics labs</b><span>Lab-on-chip and organ-on-chip parts with sub-mm features. Recipes are IP.</span></div>
-    <div class="card who">{tile("FaIndustry")}<b>Medical device makers</b><span>One part, many contract printers. Receipts double as an audit trail.</span></div>
+    ("", "Who it's for", "For anyone whose precision is a trade secret",
+     f"""<div class="who2">
+  <span class="glbl net">Now · medical and bio</span>
+  <div class="grid3">
+    <div class="card who">{tile("FaHospital")}<b>Hospital 3D-printing labs</b><span>Surgical guides from patient scans. Scans stay in-house.</span></div>
+    <div class="card who">{tile("FaTooth")}<b>Dental labs</b><span>Crowns and aligners must seat first time. Patient data can't pool.</span></div>
+    <div class="card who">{tile("FaMicroscope")}<b>Bio and microfluidics labs</b><span>Sub-mm lab-on-chip parts. Recipes are IP.</span></div>
   </div>
-  <figure class="card fig">{sites_svg()}</figure>
-</div>""",
-     "2:05–2:30. Name the buyer and why pooling is off the table: patient data and process IP. Then the bars: value grows with every lab that joins, a network effect. If asked about bioprinting: the gain holds on sub-mm features in simulation; real bioprinting is the direction, not a result."),
+  <span class="glbl amb">Next · high-precision industry</span>
+  <div class="grid3">
+    <div class="card who">{tile("FaMicrochip", "amb")}<b>Chip makers, GPU packaging</b><span>Every nanometre is yield, and process recipes are the company.</span></div>
+    <div class="card who">{tile("FaShieldAlt", "amb")}<b>Defense and aerospace</b><span>Export-controlled technical data can't leave the site.</span></div>
+    <div class="card who">{tile("FaCogs", "amb")}<b>MEMS and nanotech</b><span>Sub-micron parts, closely held processes, scarce test data.</span></div>
+  </div>
+</div>
+<div class="card banner"><p><b class="gap">Value grows with every member:</b> {round(SITES[0]["pct"])}% → {round(SITES[1]["pct"])}% → {round(SITES[2]["pct"])}% lower error at 2 / 4 / 8 labs (simulation).</p></div>""",
+     "2:05–2:30. Start with who we serve now: hospital, dental and bio labs that print and legally can't pool patient data. Then the bigger prize: anyone whose precision is a trade secret. Chip makers and GPU packaging, defense and aerospace under export control, MEMS and nanotech. Same problem, same constraint, and the network gets more valuable with every member."),
 
     ("", "Where this goes", "Today printed parts. Next, every precision machine",
      f"""<div class="steps ladder">
@@ -254,6 +260,9 @@ body { background: #05090f; }
 .step .pn { font: 700 3.2cqw/1.1 var(--display); color: var(--ink); }
 .step i { font-size: 1.15cqw; color: var(--muted); opacity: .8; }
 .banner b.gap { color: var(--accent); }
+.who2 { display: grid; gap: 1cqw; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6cqw; margin-bottom: .8cqw; }
+.glbl { font: 700 1.1cqw var(--mono); letter-spacing: .14em; text-transform: uppercase; } .glbl.net { color: var(--accent); } .glbl.amb { color: var(--amber); }
 .step .lbl.net { color: var(--accent); } .step .lbl.amb { color: var(--amber); }
 .tile.amb { color: var(--amber); background: color-mix(in srgb, var(--amber) 16%, transparent); border-color: var(--amber); }
 .banner p { margin: 0; font-size: 1.65cqw; max-width: none; } .banner b { color: var(--teal); }
@@ -306,7 +315,7 @@ body { background: #05090f; }
 .bench tbody tr:nth-child(odd) td { background: var(--card); }
 @media (max-width: 720px) {
   .slide h2 { font-size: 24px; } .slide .body { font-size: 14px; }
-  .two, .two.wide, .steps, .charts, .stats, .grid4 { grid-template-columns: 1fr; }
+  .two, .two.wide, .steps, .charts, .stats, .grid4, .grid3 { grid-template-columns: 1fr; }
   .row b, .step b, .who b, .tl b { font-size: 16px; } .row span, .step span, .who span, .tl span, .stat > span:last-child, .banner p, .pin ul, .pin .muted { font-size: 14px; }
   .tile, .who .tile { width: 36px; height: 36px; font-size: 18px; } .q { font-size: 16px; } .foot, .legend { font-size: 12px; }
   .stat .n, .pin .n { font-size: 36px; } .stat .n.sm { font-size: 28px; } .brandline { font-size: 44px; } .logo-xl { width: 48px; height: 48px; }

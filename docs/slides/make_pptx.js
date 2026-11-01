@@ -248,29 +248,35 @@ async function main() {
 
   // 7 · who it's for
   s = pres.addSlide({ masterName: "DARK" });
-  head(s, "Who it's for", "Medical and bio labs that print and can't pool data");
-  const who = [
-    ["FaHospital", "Hospital 3D-printing labs", "Surgical guides and anatomical models from patient scans. The scans stay in-house."],
-    ["FaTooth", "Dental labs", "Crowns, models and aligners must seat first time. Patient data can't be pooled."],
-    ["FaMicroscope", "Bio and microfluidics labs", "Lab-on-chip and organ-on-chip parts with sub-mm features. Recipes are IP."],
-    ["FaIndustry", "Medical device makers", "One part, many contract printers. Receipts double as an audit trail."],
+  head(s, "Who it's for", "For anyone whose precision is a trade secret");
+  const groups = [
+    ["NOW · MEDICAL AND BIO", C.accent, [
+      ["FaHospital", "Hospital 3D-printing labs", "Surgical guides from patient scans. Scans stay in-house."],
+      ["FaTooth", "Dental labs", "Crowns and aligners must seat first time. Patient data can't pool."],
+      ["FaMicroscope", "Bio and microfluidics labs", "Sub-mm lab-on-chip parts. Recipes are IP."],
+    ]],
+    ["NEXT · HIGH-PRECISION INDUSTRY", C.amber, [
+      ["FaMicrochip", "Chip makers, GPU packaging", "Every nanometre is yield, and process recipes are the company."],
+      ["FaShieldAlt", "Defense and aerospace", "Export-controlled technical data can't leave the site."],
+      ["FaCogs", "MEMS and nanotech", "Sub-micron parts, closely held processes, scarce test data."],
+    ]],
   ];
-  for (const [i, [ic, h, d]] of who.entries()) {
-    const x = M + (i % 2) * 2.85, y = 1.5 + Math.floor(i / 2) * 1.62;
-    card(s, x, y, 2.7, 1.47);
-    await tile(s, ic, x + 0.2, y + 0.2, 0.44);
-    T(s, h, { x: x + 0.78, y: y + 0.2, w: 1.8, h: 0.44, fontFace: HEAD, fontSize: 12.5, bold: true, valign: "middle" });
-    T(s, d, { x: x + 0.2, y: y + 0.75, w: 2.35, h: 0.68, fontSize: 11, color: C.muted });
+  for (const [g, [lbl, col, items]] of groups.entries()) {
+    const y0 = 1.45 + g * 1.55;
+    T(s, lbl, { x: M, y: y0, w: 6, h: 0.22, fontSize: 9.5, bold: true, charSpacing: 2, color: col });
+    for (const [i, [ic, h, d]] of items.entries()) {
+      const x = M + i * 3.0, y = y0 + 0.3;
+      card(s, x, y, 2.8, 1.12);
+      await tile(s, ic, x + 0.18, y + 0.18, 0.42, col);
+      T(s, h, { x: x + 0.72, y: y + 0.16, w: 1.98, h: 0.42, fontFace: HEAD, fontSize: 12, bold: true, valign: "middle" });
+      T(s, d, { x: x + 0.18, y: y + 0.64, w: 2.5, h: 0.44, fontSize: 10.5, color: C.muted });
+    }
   }
-  card(s, 6.35, 1.5, 3.1, 3.09);
-  s.addChart(pres.charts.BAR, [{ name: "Lower error than alone", labels: SITES.map((r) => `${r.sites} labs`), values: SITES.map((r) => Math.round(r.pct)) }], {
-    x: 6.45, y: 1.58, w: 2.9, h: 2.95, barDir: "col", chartColors: [C.accent], barGapWidthPct: 55,
-    showValue: true, dataLabelPosition: "outEnd", dataLabelFormatCode: '0"%"', dataLabelColor: C.ink, dataLabelFontSize: 12, dataLabelFontFace: "+mn-lt",
-    showTitle: true, title: "Value grows with every lab that joins (simulation)", titleFontSize: 11, titleColor: C.ink, titleFontFace: "+mn-lt",
-    showLegend: false, catAxisLabelColor: C.muted, catAxisLabelFontSize: 11, catAxisLabelFontFace: "+mn-lt", catAxisLineShow: false,
-    valAxisHidden: true, valGridLine: { style: "none" }, catGridLine: { style: "none" }, valAxisMinVal: 0, valAxisMaxVal: 42,
-  });
-  s.addNotes("2:05–2:30. Name the buyer and why pooling is off the table: patient data and process IP. Then the bars: value grows with every lab that joins, a network effect. If asked about bioprinting: the gain holds on sub-mm features in simulation; real bioprinting is the direction, not a result.");
+  card(s, M, 4.5, W - 2 * M, 0.42, C.card2);
+  T(s, [{ text: "Value grows with every member: ", options: { bold: true, color: C.accent } },
+        { text: `${Math.round(SITES[0].pct)}% → ${Math.round(SITES[1].pct)}% → ${Math.round(SITES[2].pct)}% lower error at 2 / 4 / 8 labs (simulation).`, options: { color: C.ink } }],
+    { x: M + 0.25, y: 4.5, w: W - 2 * M - 0.5, h: 0.42, fontSize: 12, valign: "middle" });
+  s.addNotes("2:05–2:30. Start with who we serve now: hospital, dental and bio labs that print and legally can't pool patient data. Then the bigger prize: anyone whose precision is a trade secret. Chip makers and GPU packaging, defense and aerospace under export control, MEMS and nanotech. Same problem, same constraint, and the network gets more valuable with every member.");
 
   // vision
   s = pres.addSlide({ masterName: "DARK" });

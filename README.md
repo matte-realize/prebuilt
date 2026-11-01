@@ -26,7 +26,7 @@ Details: [`hpc/sweeps/relevance/README.md`](hpc/sweeps/relevance/README.md), [`h
 - **Speed:** the GPU posterior runs up to 84× NumPy on an H100. **Measurement:** the scanner pipeline is 2–5 µm RMS on clean synthetic scans.
 - **Real printer:** one Formlabs Form Studio 1 pin, two micrometer readings: inside the vendor spec, at the small edge of the simulator's range (1.8th percentile), below the prior's 90% interval. A sanity check, not a fit.
 
-**Who it's for:** medical and bio labs that print parts that must fit and can't pool their data: hospital 3D-printing labs (surgical guides from patient scans), dental labs, microfluidics and bio labs, and medical device makers using contract printers. Many printers, little data each, data that can't leave. This is our hypothesis, not yet validated with customers. The direction is smaller features (microfluidics, bioprinting), where printer error matters more and data is scarcer ([future work](docs/future-work.md)).
+**Who it's for:** anyone whose precision is a trade secret. First, medical and bio labs that print parts that must fit and can't pool patient data: hospital 3D-printing labs, dental labs, microfluidics and bio labs. Next, high-precision industry that can't share process data: chip makers and GPU packaging, defense and aerospace (export-controlled data), MEMS and nanotech. Many machines, little data each, data that can't leave.
 
 ## Try it
 
