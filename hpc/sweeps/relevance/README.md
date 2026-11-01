@@ -134,3 +134,41 @@ Warm-up 4 pieces, 2 per round, round 3; % = mean gain / mean isolated error, as 
 The deck's 11% / 29% / 35% (20 of 20 at eight sites) check out against the data.
 
 Related: `hpc/sweeps/phase_c/README.md` section 1 found the same seed-plate effect on measured MAE (seed 4: 22% at round 3; seed 56: no separation).
+
+## 8. Adaptive spread, subtle liars, random selection (frozen config, 60 worlds, 3 rounds)
+
+    PYTHONPATH=. .venv/bin/python hpc/sweeps/relevance/technical.py 60 hpc/sweeps/relevance/results/technical.jsonl
+    .venv/bin/python hpc/sweeps/relevance/analyze_technical.py hpc/sweeps/relevance/results/technical.jsonl.gz
+
+`Config.adaptive_spread`: each receiver scales a sender's message variance by the running mean, over rounds, of their per-parameter disagreement (z² against its own fit, floored at 1). Senders that agree keep full weight; senders that keep disagreeing fade out smoothly. `both` = adaptive spread plus the consistency check. Together vs alone is paired within each run (same world, same seed plate), as in sections 5–6. Round 3, true-size error.
+
+| Together vs alone | Shared physics | Nothing shared (negative control) |
+|---|---|---|
+| Fixed spread (frozen config) | +10.0%, 44/60, p<0.001 | −13.0%, 19/60, p=0.006 |
+| Consistency check | +10.0%, 44/60 | −3.0%, 26/60, p=0.37 |
+| Adaptive spread | +10.3%, 44/60, p<0.001 | −0.4%, 30/60, p=1.0 |
+| Both | +10.3%, 44/60, p<0.001 | +1.7%, 34/60, p=0.37 |
+
+- **Adaptive spread removes the harm when printers share nothing and keeps the gain when they do.** Against the fixed spread in the control worlds it is 6.0% better, in 45/60 (p<0.001); in normal worlds it changes nothing that matters.
+
+Lying site (pla), resin's error vs learning alone in the same run. Offset = how far the liar's confident beliefs sit from the prior mean, in prior std (the earlier sweeps used 3).
+
+| Offset | No defence, round 1 | Check: round 1, notes caught | Adaptive: round 1 | Both: round 1 | Both: round 3 |
+|---|---|---|---|---|---|
+| 0.5 | −72% (6/60) | −17%, 84/180 | −9% | −5% (26/60) | −4% |
+| 1 | −109% (2/60) | −11%, 129/180 | −8% | −4% (23/60) | −2% |
+| 2 | −279% (0/60) | +2%, 180/180 | −6% | +2% (32/60) | −0.3% |
+| 3 | −534% (0/60) | +2%, 180/180 | +4% | +2% (32/60) | −0.3% |
+
+- **The check alone catches a liar 2+ prior std off every time but misses about half of subtle ones** (0.5–1 std), and those still cost 11–17% in round 1. Adaptive spread bounds the damage at every offset but recovers more slowly from a blatant liar (round 3: −6%). **Both together is the best defence everywhere:** worst round-1 cost 5%, against 72–534% with no defence.
+
+Random piece selection (`Config.selection="random"`, every arm) vs the agent auction:
+
+| | Result |
+|---|---|
+| Agents vs random, isolated arm | +1.0%, 31/60, p=0.90 |
+| Agents vs random, networked arm | +7.0%, 33/60, p=0.52 |
+| Together vs alone with random selection | +14.0%, 37/60, p=0.09 |
+| Together vs alone with agents | +10.0%, 44/60, p<0.001 |
+
+- **The agents' piece choices don't beat random** in either arm. The network gain survives without them (noisier with random pieces). Consistent with section 1: the win is sharing between sites, not the agent layer.

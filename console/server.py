@@ -102,6 +102,10 @@ def make_handler(con: Console):
                                             "sim-fill" if body.get("source") == "sim-fill" else "hand")
                 elif path == "/api/fill":
                     return self._json({"rows": run.fill(int(body["id"]))})
+                elif path == "/api/designs":
+                    return self._json(run.designs(str(body["site"])))
+                elif path == "/api/corrected":
+                    return self._json(run.corrected(str(body["site"]), str(body["kind"]), float(body["target"])))
                 elif path == "/api/stop":
                     run.stop()
                 elif path == "/api/viewer":

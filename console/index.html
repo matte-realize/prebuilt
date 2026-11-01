@@ -99,6 +99,11 @@ td.num, th.num { text-align: right; font-family: var(--mono); font-variant-numer
 pre.log { background: #070b10; border: 1px solid var(--line); border-radius: 8px; padding: 10px; font: 12px/1.45 var(--mono); color: var(--muted); max-height: 320px; overflow: auto; white-space: pre-wrap; word-break: break-word; margin: 0; }
 .best { color: var(--good); }
 .hidden { display: none !important; }
+.cd-site + .cd-site { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.cd-site td .draw { font-weight: 600; font-family: var(--mono); }
+.cd-site td .tr { display: block; font-size: 11.5px; color: var(--wall); }
+.cd-q input[type=number] { width: 6em; font-family: var(--mono); }
+.cd-out { font-size: 14px; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -142,6 +147,11 @@ pre.log { background: #070b10; border: 1px solid var(--line); border-radius: 8px
       <p class="eyebrow">Held-out error per round (<span style="text-transform:none">µm</span>, lower is better)</p>
       <div class="scroll" id="scores"><span class="muted small">Scores appear after each round.</span></div>
       <p class="small faint" style="margin:8px 0 0">"measured" = error against the held-out pieces as measured (includes measurement noise). "truth" = error against the simulator's hidden noise-free diameters, simulated sites only. Green = the better of isolated and networked.</p>
+    </div>
+    <div class="card" id="cdCard">
+      <p class="eyebrow">Corrected designs</p>
+      <p class="small muted" style="margin:0 0 8px">"I want a D mm pin or hole: draw it at D′ on this printer." From each site's latest networked posterior, at the plate center. The interval is where one printed piece should measure (90%), including the scatter the model learned.</p>
+      <div id="cd"><span class="muted small">After the seed plates.</span></div>
     </div>
     <div class="card">
       <p class="eyebrow">What crossed the boundary</p>
@@ -379,6 +389,82 @@ function renderLive() {
   if (lg.textContent !== run.log) { lg.textContent = run.log; if (logStick) lg.scrollTop = lg.scrollHeight; }
 }
 
+// ---- corrected designs -------------------------------------------------------
+let cdKey = null;
+const mm3 = x => x.toFixed(3);
+const ivl = a => `${mm3(a[0])}–${mm3(a[1])}`;
+
+function cdBasis(run, d) {
+  const b = d.basis, after = b.rounds_done === 0 ? "the seed plates" : "round " + b.rounds_done;
+  const notes = Object.entries(b.notes_from).map(([s, t]) => `${esc(s)} (trust ${t})`).join(", ");
+  let h = `<p class="small muted" style="margin:4px 0">Networked posterior after ${after}: ${b.n_measurements} measurements here (${b.n_pins} pins, ${b.n_holes} holes)${notes ? "; notes from " + notes : "; no notes from other sites"}.</p>`;
+  if (d.mode === "sim") h += `<p class="note">Simulated printer: this is what the model learned about a simulated machine, not a real one. <span style="color:var(--wall)">truth</span> = the simulator's hidden printed size at that draw (and if drawn as-is).</p>`;
+  else {
+    const few = b.n_measurements < 20 || b.n_pins < 5 || b.n_holes < 5;
+    h += `<p class="note ${few ? "warn" : ""}">Real printer${few ? `: only ${b.n_measurements} measurements (${b.n_pins} pins, ${b.n_holes} holes), so the model leans on its priors${notes ? " and the other sites' notes" : ""}. The intervals are wide on purpose; treat this as a first estimate and check one printed piece.` : "."}</p>`;
+    if (d.filled && d.filled.length) h += `<p class="note warn">Readings for ${esc(d.filled.join(", "))} were simulated fill, not measurements.</p>`;
+  }
+  return h;
+}
+
+function cdCell(r) {
+  const tr = r.sim_truth ? `<span class="tr">truth ${mm3(r.sim_truth.at_draw)} (as-is ${mm3(r.sim_truth.as_drawn)})</span>` : "";
+  const clip = r.clipped ? ` <span class="fail" title="${esc(r.notes.join("; "))}">out of range</span>` : "";
+  return `<span class="draw">${mm3(r.draw_d)}</span> → ${mm3(r.predicted_d)} <span class="faint">(${ivl(r.interval)})</span>${clip}${tr}`;
+}
+
+function cdLine(d) {
+  const r = d.result, a = r.as_drawn;
+  let h = `<b>${r.kind} ${r.target_d} mm:</b> draw it at <b class="draw" style="font-family:var(--mono)">${mm3(r.draw_d)} mm</b> (${r.shift_um >= 0 ? "+" : ""}${r.shift_um.toFixed(0)} µm) → prints <b>${mm3(r.predicted_d)} mm</b> <span class="muted">(90%: ${ivl(r.interval)}; printer mean ${ivl(r.model_interval)})</span>`;
+  h += `<div class="small muted">Drawn as-is at ${r.target_d} mm it would print ${mm3(a.predicted_d)} mm (${((a.predicted_d - r.target_d) * 1000).toFixed(0)} µm off).</div>`;
+  if (r.sim_truth) h += `<div class="small" style="color:var(--wall)">Simulator truth: ${mm3(r.sim_truth.at_draw)} mm at the corrected draw (${((r.sim_truth.at_draw - r.target_d) * 1000).toFixed(0)} µm off), ${mm3(r.sim_truth.as_drawn)} mm as-is (${((r.sim_truth.as_drawn - r.target_d) * 1000).toFixed(0)} µm off).</div>`;
+  for (const n of r.notes) h += `<div class="small" style="color:var(--pool)">${esc(n)}</div>`;
+  return h;
+}
+
+async function cdAsk(site) {
+  const box = document.querySelector(`.cd-site[data-site="${site}"]`); if (!box) return;
+  const kind = $(".cd-kind", box).value, target = $(".cd-t", box).value, out = $(".cd-out", box);
+  if (!(parseFloat(target) > 0)) { out.innerHTML = `<span class="err-msg">Type a target diameter in mm.</span>`; return; }
+  box.dataset.q = JSON.stringify({kind, target});
+  out.innerHTML = `<span class="muted small">Computing…</span>`;
+  try { out.innerHTML = cdLine(await api("/api/corrected", {site, kind, target})); }
+  catch (e) { out.innerHTML = `<span class="err-msg">${esc(e.message)}</span>`; }
+}
+
+async function renderDesigns(run) {
+  const done = run.rounds_done ?? -1;
+  if (done < 0) { if (cdKey !== null && !cdKey.startsWith(run.name)) { $("#cd").innerHTML = `<span class="muted small">After the seed plates.</span>`; } cdKey = run.name; return; }
+  const key = run.name + ":" + done;
+  if (key === cdKey) return;
+  cdKey = key;
+  const el = $("#cd");
+  if (!el.querySelector(".cd-site") || el.dataset.run !== run.name) {
+    el.dataset.run = run.name;
+    el.innerHTML = Object.keys(run.modes).map(s => `<div class="cd-site" data-site="${s}"><h3>${esc(s)} ${siteTag(run, s)}</h3><div class="cd-basis"></div>
+      <div class="scroll cd-table"><span class="muted small">Fitting…</span></div>
+      <div class="row cd-q" style="margin-top:8px"><select class="cd-kind" aria-label="pin or hole"><option value="hole">hole</option><option value="pin">pin</option></select>
+        <input type="number" class="cd-t" step="0.1" min="0.5" max="15" placeholder="mm" aria-label="target diameter, mm"><span class="small muted">mm wanted</span><button class="cd-go">Correct it</button></div>
+      <div class="cd-out"></div></div>`).join("");
+    el.querySelectorAll(".cd-site").forEach(box => {
+      const s = box.dataset.site;
+      $(".cd-go", box).onclick = () => cdAsk(s);
+      $(".cd-t", box).onkeydown = e => { if (e.key === "Enter") cdAsk(s); };
+    });
+  }
+  for (const s of Object.keys(run.modes)) {
+    const box = el.querySelector(`.cd-site[data-site="${s}"]`);
+    try {
+      const d = await api("/api/designs", {site: s});
+      if (cdKey !== key) return;
+      $(".cd-basis", box).innerHTML = cdBasis(run, d);
+      const by = {}; for (const r of d.rows) (by[r.target_d] ||= {})[r.kind] = r;
+      $(".cd-table", box).innerHTML = `<table><thead><tr><th class="num">want (mm)</th><th>pin: draw → prints (90%)</th><th>hole: draw → prints (90%)</th></tr></thead><tbody>${Object.keys(by).map(t => `<tr><td class="num">${t}</td><td>${cdCell(by[t].pin)}</td><td>${cdCell(by[t].hole)}</td></tr>`).join("")}</tbody></table>`;
+      if (box.dataset.q) cdAsk(s); // refit after a round: redo the operator's last question
+    } catch (e) { $(".cd-table", box).innerHTML = `<span class="err-msg">${esc(e.message)}</span>`; }
+  }
+}
+
 function render() {
   const run = S && S.run, st = run ? run.status : "idle";
   const chip = $("#statusChip");
@@ -389,6 +475,7 @@ function render() {
   $("#setupCard").classList.toggle("hidden", active || (run && !setupOpen));
   renderNext();
   renderLive();
+  if (run) renderDesigns(run);
   document.title = (st === "waiting" ? "● " : "") + "Prebuilt console";
 }
 

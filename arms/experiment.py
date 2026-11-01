@@ -36,6 +36,7 @@ from model.posterior import Layout, ParticlePosterior
 from network import protocol
 from plates import heldout
 from plates.layout import build_plate_indexed, plate_to_dict
+from plates.library import candidates
 from plates.seed import SEED_PIECES, seed_plate
 from receipts.chain import ReceiptChain, canonical, sha256
 
@@ -97,6 +98,14 @@ class Config:
     # data (chi-square at 0.999 over the shared parameters). Trust is left alone, so the
     # sender is re-checked every round. Off in the frozen config.
     consistency_check: bool = False
+    # Adaptive spread: instead of assuming every sender's shared parameters sit within
+    # between_site_sd of the receiver's, each receiver scales a sender's message variance by
+    # how much the two have actually disagreed (running mean over rounds of the per-parameter
+    # z^2 against the receiver's own fit, floored at 1). Senders whose physics agree keep full
+    # weight; senders that keep disagreeing fade out smoothly. Off in the frozen config.
+    adaptive_spread: bool = False
+    bad_offset: float = 3.0          # bad sites: how far their beliefs sit from the prior mean, in prior std
+    selection: str = "agents"        # "agents" (auction) or "random": every arm picks pieces uniformly (baseline)
     agents: tuple[str, ...] = tuple(AGENT_NAMES)
     seed_pieces: int | None = SEED_PIECES  # calibration pieces on the seed plate (None = all 56)
     # Challenge round (spec 6.5 step 3) and spawn of dormant agents (6.7). Off for the
@@ -127,6 +136,7 @@ class SiteState:
     truth: dict[str, float] = field(default_factory=dict)  # sim only: noise-free held-out diameters, eval only
     roster: Roster | None = None
     inbox: dict[str, Message] = field(default_factory=dict)
+    disagree: dict[str, list[float]] = field(default_factory=dict)  # adaptive spread: sender -> mean z^2 per round
     trust: dict[str, float] = field(default_factory=dict)
     flags: list = field(default_factory=list)            # this round: (Flag, judged_by result) pairs
     unmet: dict[str, int] = field(default_factory=dict)  # template -> unmet-needs entries seen, own + incoming
@@ -274,6 +284,8 @@ def _fit(st: SiteState, pieces, data: Data, cfg: Config, rng, messages: dict[str
         means, cov = protocol.likelihood_factor(msg)
         if means:
             cov = cov + np.diag([(cfg.between_site_sd * SHARED_STD[k]) ** 2 for k in means])
+            if cfg.adaptive_spread and st.disagree.get(sender):
+                cov = cov * max(1.0, float(np.mean(st.disagree[sender])))
         if means:
             post.set_prior_from_summary(means, cov, st.trust.get(sender, 0.0), key=sender)
     post.update([m for _, m in data])
@@ -313,6 +325,12 @@ def _uniform_auction(posts, data, k: int, cfg: Config, site: str | None = None) 
 
 def _choose(st: SiteState, sites: dict[str, SiteState], pieces, oracle_post, cfg: Config, rng):
     k = cfg.slots_per_arm
+    if cfg.selection == "random":  # baseline: no agents, every arm draws its pieces uniformly
+        lib = candidates()
+        items = [(lib[i], arm) for arm in ("isolated", "oracle", "networked")
+                 for i in rng.choice(len(lib), size=k, replace=False)]
+        st.chain.append("clearing", {"selection": "random", "pieces": [c.key for c, a in items if a == "networked"]})
+        return items, [None] * (3 * k)
     items, contrib = [], []
 
     iso_data = st.data["isolated"]
@@ -522,12 +540,18 @@ def _broadcast(r: int, sites: dict[str, SiteState], pieces, cfg: Config, rng, re
         summ, _, _ = local.summary("shared")
         own[s] = summ
         if s in cfg.bad_sites:
-            summ = _corrupt(summ)
+            summ = _corrupt(summ, cfg.bad_offset)
         outgoing[s] = Message(s, r, summ, dict(st.roster.cred), [], list(st.unmet_out))
     for s, msg in outgoing.items():
         for o, other in sites.items():
             if o != s:
                 other.inbox[s] = protocol.send(msg, sites[s].chain, other.chain)
+    if cfg.adaptive_spread:
+        for o, other in sites.items():
+            for s in [s for s in other.inbox if other.inbox[s].round == r]:
+                z2 = _z2(other.inbox[s].shared_params, own[o], cfg)
+                if z2:
+                    other.disagree.setdefault(s, []).append(float(np.mean(z2)))
     if cfg.consistency_check and res is not None:
         for o, other in sites.items():
             for s in [s for s in other.inbox if other.inbox[s].round == r]:
@@ -538,22 +562,28 @@ def _broadcast(r: int, sites: dict[str, SiteState], pieces, cfg: Config, rng, re
                     del other.inbox[s]
 
 
+def _z2(incoming: dict[str, tuple[float, float]], own: dict[str, tuple[float, float]], cfg: Config) -> list[float]:
+    """Per shared parameter: squared disagreement of a note with the receiver's own fit, in units of
+    the combined variance plus the between-site spread the model allows."""
+    return [(m - own[k][0]) ** 2 / (v + own[k][1] + (cfg.between_site_sd * SHARED_STD[k]) ** 2)
+            for k, (m, v) in incoming.items() if k in own]
+
+
 CHI2_999 = {1: 10.83, 2: 13.82, 3: 16.27}  # chi-square 0.999 quantiles by degrees of freedom
 
 
 def consistency(incoming: dict[str, tuple[float, float]], own: dict[str, tuple[float, float]], cfg: Config) -> tuple[float, bool]:
     """Chi-square of an incoming shared-parameter summary against the receiver's own (mean, var),
     with the between-site spread the model already allows. Returns (statistic, drop?)."""
-    z2 = [(m - own[k][0]) ** 2 / (v + own[k][1] + (cfg.between_site_sd * SHARED_STD[k]) ** 2)
-          for k, (m, v) in incoming.items() if k in own]
+    z2 = _z2(incoming, own, cfg)
     stat = float(np.sum(z2))
     return stat, bool(z2) and stat > CHI2_999[min(len(z2), 3)]
 
 
-def _corrupt(summ: dict[str, tuple[float, float]]) -> dict[str, tuple[float, float]]:
-    """A bad-faith site: confident beliefs 3 prior std away from the prior mean."""
+def _corrupt(summ: dict[str, tuple[float, float]], offset: float = 3.0) -> dict[str, tuple[float, float]]:
+    """A bad-faith site: confident beliefs `offset` prior std away from the prior mean."""
     prior = {s.name: s for s in SHARED}
-    return {k: (prior[k].prior_mean + 3 * prior[k].prior_std, (0.1 * prior[k].prior_std) ** 2) for k in summ}
+    return {k: (prior[k].prior_mean + offset * prior[k].prior_std, (0.1 * prior[k].prior_std) ** 2) for k in summ}
 
 
 def _score(r: int, st: SiteState, pieces, oracle_post, cfg: Config, rng, res: Results) -> None:

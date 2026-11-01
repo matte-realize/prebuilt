@@ -19,7 +19,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from arms.experiment import ARMS, run_experiment
+from arms.experiment import ARMS, Config, run_experiment
 from eval.audit import audit
 from eval.metrics import oracle_gap_closed
 from model import physics
@@ -38,7 +38,8 @@ def run_sim(args) -> dict:
              "seed_pieces": "seed_pieces", "slots": "slots_per_arm"}
     given = {f: getattr(args, a) for a, f in flags.items() if hasattr(args, a)}
     cfg = sim_config(load_prereg(args.prereg)[0], **given, seed=args.seed,
-                     bad_sites=tuple(args.bad_site), share_messages=not args.no_messages)
+                     bad_sites=tuple(args.bad_site), share_messages=not args.no_messages,
+                     consistency_check=getattr(args, "consistency_check", False))
     with tempfile.TemporaryDirectory() as d:
         ckpt = f"{d}/state.pkl"
         run_experiment(make_world(SITES, args.seed), SITES, cfg, checkpoint=ckpt)
@@ -134,6 +135,7 @@ def bundle(state: dict, label: str) -> dict:
         "credibility": res.credibility,
         "trust": res.trust,
         "challenges": res.challenges,
+        "checks": getattr(res, "checks", []),  # consistency check rows, when the run had it on
         "spawned": res.spawned,
         "retired": res.retired,
         "plates": {s: plates_of(st) for s, st in sites.items()},
@@ -153,6 +155,13 @@ def render(data: dict, fragment: bool = False, page: str = "demo.html") -> str:
     html = (HERE / page).read_text()
     blob = json.dumps(data, separators=(",", ":")).replace("</", "<\\/")
     html = html.replace("/*__DATA__*/null", blob)
+    if not fragment:  # inline three.js (viewer/vendor, MIT) so the page works offline; fragments keep the CDN
+        for url, name in (("https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js", "three.min.js"),
+                          ("https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js", "OrbitControls.js")):
+            tag = f'<script src="{url}"></script>'
+            if tag in html:
+                code = (HERE / "vendor" / name).read_text().replace("</script", "<\\/script")
+                html = html.replace(tag, f"<script>/* {name}, three.js r128, MIT */\n{code}\n</script>", 1)
     if fragment:  # for hosts that supply their own document skeleton (claude.ai artifacts)
         for tag in ("<!doctype html>", '<html lang="en">', "<head>", "</head>", "<body>", "</body>", "</html>",
                     '<meta charset="utf-8">',
@@ -174,12 +183,13 @@ def main() -> None:
     ap.add_argument("--mh-steps", type=int, default=keep)
     ap.add_argument("--bad-site", action="append", default=[])
     ap.add_argument("--no-messages", action="store_true")
+    ap.add_argument("--consistency-check", action="store_true", help="receivers drop notes that contradict their own data")
     ap.add_argument("--seed-pieces", type=int, default=keep)
     ap.add_argument("--slots", type=int, default=keep)
     ap.add_argument("--out", default=str(HERE / "out" / "index.html"))
     ap.add_argument("--open", action="store_true", help="open the page in the browser")
     ap.add_argument("--report", action="store_true", help="the scrolling report instead of the 3D demo")
-    ap.add_argument("--single", action="store_true", help="3D demo: skip the extra 'no sharing' and 'one site lies' runs")
+    ap.add_argument("--single", action="store_true", help="3D demo: skip the extra 'no sharing', 'one site lies' and 'lies, checked' runs")
     ap.add_argument("--summary-seeds", type=int, default=0, help="3D demo: worlds per condition in the summary (0 = none)")
     ap.add_argument("--liar", default="pla", choices=list(SITES), help="3D demo: the site that lies in the 'one site lies' run")
     ap.add_argument("--fragment", action="store_true", help="omit <html>/<head>/<body>, for hosts that add their own")
@@ -190,15 +200,17 @@ def main() -> None:
         data = bundle(state, label)
     else:
         label = f"simulation, seed {args.seed}" + (f", bad site {', '.join(args.bad_site)}" if args.bad_site else "") \
-            + (", network cut" if args.no_messages else "")
+            + (", network cut" if args.no_messages else "") + (", consistency check" if args.consistency_check else "")
         data = bundle(run_sim(args), label)
     if not args.report and not args.checkpoint and not args.single:
         # The 3D demo lets viewers flip conditions, so it carries two more real runs on the same world:
-        # the network cut, and one site broadcasting bad beliefs.
-        print("running the 'no sharing' and 'one site lies' conditions for the demo switches...")
+        # the network cut, one site broadcasting bad beliefs, and the same with the consistency check on.
+        print("running the 'no sharing', 'one site lies' and 'lies, checked' conditions for the demo switches...")
         alone = bundle(run_sim(argparse.Namespace(**{**vars(args), "no_messages": True, "bad_site": []})), label + ", network cut")
         liar = bundle(run_sim(argparse.Namespace(**{**vars(args), "no_messages": False, "bad_site": [args.liar]})), label + f", bad site {args.liar}")
-        data = {"scenarios": {"normal": data, "alone": alone, "liar": liar}, "liar": args.liar, "seed": args.seed}
+        liar_check = bundle(run_sim(argparse.Namespace(**{**vars(args), "no_messages": False, "bad_site": [args.liar], "consistency_check": True})),
+                            label + f", bad site {args.liar}, consistency check")
+        data = {"scenarios": {"normal": data, "alone": alone, "liar": liar, "liar_check": liar_check}, "liar": args.liar, "seed": args.seed}
         if args.summary_seeds:
             print(f"running each condition on {args.summary_seeds} simulated worlds for the summary...")
             data["summary"] = condition_summary(args.summary_seeds, args.rounds, args.liar)

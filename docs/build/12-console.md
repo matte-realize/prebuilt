@@ -56,16 +56,40 @@ The top card always shows the one thing to do next.
 
 Polled every second from `/api/state`: rounds done and what's running now, which site is waiting on the operator, held-out MAE per round, site and arm (in µm; "measured" against the held-out measurements, "truth" against the simulator's hidden diameters, simulated sites only), trust, consistency-check rows, how many numbers crossed the boundary against 0 measurements, and the run's log. Scores come from the checkpoint, written after the seed plates and after each round. At the end the privacy audit (`eval.audit` over the chains) shows PASS or FAIL, and **Build and open the 3D viewer** runs `viewer.export --checkpoint <run>/state.pkl` into `<run>/viewer.html`.
 
+## Corrected designs
+
+The product-facing payoff of learning a printer's error: "I want a 5 mm hole; draw it at 5.23 mm on this printer." After the seed plates and every round, a **Corrected designs** card shows, per site:
+
+- a default table: pins and holes wanted at 2, 3, 5, 7 mm → the size to draw → the predicted printed size and its 90% interval;
+- a box to ask for any pin or hole size: "draw it at X mm (+shift µm) → prints Y mm (90%: a–b; printer mean c–d)", plus what drawing it as-is would give.
+
+It uses the **networked arm's latest posterior** for the site, refit from the run's `state.pkl` the same way the arm is scored (`arms.experiment._fit` on the site's own data plus the notes in its inbox, at the trust it holds), cached per checkpoint. Everything is at the plate center. Labels:
+
+- **simulated site**: says it's a simulated machine, and each cell also shows the simulator's hidden **truth** at the corrected draw and as drawn (a separate copy of the run's world, never seen by the agents);
+- **real site**: how many measurements (pins, holes) the fit rests on; under 20, or under 5 of either kind, a warning that the model leans on its priors (and the other sites' notes) and the intervals are wide on purpose. Plates filled with simulated readings are named.
+
+How it's computed (`model/compensate.py`): predicted diameter is monotone increasing in nominal over the plate range, so `compensate()` bisects on the posterior-mean prediction (`physics.predict_d`, vectorized over particles) for the nominal that prints at the target. Two 90% intervals at that draw size: **interval**, where one printed and measured piece should land (parameter uncertainty plus the learned scatter `sigma_meas`), and **printer mean** (`model_interval`), parameter uncertainty only. The search is limited to the plate library range (`plates.spec` D_MIN..D_MAX, 1–8 mm): a target that range can't make is clipped and said ("out of range"); a draw size outside the measured range (1.5–7 mm) is flagged as extrapolation, and under 2 mm there's a reminder that the model predicts size, not whether a feature prints. Plate position is an option in the library and CLI (`at=(u, v)`, normalized [-1, 1]).
+
+CLI, on any run's checkpoint:
+
+```
+.venv/bin/python -m model.compensate --checkpoint console/runs/<time>/state.pkl --site resin --kind hole --target 5.0
+.venv/bin/python -m model.compensate --checkpoint <state.pkl> --site pla --table        # 2, 3, 5, 7 mm
+    [--at U V] [--arm isolated]
+```
+
+In simulation (10 worlds × 2 sites × pins/holes × 2, 3, 5, 7 mm, 1000 particles fit on the full seed plate), the median |true printed − target| at the plate center goes from 118 µm drawn as-is to 6 µm corrected (90th percentile 269 → 20 µm; corrected is closer in 98% of cases). With only 8 seed pieces: 118 → 17 µm. Simulation only; a real printer adds effects the model doesn't have. Tests: `tests/test_compensate.py`.
+
 **Stop run** is cooperative: it stops at the next plate or at an open prompt. Finished rounds stay in the checkpoint.
 
 ## Files
 
 ```
 console/
-  server.py     HTTP endpoints: /api/state, /api/run, /api/answer, /api/measure, /api/fill, /api/stop, /api/viewer, /runs/<file>
+  server.py     HTTP endpoints: /api/state, /api/run, /api/answer, /api/measure, /api/fill, /api/designs, /api/corrected, /api/stop, /api/viewer, /runs/<file>
   runner.py     Run: builds the printers, runs run_experiment in a thread, turns RealPrinter's ask= prompts into browser prompts
   index.html    the page (vanilla JS, no CDN)
   runs/<time>/  run.json (settings, config), log.txt, state.pkl, results.json, receipts/, plates/<site>/, scans/<site>/, viewer.html
 ```
 
-Headless test: `tests/test_real_loop.py::test_console_practice_run_headless`.
+Headless test: `tests/test_real_loop.py::test_console_practice_run_headless`. Corrected designs: `model/compensate.py`, `tests/test_compensate.py`.

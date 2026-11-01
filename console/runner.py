@@ -279,6 +279,8 @@ class Run:
         self._stop = threading.Event()
         self._ckpt_mtime = 0.0
         self._snapshot: dict = {}
+        self._designs: dict = {}          # site -> (checkpoint mtime, posterior, basis); corrected designs
+        self._design_lock = threading.Lock()
         self._prompt_seq = 0
         self.started = time.time()
         self.finished = None
@@ -418,6 +420,58 @@ class Run:
 
     def stop(self) -> None:
         self._stop.set()
+
+    # -- corrected designs --
+
+    def _design_post(self, site: str):
+        """The networked arm's latest posterior for `site`, refit from the checkpoint (cached per checkpoint)."""
+        from model import compensate as comp
+        if site not in SITES:
+            raise ValueError(f"unknown site {site!r}")
+        ck = self.dir / "state.pkl"
+        if not ck.exists():
+            raise ValueError("nothing fitted yet: the seed plates aren't done")
+        with self._design_lock:
+            m = ck.stat().st_mtime
+            hit = self._designs.get(site)
+            if hit is None or hit[0] != m:
+                state = comp.load_state(ck)
+                hit = (m, comp.posterior_from_state(state, site), comp.basis(state, site))
+                self._designs[site] = hit
+            return hit[1], hit[2]
+
+    def _sim_printer(self, site: str):
+        """The simulated site's printer (same world as the run), for the hidden-truth check; None at a real site."""
+        if self.settings.mode(site) != "sim":
+            return None
+        from sim.reference import make_world
+        return make_world(SITES, self.settings.seed, independent_shared=self.settings.negative_control)[site]
+
+    def corrected(self, site: str, kind: str, target: float) -> dict:
+        """One corrected design at the plate center: draw size, predicted printed size and interval."""
+        from model.compensate import compensate, true_d
+        if not 0.0 < float(target) < 20.0:
+            raise ValueError("target must be a diameter in mm (0-20)")
+        post, b = self._design_post(site)
+        r = compensate(post, kind, float(target), k=8000)
+        sim = self._sim_printer(site)
+        if sim is not None:
+            r["sim_truth"] = {"at_draw": float(true_d(sim, kind, r["draw_d"])[0]),
+                              "as_drawn": float(true_d(sim, kind, r["target_d"])[0])}
+        return {"site": site, "mode": self.settings.mode(site), "basis": b, "result": r}
+
+    def designs(self, site: str) -> dict:
+        """The default table (DEFAULT_TARGETS, pins and holes) for one site."""
+        from model.compensate import DEFAULT_TARGETS, table, true_d
+        post, b = self._design_post(site)
+        rows = table(post, DEFAULT_TARGETS, k=4000)
+        sim = self._sim_printer(site)
+        if sim is not None:
+            for r in rows:
+                r["sim_truth"] = {"at_draw": float(true_d(sim, r["kind"], r["draw_d"])[0]),
+                                  "as_drawn": float(true_d(sim, r["kind"], r["target_d"])[0])}
+        return {"site": site, "mode": self.settings.mode(site), "basis": b, "rows": rows,
+                "filled": [p for p in self.filled if p.startswith(f"{site}-")]}
 
     def view(self, log_tail: int = 400) -> dict:
         self._refresh()

@@ -27,7 +27,8 @@ def curves(path: Path, site: str | None = None) -> dict:
 
 
 DATA = {"honest": curves(ROOT / "demo/tier-d/sim.json"),
-        "liar": curves(ROOT / "demo/tier-d/bad-site.json", site="resin")}
+        "liar": curves(ROOT / "demo/tier-d/bad-site.json", site="resin"),
+        "check": curves(ROOT / "demo/tier-d/bad-site-check.json", site="resin")}   # run.py --consistency-check
 SEED = json.loads((ROOT / "plates/out/resin/resin-seed.json").read_text())
 EV = json.loads((ROOT / "viewer/evidence.json").read_text())  # hpc/sweeps/relevance/evidence.py
 SITES_NEEDED = EV["sites_needed"]   # coldstart grid: warm-up 4, 2 pieces/round, round 3
@@ -114,10 +115,11 @@ SLIDES = [
   <div class="ctl">
     <button type="button" id="play">▶ Play (P)</button>
     <button type="button" id="liar" aria-pressed="false">Make PLA lie (L)</button>
+    <button type="button" id="check" aria-pressed="false" disabled>Check notes (C)</button>
     <span class="tiny" id="cap">Simulation with hidden truth, frozen config, 20 worlds. Model error on held-out pieces, µm.</span>
   </div>
 </div>""",
-     "In Present mode it plays by itself. Narrate the caption line. Then L: resin's error spikes in round 1, trust collapses to 0.01 once held-out pieces expose the lie, and by round 3 resin is back level with learning alone. Without a check, a liar costs one round (slide 4: with the check, none)."),
+     "In Present mode it plays by itself. Narrate the caption line. Then L: resin's error spikes in round 1, trust collapses to 0.01 once held-out pieces expose the lie, and by round 3 resin is back level with learning alone. Without a check, a liar costs one round. Then C: the consistency check sets PLA's note aside at the boundary, no spike. With the check, none (slide 4)."),
 
     ("1:40–2:15 · Results, in simulation", "The win is many sites, not many agents",
      f"""<div class="cols3 hero">
@@ -185,6 +187,7 @@ EXTRA_CSS = """
 .demo button { font: 600 1.4cqw var(--body); color: var(--ink); background: var(--sheet); border: 1px solid var(--line);
   border-radius: 6px; padding: .6cqw 1.3cqw; cursor: pointer; }
 .demo button[aria-pressed="true"] { border-color: var(--amber); color: var(--amber); }
+.demo button:disabled { opacity: .4; cursor: not-allowed; }
 .demo .tiny { font: 13px var(--mono); fill: var(--muted); color: var(--muted); }
 .demo .ctl .tiny { font-size: 1.2cqw; }
 .demo .lbl { font: 700 22px var(--display); fill: var(--ink); }
@@ -234,9 +237,13 @@ DEMO_JS = """
       'Round 1: resin is misled, 82 µm. Its held-out pieces expose the lie.',
       'Round 2: trust in PLA drops from 1.00 to 0.01. Resin recovers.',
       'Round 3: back level with learning alone. A liar costs one round.'],
+    check: ['PLA lies again. Now resin checks each note against its own plate first.',
+      `Round 1: PLA's note contradicts resin's data, so it's set aside. No spike: ${DATA.check.networked[0].toFixed(1)} µm.`,
+      'Round 2: set aside again. Every note is re-checked, every round.',
+      'Round 3: the liar never got through. With the check, a liar costs zero rounds.'],
   };
   function draw() {
-    const d = DATA[mode], X0 = 54, X1 = 330, Y0 = 254, Y1 = 30;
+    const d = DATA[mode], X0 = 54, X1 = 330, Y0 = 254, Y1 = 30, bad = mode !== 'honest';
     const lo = 10, hi = mode === 'liar' ? 30 : 18, step = mode === 'liar' ? 5 : 2;
     const x = i => X0 + (X1 - X0) * i / 2, y = v => Y0 - (Y0 - Y1) * (Math.min(v, hi) - lo) / (hi - lo);
     chart.replaceChildren();
@@ -245,7 +252,7 @@ DEMO_JS = """
       chart.append(el('text', { x: X0 - 10, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v));
     }
     [1, 2, 3].forEach((r, i) => chart.append(el('text', { x: x(i), y: Y0 + 24, 'text-anchor': 'middle', class: 'tick' }, 'round ' + r)));
-    chart.append(el('text', { x: X0 - 44, y: 16, class: 'tick' }, mode === 'liar' ? 'µm, resin site' : 'µm, both sites'));
+    chart.append(el('text', { x: X0 - 44, y: 16, class: 'tick' }, bad ? 'µm, resin site' : 'µm, both sites'));
     const ends = [];
     for (const arm of ['isolated', 'oracle', 'networked']) {
       const v = d[arm].slice(0, shown);
@@ -264,9 +271,9 @@ DEMO_JS = """
       class: 'end', fill: 'var(--ink)' }, `${arm} ${v.toFixed(1)}`)));
     const t = mode === 'liar' && shown >= 2 ? 0.01 : 1.0;
     $('trustBar').setAttribute('width', 140 * t); $('trustBar').classList.toggle('low', t < 0.5);
-    $('trustTxt').textContent = t.toFixed(2);
-    $('trustG').style.opacity = mode === 'liar' ? 1 : 0.3;
-    $('nameB').textContent = mode === 'liar' ? 'PLA (lying)' : 'PLA';
+    $('trustTxt').textContent = mode === 'check' && shown ? `${t.toFixed(2)} · note set aside` : t.toFixed(2);
+    $('trustG').style.opacity = bad ? 1 : 0.3;
+    $('nameB').textContent = bad ? 'PLA (lying)' : 'PLA';
     const label = shown ? `round ${shown} plate measured` : 'seed plate measured';
     $('platesA').textContent = $('platesB').textContent = label;
     $('measA').textContent = $('measB').textContent = SEED + PER_ROUND * shown;
@@ -275,13 +282,14 @@ DEMO_JS = """
   }
   function packets(onDone) {
     const a = $('pktAB'), b = $('pktBA');
-    b.classList.toggle('bad', mode === 'liar');
+    b.classList.toggle('bad', mode !== 'honest');
+    const stop = mode === 'check' ? 0.5 : 1;   // with the check, PLA's note halts at the boundary
     if (reduce) return onDone();
     const t0 = performance.now(), dur = 1100;
     (function frame(now) {
       const k = Math.min(1, (now - t0) / dur), e = k < .5 ? 2 * k * k : 1 - 2 * (1 - k) * (1 - k);
       a.setAttribute('transform', `translate(${96 + 248 * e},178)`); a.style.opacity = k < 1 ? 1 : 0;
-      b.setAttribute('transform', `translate(${344 - 248 * e},120)`); b.style.opacity = k < 1 ? 1 : 0;
+      b.setAttribute('transform', `translate(${344 - 248 * stop * e},120)`); b.style.opacity = k < 1 ? (stop < 1 ? 1 - 0.6 * k : 1) : 0;
       k < 1 ? requestAnimationFrame(frame) : onDone();
     })(t0);
   }
@@ -291,8 +299,18 @@ DEMO_JS = """
       packets(() => { if (me !== run) return; shown += 1; draw(); timer = setTimeout(next, 1600); }); };
     timer = setTimeout(next, 1200);
   }
+  function toggleCheck() {
+    if (mode === 'honest') return;
+    mode = mode === 'check' ? 'liar' : 'check';
+    $('check').setAttribute('aria-pressed', String(mode === 'check'));
+    $('cap').textContent = mode === 'check'
+      ? 'Consistency check on (an added option, off in the registered config). Resin site, 10 worlds, µm.'
+      : 'PLA broadcasts confident, wrong beliefs. Resin site, 10 worlds, model error on held-out pieces, µm.';
+    play();
+  }
   function toggleLiar() {
-    mode = mode === 'liar' ? 'honest' : 'liar';
+    mode = mode === 'honest' ? 'liar' : 'honest';
+    $('check').disabled = mode === 'honest'; $('check').setAttribute('aria-pressed', 'false');
     $('liar').setAttribute('aria-pressed', String(mode === 'liar'));
     $('liar').textContent = mode === 'liar' ? 'Make PLA honest (L)' : 'Make PLA lie (L)';
     $('cap').textContent = mode === 'liar'
@@ -302,6 +320,7 @@ DEMO_JS = """
   }
   $('play').addEventListener('click', play);
   $('liar').addEventListener('click', toggleLiar);
+  $('check').addEventListener('click', toggleCheck);
   $('demo').addEventListener('click', e => e.stopPropagation());   // clicks here don't advance slides
   const s3 = $('demo').closest('.slide');
   const onScreen = () => !document.body.classList.contains('present') || s3.classList.contains('on');
@@ -309,6 +328,7 @@ DEMO_JS = """
     if (!onScreen() || e.metaKey || e.ctrlKey) return;
     if (e.key === 'p' || e.key === 'P') play();
     if (e.key === 'l' || e.key === 'L') toggleLiar();
+    if (e.key === 'c' || e.key === 'C') toggleCheck();
   });
   new MutationObserver(() => {   // Present mode: play when the demo slide comes up
     if (document.body.classList.contains('present') && s3.classList.contains('on')) play();

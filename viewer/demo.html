@@ -63,7 +63,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .note { font-size: 11.5px; color: var(--faint); margin: 8px 0 0; line-height: 1.4; }
 .res.now { color: var(--ink); } .res.todo { color: var(--faint); }
 #labToggle { display: none; }
-#lab { width: 312px; max-height: calc(100vh - 120px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overflow-y: auto; padding: 12px 14px; }
+#lab { width: 312px; max-height: calc(100vh - 42px - var(--chartH, 300px) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overflow-y: auto; padding: 12px 14px; }
 .claim { border-top: 1px solid var(--line); }
 .claim:first-child { border-top: 0; }
 .claim .top { display: flex; justify-content: space-between; gap: 8px; align-items: center; width: 100%; background: none; border: 0; padding: 10px 0; text-align: left; color: var(--ink); }
@@ -104,7 +104,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .prog i.done { background: var(--net); } .prog i.on { background: rgba(91, 140, 255, .55); }
 
 /* card, toasts */
-#card { left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); width: min(320px, calc(100vw - 32px)); padding: 14px 16px; }
+#card { left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); width: min(340px, calc(100vw - 32px)); padding: 14px 16px; z-index: 6; }
 #card h4 { margin: 2px 0 8px; font: 600 22px/1.1 var(--display); }
 #card .row { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; padding: 4px 0; border-top: 1px solid var(--line); }
 #card .row span:last-child { text-align: right; }
@@ -119,15 +119,37 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .toast .v { display: inline-block; margin-top: 6px; font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 3px 7px; border-radius: 5px; border: 1.5px solid; }
 @keyframes tin { from { opacity: 0; transform: translateY(8px); } }
 
+/* results chart (bottom left, always visible) */
+#chart { right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); width: min(312px, calc(100vw - 32px)); padding: 12px 14px 10px; }
+#chart .hd { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+#chart .hd b { font: 600 17px/1.1 var(--display); letter-spacing: .02em; }
+#chart .hd span { font: 500 11px var(--mono); color: var(--muted); white-space: nowrap; }
+#chart .sub { font-size: 12px; color: var(--muted); margin: 2px 0 8px; line-height: 1.35; }
+#chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+#chart .foot { margin: 6px 0 0; font-size: 11.5px; line-height: 1.4; color: var(--muted); }
+#chart .foot b { color: var(--ink); font-weight: 600; }
+.seg { display: flex; gap: 2px; padding: 3px; border-radius: 9px; background: rgba(255, 255, 255, .05); border: 1px solid var(--line); margin-bottom: 8px; }
+.seg button { flex: 1 1 auto; border: 0; background: none; border-radius: 6px; padding: 6px 4px; font: 500 12px/1.15 var(--body); color: var(--muted); white-space: nowrap; }
+.seg button[aria-checked="true"] { background: rgba(255, 255, 255, .13); color: var(--ink); }
+.seg button.lie[aria-checked="true"] { background: rgba(240, 106, 106, .2); color: #ffc9c9; }
+.seg button:disabled { opacity: .5; cursor: wait; }
+#chart .pt-new { animation: pop .5s ease-out both; transform-box: fill-box; transform-origin: center; }
+#chart .seg-new { animation: draw .7s ease-out both; }
+@keyframes pop { from { opacity: 0; transform: scale(.2); } }
+@keyframes draw { from { stroke-dashoffset: var(--len); } to { stroke-dashoffset: 0; } }
+
 /* in-world labels */
 .lab { position: fixed; left: 0; top: 0; z-index: 3; pointer-events: none; white-space: nowrap; font: 500 11.5px var(--mono); color: var(--ink); text-shadow: 0 1px 6px rgba(0, 0, 0, .9); will-change: transform; }
 .lab.title { font: 700 21px var(--display); letter-spacing: .04em; text-align: center; }
 .lab.title small { display: block; font: 500 10.5px var(--mono); letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
-.lab.wall { font: 500 11px var(--mono); letter-spacing: .14em; color: var(--wall); text-transform: uppercase; }
+.lab.wall { font: 500 11px/1.4 var(--mono); letter-spacing: .14em; color: var(--wall); text-transform: uppercase; text-align: center; padding: 4px 9px; border-radius: 7px; background: rgba(5, 9, 14, .72); text-shadow: none; }
 .lab.pill { font: 600 12px var(--mono); padding: 2px 7px; border-radius: 6px; background: rgba(5, 9, 14, .78); text-shadow: none; }
 .lab.agent { font: 600 12px var(--body); padding: 3px 8px; border-radius: 999px; background: rgba(5, 9, 14, .8); text-shadow: none; }
-.lab.badge { font: 500 12.5px var(--body); padding: 8px 11px; border-radius: 10px; background: rgba(5, 9, 14, .82); border: 1px solid var(--line); text-shadow: none; text-align: left; line-height: 1.35; }
-.lab.badge b { font: 600 20px var(--display); display: block; }
+.lab.badge { font: 500 12px var(--body); padding: 7px 11px; border-radius: 10px; background: rgba(5, 9, 14, .82); border: 1px solid var(--line); text-shadow: none; text-align: left; line-height: 1.35; color: var(--muted); }
+.lab.badge b { font: 600 19px/1.2 var(--display); display: block; color: var(--ink); }
+.lab.badge b small { font: 500 13px var(--body); color: var(--muted); }
+.lab.badge .why { display: block; max-width: 230px; white-space: normal; }
+.lab.packet { font: 600 12px var(--mono); padding: 4px 8px; border-radius: 7px; background: rgba(5, 9, 14, .86); border: 1px solid currentColor; text-shadow: none; }
 
 /* intro */
 #intro { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(6, 10, 15, .66); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); overflow-y: auto; padding-block: 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
@@ -136,20 +158,30 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #intro h1 em { font-style: normal; color: var(--net); }
 #intro p { color: var(--muted); margin: 0 0 8px; max-width: 58ch; font-size: 16px; }
 #intro .how { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 18px 0 20px; }
+#intro .steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 14px 0 6px; counter-reset: st; }
+#intro .steps div { position: relative; padding: 10px 10px 10px 12px; border-left: 2px solid var(--line); font-size: 13.5px; line-height: 1.35; color: var(--muted); }
+#intro .steps div::before { counter-increment: st; content: counter(st); display: block; font: 600 12px var(--mono); color: var(--net); margin-bottom: 3px; }
+#intro .steps b { color: var(--ink); font-weight: 600; }
+#intro .sim { display: inline-block; font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--pool); border: 1.2px solid var(--pool); border-radius: 5px; padding: 4px 6px; margin-left: 8px; vertical-align: 1px; }
 #intro .how div { background: rgba(255, 255, 255, .04); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 14px; color: var(--muted); }
 #intro .how b { display: block; color: var(--ink); font: 600 18px var(--display); margin-bottom: 2px; }
-@media (max-width: 700px) { #intro .how { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { #intro .how { grid-template-columns: 1fr; } #intro .steps { grid-template-columns: 1fr 1fr; } #intro .box { padding: 20px; } }
 #fail { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); }
 
 @media (min-width: 901px) and (max-width: 1240px) {
-  #toasts { top: auto; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); }
+  #toasts { top: 132px; left: max(16px, env(safe-area-inset-left, 0px)); }
 }
 @media (max-width: 900px) {
-  #lab { top: auto; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); width: min(290px, calc(100vw - 32px)); }
-  #lab.collapsed .body { display: none; }
+  #lab { top: auto; bottom: calc(92px + var(--chartH, 200px) + env(safe-area-inset-bottom, 0px)); width: calc(100vw - 32px); max-height: calc(100vh - 220px - var(--chartH, 200px)); }
+  #chart { bottom: calc(82px + env(safe-area-inset-bottom, 0px)); }
+  #chart .foot, #chart .sub { display: none; }
+  #lab.collapsed .body, #lab.collapsed > p { display: none; }
+  #lab.collapsed h3 { margin: 0; }
+  .lab.badge { display: none !important; } /* the chart carries the numbers on a phone */
   #labToggle { display: inline; float: right; background: none; border: 0; color: var(--muted); font: 500 11px var(--mono); }
-  #toasts { top: 150px; left: 16px; transform: none; }
-  #card { bottom: auto; top: 150px; }
+  #toasts { top: 150px; left: 16px; transform: none; width: min(330px, calc(100vw - 32px)); }
+  #card { bottom: calc(92px + var(--chartH, 200px) + env(safe-area-inset-bottom, 0px)); }
+  #chart { right: auto; left: max(16px, env(safe-area-inset-left, 0px)); }
   #go { min-width: 0; padding: 10px 14px; font-size: 15px; }
   #deck { flex-wrap: nowrap; gap: 6px; padding: 8px; width: calc(100vw - 32px); }
   #deck .tbtn { padding: 8px 10px; }
@@ -164,14 +196,20 @@ button { font: inherit; color: inherit; cursor: pointer; }
 <div id="labels"></div>
 
 <div id="intro"><div class="box glass">
-  <div class="eyebrow">Prebuilt · a test of a method, not a product</div>
-  <h1>Can two factories learn together without sharing data? <em>And can you check that they didn't?</em></h1>
-  <p>Every 3D printer makes parts slightly too big or too small. Here, AI assistants at two printers choose test parts, and the printers swap tiny notes instead of their data.</p>
-  <p>The panel on the right lists what we can actually show, how strong each piece of evidence is, and one result that turned out small. You run the rounds and change the rules.</p>
-  <div class="how">
-    <div><b>Nothing private leaves</b>Every note is logged and checked. Replay the audit yourself.</div>
-    <div><b>Liars get cut off</b>Make one printer lie and watch the other stop listening.</div>
-    <div><b>The gain is small</b>Sharing helps the guesses by about 2 µm. We show it to scale.</div>
+  <div class="eyebrow">Prebuilt · a test of a method, not a product<span class="sim">simulation</span></div>
+  <h1>Every printer misses in its own way. <em>Can printers learn their errors faster together, without sharing their data?</em></h1>
+  <p>No printed part comes out exactly the size of its file. Each printer is off in its own way, and today every shop learns that from scratch.</p>
+  <div class="steps">
+    <div><b>Print a test plate.</b> Pins and holes of many sizes.</div>
+    <div><b>Measure it.</b> Each printer learns its own errors.</div>
+    <div><b>Swap a tiny summary.</b> 3 shared numbers, each a mean and an uncertainty.</div>
+    <div><b>Learn faster.</b> The measurements never leave.</div>
+  </div>
+  <p>This is a simulation, so we know every part's true size and can score every guess. You print the rounds and change the rules.</p>
+  <div class="how" id="introCards">
+    <div><b>Faster together</b>With two printers the error drops 12% (1.6 µm), as good as pooling all the raw data. More printers, bigger gain.</div>
+    <div><b>Data never leaves</b>Only the summaries cross, and every one is logged in a tamper-evident chain. Replay the audit yourself.</div>
+    <div><b>Liars are caught on arrival</b>A consistency check sets aside notes that contradict a printer's own data.</div>
   </div>
   <button class="tbtn" id="start" style="background:var(--net);border:0;color:#fff;font:600 18px var(--display);padding:12px 24px;border-radius:12px">Start</button>
 </div></div>
@@ -185,6 +223,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
   <h3>What we can show <button id="labToggle">hide</button></h3>
   <p style="margin:-4px 0 4px;font-size:12px;color:var(--faint)">Tap a claim for its evidence.</p>
   <div class="body" id="claims"></div>
+</div>
+
+<div class="hud glass" id="chart">
+  <div class="hd"><b>Error on test parts</b><span>µm, lower is better</span></div>
+  <div class="seg" id="seg" role="radiogroup" aria-label="Experiment"></div>
+  <div class="sub" id="chSub"></div>
+  <svg id="chSvg" viewBox="0 0 300 156" role="img" aria-label="Model error by round"></svg>
+  <p class="foot" id="chFoot"></p>
 </div>
 
 <div class="hud" id="toasts"></div>
@@ -208,11 +254,14 @@ const ALL = BLOB.scenarios || { normal: BLOB };
 const LIAR = BLOB.liar;
 let SC = "normal", D = ALL.normal;
 const SITES = Object.keys(D.sites), R = D.rounds;
-const PROC = { resin: "Resin printer", pla: "Plastic printer" };
+const PROC = { resin: "Resin printer", pla: "PLA printer" };
 const siteName = s => PROC[D.sites[s]] || s;
+const lc = t => t.replace(/^Resin/, "resin"); // mid-sentence name: "resin printer", "PLA printer"
+const short = s => siteName(s).split(" ")[0]; // "Resin", "PLA"
+const SHOW_AGENTS = false; // the part-picking assistants add nothing measurable (hpc/sweeps/relevance), so the scene leaves them out
 const HEX = { isolated: 0x8d9bad, networked: 0x5b8cff, oracle: 0xe3a443, heldout: 0x2fc2c4, seed: 0x6d7b8c };
 const CSS = { isolated: "var(--alone)", networked: "var(--net)", oracle: "var(--pool)", heldout: "var(--exam)", seed: "#6d7b8c" };
-const NAME = { isolated: "On its own", networked: "Working together", oracle: "All data shared (ideal)", heldout: "Test part", seed: "Warm-up" };
+const NAME = { isolated: "the alone model", networked: "the together model", oracle: "the pooled-data model", heldout: "Test part", seed: "Warm-up" };
 const ROLE = { physics: "The Physicist", calibration: "The Calibrator", geometry: "The Size Expert", empirical: "The Pattern Spotter", printability: "The Safety Checker", position: "The Mapper" };
 const who = a => ROLE[a] || a;
 const AGENT_HEX = [0x5b8cff, 0xe3a443, 0x3cc48d, 0xf06a6a, 0xad8bff, 0x2fc2c4];
@@ -258,15 +307,17 @@ const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true; controls.dampingFactor = .08; controls.maxPolarAngle = Math.PI * .47; controls.minDistance = 6; controls.maxDistance = 42;
 const VIEWS = {
   home: [new THREE.Vector3(0, 11, 16.5), new THREE.Vector3(0, 1.8, 0)],
-  agents: [new THREE.Vector3(0, 8.5, 13.5), new THREE.Vector3(0, 3.2, -1.2)],
-  plates: [new THREE.Vector3(0, 14.5, 12.5), new THREE.Vector3(0, 1.4, .4)],
-  wall: [new THREE.Vector3(6.5, 7, 12), new THREE.Vector3(0, 3.4, 0)],
+  plates: [new THREE.Vector3(0, 13.5, 13), new THREE.Vector3(0, 1.4, .4)],
+  wall: [new THREE.Vector3(0, 9.6, 15.6), new THREE.Vector3(0, 2.9, 0)], // a slight push-in and tilt up to the notes' path; both printers stay in frame
 };
-function fitView(v) { const [p, t] = VIEWS[v]; const k = innerWidth / innerHeight < .7 ? 2.7 : innerWidth / innerHeight < .9 ? 2.1 : innerWidth < 1100 ? 1.45 : 1.22; return [t.clone().add(p.clone().sub(t).multiplyScalar(k)), t.clone()]; }
-function offsetView() { // centre the 3D scene in the space left of the claims panel
+function fitView(v) { const [p, t] = VIEWS[v]; const k = innerWidth / innerHeight < .7 ? 3.1 : innerWidth / innerHeight < .9 ? 2.1 : innerWidth < 1100 ? 1.45 : 1.22; return [t.clone().add(p.clone().sub(t).multiplyScalar(k)), t.clone()]; }
+function offsetView() { // centre the 3D scene in the space the panels leave free: left of the claims on wide screens, between caption and chart on narrow ones
   const lab = $("lab"), wide = innerWidth > 900 && lab && !lab.hidden;
-  const shift = wide ? (lab.offsetWidth + 24) / 2 : 0;
-  if (shift) camera.setViewOffset(innerWidth, innerHeight, shift, 0, innerWidth, innerHeight); else camera.clearViewOffset();
+  let sx = 0, sy = 0;
+  if (wide) sx = (lab.offsetWidth + 24) / 2;
+  else if (lab) { const top = $("cap").getBoundingClientRect().bottom, bottom = lab.getBoundingClientRect().top; if (bottom > top) sy = innerHeight / 2 - (top + bottom) / 2; }
+  if (sx || sy) camera.setViewOffset(innerWidth, innerHeight, sx, Math.round(sy), innerWidth, innerHeight); else camera.clearViewOffset();
+  camera.updateProjectionMatrix();
 }
 { const [p, t] = fitView("home"); camera.position.copy(p); controls.target.copy(t); }
 let follow = true, camGoal = fitView("home"), lastTouch = 0;
@@ -283,7 +334,7 @@ floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
 const grid = new THREE.GridHelper(60, 60, 0x16212c, 0x101821); grid.position.y = .002; scene.add(grid);
 // a soft pool of light under each printer, so the stations read as two lit work areas
 const pool = (() => { const c = document.createElement("canvas"); c.width = c.height = 256; const g = c.getContext("2d");
-  const gr = g.createRadialGradient(128, 128, 10, 128, 128, 128); gr.addColorStop(0, "rgba(120,160,220,0.32)"); gr.addColorStop(1, "rgba(120,160,220,0)");
+  const gr = g.createRadialGradient(128, 128, 10, 128, 128, 128); gr.addColorStop(0, "rgba(120,160,220,0.18)"); gr.addColorStop(1, "rgba(120,160,220,0)");
   g.fillStyle = gr; g.fillRect(0, 0, 256, 256); return new THREE.CanvasTexture(c); })();
 
 // privacy wall
@@ -323,9 +374,10 @@ function placeLabels() {
     L.el.style.transform = `translate(${x}px, ${y}px)`;
   }
 }
-label("Privacy wall", () => new THREE.Vector3(0, 5.3, 0), "wall", 5);
+label("Privacy wall<br><span style=\"letter-spacing:.06em;text-transform:none;color:var(--muted)\">only summaries cross</span>", () => new THREE.Vector3(0, 5.55, 0), "wall", 5);
 
 // ---------- printers
+const PART_HEX = 0xc9d1da; // every printed part one quiet colour; only the test parts (teal, ringed) stand out
 const PLATE = 4, CELL = PLATE / 8, TABLE_Y = 1.0, PIECE_H = .34;
 const slotX = c => -PLATE / 2 + CELL * (c + .5), slotZ = r => -PLATE / 2 + CELL * (r + .5);
 const ST = {}, SX = { [SITES[0]]: -5.8, [SITES[1]]: 5.8 };
@@ -361,7 +413,7 @@ function buildStation(site) {
   scan.position.set(0, TABLE_Y + .5, -2.4); g.add(scan);
   const scanLight = new THREE.PointLight(0x7fd6ff, 0, 3); scan.add(scanLight);
   const orbs = {};
-  AGENTS.forEach((a, i) => {
+  if (SHOW_AGENTS) AGENTS.forEach((a, i) => {
     const n = AGENTS.length, ang = (i - (n - 1) / 2) * .4;
     const pos = new THREE.Vector3(Math.sin(ang) * 3.3, TABLE_Y + 4.6 + (i % 2) * .35, -2.4 - Math.cos(ang) * .4);
     const m = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 24), std(AHEX[a], { emissive: AHEX[a], emissiveIntensity: .55, roughness: .3, metalness: .1 }));
@@ -378,8 +430,8 @@ SITES.forEach(buildStation);
 
 // ---------- pieces + error bars
 function pieceMesh(q) {
-  const rad = .045 + (q.d - 1) / 7 * .14, col = HEX[q.arm] ?? HEX.seed;
-  const mat = std(col, { emissive: col, emissiveIntensity: .12, roughness: .45, metalness: .1 });
+  const rad = .045 + (q.d - 1) / 7 * .14, test = q.arm === "heldout", col = test ? HEX.heldout : PART_HEX;
+  const mat = std(col, { emissive: col, emissiveIntensity: .12, roughness: .5, metalness: .05 });
   let mesh;
   if (q.kind === "pin") { mesh = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, PIECE_H, 28), mat); mesh.geometry.translate(0, PIECE_H / 2, 0); }
   else {
@@ -392,7 +444,7 @@ function pieceMesh(q) {
   if (q.arm === "heldout") { const ring = new THREE.Mesh(new THREE.RingGeometry(.23, .26, 32), new THREE.MeshBasicMaterial({ color: HEX.heldout, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.y = .006; mesh.add(ring); }
   return mesh;
 }
-function markFailed(m) { if (m.userData.q.status === "ok") return; m.material.color.setHex(0x5a2a2a); m.material.emissive.setHex(0xf06a6a); m.material.emissiveIntensity = .25; m.scale.y = .35; }
+function markFailed(m) { if (m.userData.q.status === "ok") return; m.material.color.setHex(0x4a3a3c); m.material.emissive.setHex(0x000000); m.material.emissiveIntensity = 0; m.scale.y = .35; }
 function clearStalks(site) { const st = ST[site]; st.stalks.forEach(o => st.g.remove(o)); st.stalks = []; }
 function layPlate(site, r, grown = true) {
   const st = ST[site]; st.pieces.forEach(m => st.g.remove(m)); st.pieces = []; clearStalks(site);
@@ -400,29 +452,12 @@ function layPlate(site, r, grown = true) {
   st.pieces = p.pieces.map(q => { const m = pieceMesh(q); m.scale.y = grown ? 1 : .001; m.visible = grown; st.g.add(m); if (grown) markFailed(m); return m; });
   return st.pieces;
 }
-const BAR_K = .028; // scene units per micron of guess error
 function errorsFor(site, r) {
   const p = plateOf(site, r); if (!p) return {};
   const ids = new Set(p.pieces.filter(q => q.arm === "heldout").map(q => q.id));
   const out = {};
   for (const x of D.predictions.filter(x => x.site === site && x.round === r && ids.has(x.piece_id) && x.measured_d != null)) (out[x.piece_id] ||= {})[x.arm] = Math.abs(x.mean - (x.truth ?? x.measured_d)) * 1000;
   return out;
-}
-function stalks(site, r, ms = 0) {
-  clearStalks(site); const st = ST[site], errs = errorsFor(site, r), tasks = [];
-  for (const m of st.pieces) {
-    const e = errs[m.userData.q.id]; if (!e) continue;
-    [["isolated", -.075], ["networked", .075]].forEach(([a, dx]) => {
-      if (e[a] == null) return;
-      const h = Math.max(e[a] * BAR_K, .02);
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(.11, 1, .11), new THREE.MeshStandardMaterial({ color: HEX[a], emissive: HEX[a], emissiveIntensity: .5, transparent: true, opacity: .92 }));
-      bar.position.set(m.position.x + dx, TABLE_Y + .5, m.position.z); bar.scale.y = .001; bar.userData.q = m.userData.q;
-      st.g.add(bar); st.stalks.push(bar);
-      const set = t => { bar.scale.y = Math.max(h * t, .001); bar.position.y = TABLE_Y + .45 + h * t / 2; };
-      ms ? tasks.push(tween(ms, set)) : set(1);
-    });
-  }
-  return Promise.all(tasks);
 }
 
 // ---------- animation core
@@ -448,7 +483,7 @@ function beam(from, to, color, ms = 600) {
 }
 
 // ---------- HUD
-function say(chip, text) { $("chip").textContent = chip; $("chip").className = "chip" + (chip === "Ready" || chip === "Done" ? " idle" : ""); $("say").innerHTML = text; }
+function say(chip, text) { $("chip").textContent = chip; $("chip").className = "chip" + (chip === "Ready" || chip === "Done" ? " idle" : ""); $("say").innerHTML = text; if (innerWidth <= 900) offsetView(); }
 function toast(whoTxt, html, verdict, ms = 4500) {
   const el = document.createElement("div"); el.className = "toast glass";
   el.innerHTML = `<div class="who">${whoTxt}</div><div>${html}</div>${verdict || ""}`;
@@ -463,15 +498,84 @@ function gapUm(r) { // alone minus together, µm, averaged over printers (true s
   for (const s of SITES) { const i = score(s, r, "isolated"), t = score(s, r, "networked"); if (i && t) { d += (i[k] - t[k]) * 1000; n++; } }
   return n ? d / n : null;
 }
+function why(s, r) { // one plain line under a printer's numbers, so they read the same way as the chart
+  const k = errKey(), i = score(s, r, "isolated"), n = score(s, r, "networked"), d = (i[k] - n[k]) * 1000;
+  const liar = (D.config.bad_sites || [])[0];
+  if (D.config.share_messages === false) return "Notes off: both models learn alone.";
+  if (liar && s !== liar) {
+    const c = checkRow(r, s, liar);
+    if (c && c.dropped) {
+      const h = ALL.normal && ALL.normal.scores.find(x => x.site === s && x.round === r && x.arm === "networked");
+      const same = h && Math.abs(h[k] - n[k]) * 1000 < .05;
+      return `<span style="color:var(--good)">${esc(short(liar))}'s false note set aside on arrival.</span> ${same ? "Same result as with honest notes." : "It used its own data this round."}`;
+    }
+    const before = trustOf(s, liar, r - 1);
+    if (before > .5) return `<span style="color:var(--bad)">Misled by ${esc(short(liar))}'s false note.</span>`;
+    return `Stopped listening to ${esc(short(liar))} (trust ${Math.max(1, Math.round(trustOf(s, liar, r) * 100))}%).`;
+  }
+  if (Math.abs(d) < 1) return "About the same this round.";
+  return d > 0 ? `Together ${f1(d)} µm lower.` : `Together ${f1(-d)} µm higher this round. One printer, one round: it swings.`;
+}
 function badges(r) {
   for (const s of SITES) {
     const st = ST[s], i = score(s, r, "isolated"), n = score(s, r, "networked");
     st.badge.on = !!(r && i && n);
     if (st.badge.on) {
-      const k = errKey(), d = (i[k] - n[k]) * 1000;
-      setLabel(st.badge, `<span style="color:var(--muted)">Guess error on test parts${k === "mae_truth" ? ", vs true size" : ""}</span><b><span style="color:var(--net)">${f1(n[k] * 1000)} µm</span> <span style="font-size:14px;color:var(--muted)">together</span> · <span style="color:var(--alone)">${f1(i[k] * 1000)} µm</span> <span style="font-size:14px;color:var(--muted)">alone</span></b><span style="color:var(--muted)">${Math.abs(d) < .05 ? "no difference" : `together ${f1(Math.abs(d))} µm ${d > 0 ? "closer" : "further"}`}</span>`);
+      const k = errKey();
+      setLabel(st.badge, `${k === "mae_truth" ? "Error vs true size" : "Error vs measured size"}, round ${r}<b><span style="color:var(--alone)">${f1(i[k] * 1000)}</span> <small>alone</small> · <span style="color:var(--net)">${f1(n[k] * 1000)}</span> <small>together · µm</small></b><span class="why">${why(s, r)}</span>`);
     }
   }
+}
+// ---------- results chart: held-out error by round, alone / together / pooled, this world, printers averaged
+const SERIES = [["isolated", "alone", "#8d9bad", ""], ["networked", "together", "#5b8cff", ""], ["oracle", "pooled data", "#e3a443", "4 3"]];
+const meanErr = (d, r, a) => { const k = d.scores.some(x => x.mae_truth != null) ? "mae_truth" : "mae", v = d.scores.filter(x => x.round === r && x.arm === a && x[k] != null); return v.length ? v.reduce((t, x) => t + x[k], 0) / v.length * 1000 : null; };
+const YMAX = (() => { // one honest 0-based axis shared by every scenario; a spike far above it is drawn off-scale and labelled
+  const all = Object.values(ALL).flatMap(d => Array.from({ length: d.rounds }, (_, i) => SERIES.map(([a]) => meanErr(d, i + 1, a))).flat()).filter(x => x != null);
+  const med = all.slice().sort((a, b) => a - b)[all.length >> 1], ok = all.filter(x => x < med * 2.5);
+  return Math.max(10, Math.ceil((Math.max(...ok) + .5) / 5) * 5);
+})();
+let CHART_AT = -1, CHART_SC = null;
+function chart(r) {
+  const W = 300, H = 156, L = 26, Rr = 94, T = 24, B = 20, pw = W - L - Rr, ph = H - T - B; // T leaves a band above the axis for off-scale points
+  const x = i => L + (R > 1 ? pw * (i - 1) / (R - 1) : pw / 2), y = v => v > YMAX ? T - 12 : T + ph * (1 - v / YMAX);
+  const fresh = CHART_SC === SC && r === CHART_AT + 1; CHART_AT = r; CHART_SC = SC;
+  const mono = `font-family="IBM Plex Mono, monospace"`, ticks = [0, YMAX / 3, YMAX * 2 / 3, YMAX].map(v => Math.round(v));
+  let s = ticks.map(v => `<line x1="${L}" x2="${L + pw}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(160,185,210,${v ? .13 : .35})" ${v ? 'stroke-dasharray="2 4"' : ""}/><text x="${L - 6}" y="${y(v) + 3.5}" text-anchor="end" ${mono} font-size="11" fill="#7f8fa1">${v}</text>`).join("");
+  s += Array.from({ length: R }, (_, i) => `<text x="${x(i + 1)}" y="${H - 4}" text-anchor="middle" ${mono} font-size="10.5" fill="${i + 1 <= r ? "#93a3b5" : "#4d5b6b"}">round ${i + 1}</text>`).join("");
+  const ends = [];
+  for (const [a, name, col, dash] of SERIES) {
+    const pts = []; for (let i = 1; i <= r; i++) { const v = meanErr(D, i, a); if (v != null) pts.push([i, v]); }
+    if (!pts.length) continue;
+    for (let j = 1; j < pts.length; j++) {
+      const [i0, v0] = pts[j - 1], [i1, v1] = pts[j], len = Math.hypot(x(i1) - x(i0), y(v1) - y(v0)), nw = fresh && j === pts.length - 1;
+      s += `<line x1="${x(i0)}" y1="${y(v0)}" x2="${x(i1)}" y2="${y(v1)}" stroke="${col}" ${v0 > YMAX || v1 > YMAX ? 'stroke-opacity=".55"' : ""} stroke-width="${a === "networked" ? 3 : 2.2}" stroke-linecap="round" ${dash ? `stroke-dasharray="${dash}"` : nw ? `class="seg-new" style="--len:${len};stroke-dasharray:${len}"` : ""}/>`;
+    }
+    for (const [i, v] of pts) {
+      const off = v > YMAX, cls = fresh && i === r ? ' class="pt-new"' : "";
+      s += off ? `<path${cls} d="M${x(i) - 6},${y(v) + 5} L${x(i)},${y(v) - 5} L${x(i) + 6},${y(v) + 5} Z" fill="${col}" stroke="#0b1016" stroke-width="1.5"/><text x="${x(i) + 10}" y="${y(v) + 5}" font-family="Barlow Condensed, sans-serif" font-weight="600" font-size="15" fill="#ffb4b4">${Math.round(v)} µm ${esc(name)} ↑ off the scale</text>`
+        : `<circle${cls} cx="${x(i)}" cy="${y(v)}" r="${a === "networked" ? 4 : 3.4}" fill="${col}" stroke="#0b1016" stroke-width="1.5"/>`;
+    }
+    const [li, lv] = pts[pts.length - 1]; if (lv <= YMAX) ends.push({ name: SC === "alone" && a === "networked" ? "no notes" : name, col, v: lv, x: x(li), y: y(lv) });
+  }
+  ends.sort((a, b) => a.y - b.y); // direct labels at the line ends, nudged apart so they never collide
+  for (let j = 1; j < ends.length; j++) ends[j].ly = Math.max(ends[j].y, (ends[j - 1].ly ?? ends[j - 1].y) + 15);
+  if (ends.length) { ends[0].ly = ends[0].y; const over = ends[ends.length - 1].ly - (T + ph); if (over > 0) ends.forEach(e => e.ly = (e.ly ?? e.y) - over); }
+  for (const e of ends) s += `<text x="${e.x + 9}" y="${(e.ly ?? e.y) + 4}" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="${e.col}"><tspan font-weight="600" font-family="Barlow Condensed, sans-serif" font-size="16">${f1(e.v)}</tspan> ${esc(e.name)}</text>`;
+  if (!r) s += `<text x="${L + pw / 2}" y="${T + ph / 2}" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="#93a3b5">Print round 1 to plot the first point</text>`;
+  $("chSvg").innerHTML = s;
+  $("chSvg").setAttribute("aria-label", `Model error by round, this world: ` + SERIES.map(([a, n]) => `${n} ${Array.from({ length: r }, (_, i) => f1(meanErr(D, i + 1, a) ?? 0)).join(", ")}`).join("; "));
+  $("chSub").innerHTML = { normal: "One simulated world, both printers averaged. Pooled data: one model given every raw measurement, the best case and not private.", alone: "Notes are off, so the “together” model hears nothing from the other printer.", liar: `The ${esc(lc(siteName(LIAR)))} sends false notes. No check on incoming notes.`, liar_check: `The ${esc(lc(siteName(LIAR)))} sends false notes. Each printer checks incoming notes against its own data.` }[SC] || "";
+  $("chFoot").innerHTML = chartFoot();
+  document.querySelectorAll("#seg button").forEach(b => b.setAttribute("aria-checked", b.dataset.k === SC));
+}
+function chartFoot() { // the many-world number next to this one world, so one lucky or unlucky run doesn't mislead
+  if (!E) return "";
+  const c = E.consistency_check, by = c && c.error_um_by_round;
+  if (SC === "normal") return `Over ${E.worlds} worlds at round ${E.rounds}: alone <b>${f1(E.error_um.isolated)}</b>, together <b>${f1(E.error_um.networked)}</b>, pooled <b>${f1(E.error_um.oracle)}</b> µm.`;
+  if (SC === "alone") return `Over ${E.worlds} worlds, the same models with notes cut gain ${f1(E.team_without_notes_vs_alone.pct)}%, not significant. The notes do the work.`;
+  if (SC === "liar" && by) return `Over ${c.worlds} worlds, round 1: <b>${f1(by.liar[0])}</b> µm with the liar, ${f1(by.alone[0])} alone. Then trust drops to 1%.`;
+  if (SC === "liar_check" && by) return `Over ${c.worlds} worlds: ${c.liar_caught} of ${c.liar_notes} false notes caught, ${c.honest_dropped} of ${c.honest_notes} honest ones dropped. Round 1: <b>${f1(by["liar + check"][0])}</b> µm (${f1(by.liar[0])} without the check).`;
+  return "";
 }
 const DONE = {};
 const E = BLOB.evidence;
@@ -482,25 +586,32 @@ function runCov() { // share of test parts inside the 90% range, team arm, lates
 }
 let OPEN = -1; // which claim is expanded
 function claims() {
-  const a = D.audit, liar = LIAR && siteName(LIAR).toLowerCase();
+  const a = D.audit, liar = LIAR && lc(siteName(LIAR));
   const cov = at ? runCov() : null;
-  let h = `<div class="claim"><button class="top"><b class="t">Nothing private left either printer</b><span class="tag ok">checked · this run</span></button><div class="more">
-    <p>${D.messages.length ? `${D.messages.length} notes crossed the wall. Each one is in both printers' tamper-evident logs and holds only a few shared numbers: no measurements, settings or designs.` : `Notes are off, so nothing crossed. The logs still prove it.`}</p>
+  const audit = `<div class="claim"><button class="top"><b class="t">Nothing private left either printer</b><span class="tag ok">checked · this run</span></button><div class="more">
+    <p>${D.messages.length ? `${D.messages.length} summaries crossed the wall. Each one is in both printers' tamper-evident logs and holds only the 3 shared numbers (mean and uncertainty): no measurements, settings or designs.` : `Notes are off, so nothing crossed. The logs still prove it.`}</p>
     <div class="ctl"><button class="mini" id="replay">Replay the audit</button><span style="color:${a.passed ? "var(--good)" : "var(--bad)"}">${a.passed ? "passed" : "failed"}</span></div><div class="auditlog" id="auditlog"></div></div></div>`;
+  let h = "";
+  if (!E) h = audit;
   if (E) {
-    const L = E.liar;
-    h += `<div class="claim"><button class="top"><b class="t">A lying printer gets cut off</b><span class="tag sim">${E.worlds} sim worlds</span></button><div class="more">
-      <p>The other printer stops listening after one round (trust <strong>${Math.round(L.trust_by_round[1] * 100)}% → ${Math.round(L.trust_by_round[2] * 100)}%</strong>). The cost comes first: in round 1 the team's error jumps to <strong>${f1(L.round1_error_um)} µm</strong>, against ${f1(L.round1_error_um_no_notes)} µm with no notes. After that the damage is contained, but the honest notes' benefit is lost too.${trustNote()}${checkNote()}</p>
-      ${ALL.liar ? `<div class="ctl"><span>Make the ${esc(liar)} lie</span><button class="tg danger" id="tgLie" role="switch" aria-checked="${SC === "liar"}" ${SC === "alone" ? "disabled" : ""} aria-label="Make one printer lie"></button></div>` : ""}</div></div>`;
-    h += `<div class="claim"><button class="top"><b class="t">The guess ranges are honest</b><span class="tag sim">${E.worlds} sim worlds</span></button><div class="more">
-      <p>Each guess comes with a 90% range. Across ${E.worlds} worlds about <strong>${E.coverage ? E.coverage.networked : 90}%</strong> of true sizes fell inside it${cov != null ? `; this run so far: ${cov}%` : ""}.</p></div></div>`;
-    const T = E.together_vs_alone, N = E.notes_vs_no_notes, mx = Math.max(E.slip_band_um.resin, E.measured.alone_error_um) * 1.05;
+    const T = E.together_vs_alone, P = E.pooled_vs_alone, A = E.team_without_notes_vs_alone, mx = Math.max(E.slip_band_um.resin, E.measured.alone_error_um) * 1.05;
     const bar = (lbl, v, col) => `<div class="r"><span>${lbl}</span><span class="t"><span class="f" style="display:block;width:${v / mx * 100}%;background:${col}"></span></span><span class="v">${f1(v)}</span></div>`;
-    h += `<div class="claim"><button class="top"><b class="t">Sharing improves the guesses, a little</b><span class="tag small">small effect</span></button><div class="more">
-      <p>Together lands <strong>${f1(T.um)} µm closer</strong> to the true size than alone (${Math.round(T.pct)}%), better in ${T.wins} of ${T.n} worlds, as good as pooling all the raw data. It works even though one printer is resin and the other plastic. The assistants without notes gain nothing, so the notes are what help. To scale, in µm:</p>
-      <div class="scale">${bar("gain from sharing", T.um, "var(--net)")}${bar("guess error, alone", E.error_um.isolated, "var(--alone)")}${bar("scanner noise", E.measured.alone_error_um, "var(--pool)")}${bar("resin slip-fit band", E.slip_band_um.resin, "var(--exam)")}</div>
+    h += `<div class="claim"><button class="top"><b class="t">Sharing lowers the error, a little</b><span class="tag small">small effect</span></button><div class="more">
+      <p>After ${E.rounds} rounds, together lands <strong>${f1(T.um)} µm (${Math.round(T.pct)}%) closer</strong> to the true size than alone, better in ${T.wins} of ${T.n} worlds. Pooling all the raw data does about the same (${Math.round(P.pct)}%), so sharing summaries loses nothing. It works even though one printer is resin and the other PLA.</p>
+      <p>The gain comes from sharing between printers. The AI agents that pick test parts add nothing measurable: with notes cut they gain ${f1(A.pct)}% (not significant). To scale, in µm:</p>
+      <div class="scale">${bar("gain from sharing", T.um, "var(--net)")}${bar("model error, alone", E.error_um.isolated, "var(--alone)")}${bar("scanner noise", E.measured.alone_error_um, "var(--pool)")}${bar("resin slip-fit band", E.slip_band_um.resin, "var(--exam)")}</div>
       <p>Because the scanner adds ~${Math.round(E.measured.alone_error_um)} µm of noise, the gain shrinks to ${f1(E.measured.together_vs_alone.pct)}% on real measurements: too small for a weekend of prints to detect.</p>
       ${ALL.alone ? `<div class="ctl"><span>Printers share notes</span><button class="tg" id="tgShare" role="switch" aria-checked="${SC !== "alone"}" aria-label="Printers share notes"></button></div>` : ""}</div></div>`;
+    h += audit;
+    const L = E.liar, C = E.consistency_check;
+    h += `<div class="claim"><button class="top"><b class="t">${C ? "A liar's notes are caught on arrival" : "A lying printer gets cut off"}</b><span class="tag sim">${C ? C.worlds : E.worlds} sim worlds</span></button><div class="more">
+      ${C ? `<p>With the consistency check on, each printer compares an incoming summary with its own data and sets it aside if they disagree more than the model allows. Across ${C.worlds} worlds it caught <strong>${C.liar_caught} of ${C.liar_notes}</strong> false notes and dropped <strong>${C.honest_dropped} of ${C.honest_notes}</strong> honest ones. The printer being lied to stayed at ${f1(C.resin_round1_um.liar_check)} µm in round 1 (${f1(C.resin_round1_um.liar_no_check)} without the check, ${f1(C.resin_round1_um.no_notes)} with no notes).</p>` : ""}
+      <p>${C ? "Without the check, trust" : "Trust"} does the job one round late: the liar costs one round (team error <strong>${f1(L.round1_error_um)} µm</strong> vs ${f1(L.round1_error_um_no_notes)} with no notes), then trust falls from ${Math.round(L.trust_by_round[1] * 100)}% to ${Math.round(L.trust_by_round[2] * 100)}% and the damage stops. The honest notes' benefit is lost with it.${trustNote()}</p>
+      ${C ? `<p>${C.source === "protocol" ? "The check is an added protocol option, off in the registered run." : "The check is a prototype, not in the registered run."} This liar is easy to catch (far off and overconfident); a subtle one would pass and be left to trust.</p>` : ""}
+      ${ALL.liar ? `<div class="ctl"><span>Make the ${esc(liar)} lie</span><button class="tg danger" id="tgLie" role="switch" aria-checked="${lying()}" ${SC === "alone" ? "disabled" : ""} aria-label="Make one printer lie"></button></div>` : ""}
+      ${ALL.liar_check ? `<div class="ctl"><span>Consistency check<small style="display:block;color:var(--faint);font-size:11.5px">set aside notes that contradict your own data</small></span><button class="tg" id="tgCheck" role="switch" aria-checked="${SC === "liar_check"}" ${lying() ? "" : "disabled"} aria-label="Consistency check on incoming notes"></button></div>` : ""}</div></div>`;
+    h += `<div class="claim"><button class="top"><b class="t">The guess ranges are honest</b><span class="tag sim">${E.worlds} sim worlds</span></button><div class="more">
+      <p>Each guess comes with a 90% range. Across ${E.worlds} worlds about <strong>${E.coverage ? E.coverage.networked : 90}%</strong> of true sizes fell inside it${cov != null ? `; this run so far: ${cov}%` : ""}.</p></div></div>`;
     if (E.regimes && E.regimes.length) {
       const pick = n => E.regimes.find(x => x.name === n);
       const rows = [["2 sites, warm-up 16, 6/round", "2 printers (today's setup)"], ["2 sites, warm-up 4, 2/round", "2 printers, little data"], ["4 sites, warm-up 8, 6/round", "4 printers"], ["4 sites, warm-up 4, 2/round", "4 printers, little data"]].map(([k, l]) => [pick(k), l]).filter(([x]) => x);
@@ -510,6 +621,8 @@ function claims() {
         <div class="reg"><span class="h">setting</span><span class="h">gain µm</span><span class="h">wins</span>${rows.map(([x, l]) => `<span class="${x === top ? "hl" : ""}">${esc(l)}</span><span class="${x === top ? "hl" : ""}">${f1(x.together_vs_alone.um)}</span><span>${x.together_vs_alone.wins}/${x.together_vs_alone.n}</span>`).join("")}</div>
         <p>With 4 data-poor printers the gain is ${f1(top.together_vs_alone.um)} µm (${Math.round(top.together_vs_alone.pct)}%), and wrong pin-in-hole fit calls drop from ${f1(top.fit.isolated.wrong_per_100)} to ${f1(top.fit.networked.wrong_per_100)} per 100. Still simulation only.</p></div></div>`;
     }
+    if (E.sites_needed && E.sites_needed.rows.length) h += sitesCard(E.sites_needed);
+    if (E.negative_control) h += controlCard(E.negative_control);
   }
   $("claims").innerHTML = h;
   $("claims").querySelectorAll(".claim").forEach((c, i) => {
@@ -517,19 +630,45 @@ function claims() {
     c.querySelector(".top").onclick = () => { OPEN = OPEN === i ? -1 : i; claims(); };
   });
   $("replay").onclick = () => replayAudit();
+  if ($("tgCheck")) $("tgCheck").onclick = () => useScenario(SC === "liar_check" ? "liar" : "liar_check");
   if ($("tgShare")) $("tgShare").onclick = () => useScenario(SC === "alone" ? "normal" : "alone");
-  if ($("tgLie")) $("tgLie").onclick = () => useScenario(SC === "liar" ? "normal" : "liar");
+  if ($("tgLie")) $("tgLie").onclick = () => useScenario(lying() ? "normal" : "liar");
 }
-function checkNote() {
-  const c = E && E.consistency_check; if (!c) return "";
-  return ` <strong>A fix we tested:</strong> each printer checks incoming notes against its own data and sets aside wildly inconsistent ones. It caught ${c.liar_caught} of ${c.liar_notes} lying notes, wrongly dropped ${c.honest_dropped} of ${c.honest_notes} honest ones, and removed the round-1 damage (${f1(c.resin_round1_um.liar_no_check)} → ${f1(c.resin_round1_um.liar_check)} µm at the printer being lied to). Prototype, not in the registered run.`;
+const lying = () => SC === "liar" || SC === "liar_check";
+const checkRow = (r, rcv, snd) => (D.checks || []).find(c => c.round === r && c.receiver === rcv && c.sender === snd);
+function sitesCard(S) {
+  const rows = S.rows, W = 260, H = 118, X0 = 30, X1 = W - 14, Y0 = H - 24, Y1 = 12, top = Math.max(40, Math.ceil(Math.max(...rows.map(r => r.pct)) / 10) * 10);
+  const x = i => X0 + (X1 - X0) * i / Math.max(rows.length - 1, 1), y = v => Y0 - (Y0 - Y1) * Math.max(v, 0) / top;
+  const pts = rows.map((r, i) => `${x(i).toFixed(1)},${y(r.pct).toFixed(1)}`).join(" ");
+  const svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Gain from sharing by number of printers: ${rows.map(r => `${r.sites} printers ${Math.round(r.pct)}%`).join(", ")}" style="display:block;margin-top:8px">
+    ${[0, top / 2, top].map(v => `<line x1="${X0}" x2="${X1}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(160,185,210,.16)" stroke-dasharray="2 4"/><text x="${X0 - 5}" y="${y(v) + 3.5}" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#5f6f82">${v}%</text>`).join("")}
+    <polyline points="${pts}" fill="none" stroke="#5b8cff" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${rows.map((r, i) => `<circle cx="${x(i)}" cy="${y(r.pct)}" r="4.5" fill="#5b8cff" stroke="#0b1016" stroke-width="1.5"/><text x="${x(i)}" y="${y(r.pct) - 9}" text-anchor="${i === rows.length - 1 ? "end" : "middle"}" font-family="Barlow Condensed, sans-serif" font-weight="600" font-size="14" fill="#e7eef5">${Math.round(r.pct)}%</text><text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#93a3b5">${r.sites} printers</text>`).join("")}
+  </svg>`;
+  const a = rows[0], b = rows[rows.length - 1];
+  return `<div class="claim"><button class="top"><b class="t">How many printers it takes</b><span class="tag sim">sim sweep</span></button><div class="more">
+    <p>Printers that each start with a ${S.seed_pieces}-part warm-up and test ${S.per_round} parts a round. Gain from sharing after round ${S.round}, against learning alone:</p>${svg}
+    <div class="reg"><span class="h">printers</span><span class="h">µm</span><span class="h">wins</span>${rows.map(r => `<span>${r.sites}: ${f1(r.alone_um)} → ${f1(r.together_um)} µm</span><span>${f1(r.alone_um - r.together_um)}</span><span>${r.wins}/${r.n}</span>`).join("")}</div>
+    <p>Each extra printer is another independent read on the same shared physics. ${b.sites} printers beat learning alone in <strong>${b.wins} of ${b.n}</strong> worlds. Fewer worlds at larger networks (${rows.map(r => r.worlds).join("/")}), simulation only.</p></div></div>`;
+}
+function controlCard(N) {
+  const n = N.normal.together_vs_alone, c = N.control.together_vs_alone, k = N.control.check;
+  const pp = p => p < .001 ? "p<0.001" : `p=${p.toFixed(2)}`, pc = v => `${v >= 0 ? "+" : "−"}${Math.round(Math.abs(v))}%`;
+  return `<div class="claim"><button class="top"><b class="t">Printers that share nothing gain nothing</b><span class="tag ok">negative control</span></button><div class="more">
+    <p>Is the gain built into the simulator? We reran ${N.worlds} worlds where each printer's "shared" physics is drawn on its own, so there is nothing common to learn. Everything else is identical. Gain from sharing after round ${N.rounds}:</p>
+    <div class="reg"><span class="h">world</span><span class="h">gain</span><span class="h">wins</span>
+      <span class="hl">shared physics</span><span class="hl">${pc(n.pct)}</span><span>${n.wins}/${n.n}</span>
+      <span>nothing shared</span><span>${pc(c.pct)}</span><span>${c.wins}/${c.n}</span>
+      ${k ? `<span>nothing shared, check on</span><span>${pc(k.together_vs_alone.pct)}</span><span>${k.together_vs_alone.wins}/${k.together_vs_alone.n}</span>` : ""}</div>
+    <p>With nothing to share, sharing gains nothing, so the gain isn't built in. It isn't harmless either: notes about physics the printers don't share mislead them, <strong>${pc(c.pct)}</strong> (${pp(c.p)}), because the model assumes printers differ only a little.${k ? ` The consistency check sets aside the worst of those notes (${k.dropped} of ${k.notes}) and trims the cost to ${pc(k.together_vs_alone.pct)} (${pp(k.together_vs_alone.p)}).` : ""} Simulation only.</p></div></div>`;
 }
 function trustNote() {
   const t = E && E.trust_start, a = t && t["trust 1.0 | liar"], b = t && t["trust 0.3 | liar"];
   return a && b ? ` Starting trust at 30% instead of 100% only trims that to ${f1(b[0])} µm (from ${f1(a[0])}).` : "";
 }
 async function replayAudit() {
-  if (OPEN !== 0) { OPEN = 0; claims(); }
+  const idx = [...document.querySelectorAll("#claims .claim")].findIndex(c => c.querySelector("#replay"));
+  if (OPEN !== idx) { OPEN = idx; claims(); }
   const log = $("auditlog"), chains = Object.values(D.chains), total = chains.reduce((n, c) => n + c.length, 0), my = epoch;
   $("replay").disabled = true; view("wall");
   for (let i = 1; i <= total; i += Math.max(1, Math.round(total / 30))) { log.innerHTML = `checking log entry ${i} of ${total}: hash links back to the previous entry`; await new Promise(r => setTimeout(r, 35)); }
@@ -559,61 +698,37 @@ function orbSizes(r, ms = 0) {
 }
 const TETHER = {};
 function tethers(r) {
+  const liar = (D.config.bad_sites || [])[0];
   for (const rcv of SITES) {
-    const snd = SITES.find(s => s !== rcv), v = trustOf(rcv, snd, r), z = rcv === SITES[0] ? .8 : -.8;
+    const snd = SITES.find(s => s !== rcv), v = trustOf(rcv, snd, r), z = rcv === SITES[0] ? 1.1 : -1.1;
     if (!TETHER[rcv]) {
-      const a = new THREE.Vector3(SX[snd], 4.8, z), b = new THREE.Vector3(SX[rcv], 4.8, z), mid = a.clone().lerp(b, .5); mid.y += 1.2;
+      const a = new THREE.Vector3(SX[snd] * .8, 4.6, z), b = new THREE.Vector3(SX[rcv] * .8, 4.6, z), mid = a.clone().lerp(b, .5); mid.y += 1.3;
       const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
-      const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 60, .035, 8), new THREE.MeshBasicMaterial({ color: 0x7fd6ff, transparent: true }));
+      const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 60, .03, 8), new THREE.MeshBasicMaterial({ color: 0x7fd6ff, transparent: true }));
       scene.add(tube);
-      const L = label("", () => curve.getPoint(.5).add(new THREE.Vector3(0, .35, 0)), "pill", 4);
+      const L = label("", () => curve.getPoint(.8).add(new THREE.Vector3(0, .45, 0)), "pill", 5.5); // near the receiver, so the two never stack at the wall
       TETHER[rcv] = { tube, curve, L };
     }
-    const T = TETHER[rcv], off = D.config.share_messages === false;
-    T.tube.visible = !off; T.L.on = !off;
-    T.tube.material.opacity = .05 + v * .35;
-    T.tube.material.color.setHex((D.config.bad_sites || []).includes(snd) ? 0xf06a6a : 0x7fd6ff);
-    setLabel(T.L, `${esc(siteName(rcv).split(" ")[0])} listens ${Math.round(v * 100)}%`);
-    T.L.el.style.color = v > .6 ? "var(--wall)" : v > .25 ? "var(--pool)" : "var(--bad)";
+    const T = TETHER[rcv], off = D.config.share_messages === false, bad = snd === liar;
+    T.tube.visible = !off;
+    T.tube.material.opacity = .08 + v * .3;
+    T.tube.material.color.setHex(bad ? 0xf06a6a : 0x7fd6ff);
+    const dropped = r > 0 && (checkRow(r, rcv, snd) || {}).dropped;
+    T.L.on = !off && bad && r > 0; // only the path that has something to say gets a label
+    if (T.L.on) {
+      setLabel(T.L, dropped ? `${esc(short(rcv))} sets ${esc(short(snd))}'s notes aside` : `${esc(short(rcv))} listens ${Math.max(1, Math.round(v * 100))}%`);
+      T.L.el.style.color = dropped ? "var(--good)" : v > .6 ? "var(--wall)" : "var(--bad)";
+    }
+    if (dropped) T.tube.material.opacity = .06;
   }
 }
 
-// ---------- one round, seven quick beats
+// ---------- one round, four beats: print, measure, share, score
 async function round(r, my) {
   const liarSite = (D.config.bad_sites || [])[0];
-  // 1 choose
-  view("agents"); say("1 · Choose", `The assistants above each printer <b>pick what to test</b>, so every approach gets a fair share of the plate. Bigger spheres have more say.`);
-  const beams = [];
-  for (const s of SITES) {
-    const st = ST[s], p = plateOf(s, r); if (!p) continue;
-    for (const q of p.pieces.filter(q => q.arm === "networked")) {
-      const o = st.orbs[PICKS[q.id]]; if (!o) continue;
-      const [rr, cc] = q.slot;
-      beams.push(beam(o.mesh.getWorldPosition(new THREE.Vector3()), new THREE.Vector3(st.x0 + slotX(cc), TABLE_Y + .1, slotZ(rr)), AHEX[PICKS[q.id]], 600));
-    }
-  }
-  await wait(1700); beams.forEach(b => b.kill()); if (!alive(my)) return;
-
-  // 2 debate (at most two, so it stays quick)
-  const flags = D.challenges.filter(f => f.round === r).slice(0, 2);
-  if (flags.length) {
-    say("2 · Debate", `Assistants can <b>object</b> to each other's picks. Later we'll see who was right.`);
-    for (const f of flags) {
-      const st = ST[f.site], A = st.orbs[f.flagger], B = st.orbs[f.target]; if (!A || !B) continue;
-      A.label.on = B.label.on = true;
-      const b = beam(A.mesh.getWorldPosition(new THREE.Vector3()), B.mesh.getWorldPosition(new THREE.Vector3()), 0xf06a6a, 400);
-      const [kind, d] = f.piece.split("-");
-      toast(`${esc(siteName(f.site))} · ${esc(who(f.flagger))}`, f.reason.startsWith("redundant") ? `“That ${d} mm ${kind} duplicates one of mine.”` : `“We can already predict that ${d} mm ${kind}.”`,
-        f.credit == null ? "" : f.credit > 0 ? `<span class="v" style="color:var(--good)">turned out right</span>` : `<span class="v" style="color:var(--bad)">turned out wrong</span>`, 4200);
-      await tween(600, t => B.mesh.position.x = B.base.x + Math.sin(t * 28) * .06 * (1 - t));
-      await wait(700); b.kill(); A.label.on = B.label.on = false;
-      if (!alive(my)) return;
-    }
-  }
-
-  // 3 print
-  view("home"); say("3 · Print", `Both printers build the plate. Blue parts were picked <b>together</b>, gray <b>alone</b>, gold with <b>all data shared</b>. Teal rings are <b>test parts</b> nobody picked.`);
-  for (const s of SITES) { clearStalks(s); ST[s].badge.on = false; }
+  // 1 print
+  view("home"); say("1 · Print", `Each printer prints a test plate: pins and holes of many sizes. <b style="color:var(--exam)">Teal, ringed parts</b> are held back to score the guesses.`);
+  for (const s of SITES) ST[s].badge.on = false;
   await Promise.all(SITES.map(async s => {
     const st = ST[s], old = st.pieces.slice();
     await tween(400, t => old.forEach(m => { m.position.y = TABLE_Y + .08 - t * .5; m.scale.setScalar(Math.max(1 - t, .01)); }));
@@ -622,11 +737,11 @@ async function round(r, my) {
     for (const m of ps) {
       if (!alive(my)) return;
       const from = st.head.position.clone(), to = new THREE.Vector3(m.position.x, TABLE_Y + 1.1, m.position.z);
-      await tween(80, t => st.head.position.lerpVectors(from, to, t));
+      await tween(70, t => st.head.position.lerpVectors(from, to, t));
       m.visible = true;
       if (st.head.userData.beam) st.head.userData.beam.material.opacity = .45;
       if (st.head.userData.tip) st.head.userData.tip.intensity = 2;
-      await tween(110, t => m.scale.y = Math.max(t, .001));
+      await tween(100, t => m.scale.y = Math.max(t, .001));
       if (st.head.userData.beam) st.head.userData.beam.material.opacity = 0;
       if (st.head.userData.tip) st.head.userData.tip.intensity = 0;
       markFailed(m);
@@ -636,63 +751,74 @@ async function round(r, my) {
   }));
   if (!alive(my)) return;
 
-  // 4 measure: scanner sweep, show sizes on test parts only
-  view("plates"); say("4 · Measure", `A scanner measures every part. Pills show how far test parts came out from their intended size (a hair is about 70 µm).`);
+  // 2 measure: scanner sweep, show how far test parts came out
+  view("plates"); say("2 · Measure", `A scanner measures every part. Each printer fits a model of <b>its own</b> errors. Pills show how far test parts came out (a hair is about 70 µm).`);
   await Promise.all(SITES.map(async s => {
     const st = ST[s]; st.scan.material.opacity = .95; st.scanLight.intensity = 2.5; const seen = new Set();
     await tween(1300, t => {
       const z = -2.4 + t * 4.8; st.scan.position.z = z;
       for (const m of st.pieces) if (!seen.has(m) && m.position.z < z) {
         seen.add(m); const q = m.userData.q;
-        m.material.emissiveIntensity = .9; setTimeout(() => m.material.emissiveIntensity = q.status === "ok" ? .12 : .25, 220);
-        if (q.arm === "heldout" && q.status === "ok") { const dv = um(q.measured - q.d); pill(`${dv >= 0 ? "+" : ""}${dv} µm`, () => m.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, .5, 0)), "#2fc2c4", 2200); }
+        m.material.emissiveIntensity = .9; setTimeout(() => m.material.emissiveIntensity = q.status === "ok" ? .12 : 0, 220);
+        if (q.arm === "heldout" && q.status === "ok") { const dv = um(q.measured - q.d); pill(`${dv >= 0 ? "+" : ""}${dv} µm`, () => m.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, .5, 0)), "#2fc2c4", 2000); }
       }
     }, t => t);
     st.scan.material.opacity = 0; st.scanLight.intensity = 0; st.scan.position.z = -2.4;
   }));
-  await wait(700); if (!alive(my)) return;
+  await wait(600); if (!alive(my)) return;
 
-  // 5 reward
-  view("agents"); say("5 · Reward", `Assistants whose picks helped the guesses <b>grow</b>; the rest shrink. In simulation this doesn't measurably improve the guesses. The notes in the next step do.`);
-  for (const sp of D.spawned.filter(z => z.round === r)) toast(`${esc(siteName(sp.site))} · new assistant`, `<b>${esc(who(sp.agent))}</b> joins to chase a pattern nobody could explain.`);
-  await orbSizes(r, 1200); await wait(500); if (!alive(my)) return;
-
-  // 6 share
+  // 3 share: the focal moment. One summary crosses each way; a false one is checked on arrival.
   const msgs = D.messages.filter(m => m.round === r);
   if (msgs.length) {
     view("wall");
-    say("6 · Share", liarSite ? `Notes cross the wall. The <b style="color:var(--bad)">${esc(siteName(liarSite).toLowerCase())} is lying</b>. Watch whether the other one keeps listening.` : `Each printer sends a <b>tiny note</b>: three numbers, no measurements. The wall checks it.`);
+    const checking = !!D.config.consistency_check, stopped = msgs.filter(m => (checkRow(r, m.to, m.from) || {}).dropped);
+    say("3 · Share", liarSite ? `The <b style="color:var(--bad)">${esc(lc(siteName(liarSite)))} sends a false summary</b>. ${checking ? `The ${esc(lc(siteName(SITES.find(s => s !== liarSite))))} <b>checks it against its own data</b> before using it.` : `Nothing checks it: the ${esc(lc(siteName(SITES.find(s => s !== liarSite))))} takes it on trust.`}`
+      : `Each printer sends a <b>tiny summary</b> across the wall: 3 shared numbers, each a mean and an uncertainty. No measurements.`);
     await Promise.all(msgs.map(async (m, i) => {
-      await wait(i * 400); const T = TETHER[m.to]; if (!T) return;
-      const bad = m.from === liarSite, col = bad ? 0xf06a6a : 0x7fd6ff;
-      const pkt = new THREE.Mesh(new THREE.BoxGeometry(.34, .24, .34), new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 1.4 }));
-      pkt.add(new THREE.PointLight(col, 2, 3)); scene.add(pkt);
+      await wait(i * 700); const T = TETHER[m.to]; if (!T) return;
+      const bad = m.from === liarSite, col = bad ? 0xff4d4d : 0x5fc8ff, drop = stopped.includes(m), stopAt = .82;
+      const pkt = new THREE.Mesh(new THREE.OctahedronGeometry(.32), new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: .7 }));
+      pkt.add(new THREE.PointLight(col, 2.2, 3.5)); scene.add(pkt);
+      const tag = label(bad ? "false summary" : `${m.bytes ? m.bytes + " bytes · " : ""}3 numbers ± uncertainty`, () => pkt.position.clone().add(new THREE.Vector3(0, .6, 0)), "packet", 6.5);
+      tag.el.style.color = bad ? "#ff9d9d" : "var(--wall)";
       let crossed = false;
-      await tween(1800, t => { pkt.position.copy(T.curve.getPoint(t)); pkt.rotation.y = t * 6; if (!crossed && t > .5) { crossed = true; flashWall(); } }, t => t);
+      await tween(drop ? 1700 : 2200, t => { const k = drop ? t * stopAt : t; pkt.position.copy(T.curve.getPoint(k)); pkt.rotation.y = t * 5; if (!crossed && k > .5) { crossed = true; flashWall(); } }, t => t);
+      dropLabel(tag);
+      if (drop) {
+        const at3 = pkt.position.clone();
+        pkt.material.color.setHex(0x55606c); pkt.material.emissive.setHex(0x3a1414); pkt.children[0].intensity = 0;
+        pill(`✕ set aside: contradicts the ${esc(lc(siteName(m.to)))}'s own data`, () => at3.clone().add(new THREE.Vector3(0, .75, 0)), "#ffb4b4", 3200, 7);
+        await tween(380, t => pkt.position.x = at3.x + Math.sin(t * 22) * .08 * (1 - t));
+        await tween(700, t => { pkt.scale.setScalar(Math.max(1 - t, .01)); pkt.position.y = at3.y - t * 1.2; });
+      } else if (bad) {
+        flashStation(m.to);
+      }
       scene.remove(pkt);
     }));
-    toast("Privacy wall", `${msgs.length} notes crossed. Each one was checked: only a few shared numbers, nothing private.`, `<span class="v" style="color:var(--good)">check passed</span>`, 3600);
+    if (stopped.length) toast("Consistency check", `The ${esc(lc(siteName(stopped[0].to)))} compared the note with its own data. They disagree far more than the model allows (χ² ${Math.round(checkRow(r, stopped[0].to, stopped[0].from).chi2)}, limit ${E && E.consistency_check ? f1(E.consistency_check.threshold) : "16"}), so it was <b>set aside</b>.${msgs.length > stopped.length ? " The honest note went through." : ""}`, `<span class="v" style="color:var(--good)">false note caught</span>`, 5200);
+    else if (liarSite) toast("No check", trustOf(SITES.find(s => s !== liarSite), liarSite, r - 1) > .5 ? `The ${esc(lc(siteName(SITES.find(s => s !== liarSite))))} used the false summary. Its error will jump this round; then it stops trusting the ${esc(lc(siteName(liarSite)))}.` : `The ${esc(lc(siteName(SITES.find(s => s !== liarSite))))} now gives the ${esc(lc(siteName(liarSite)))}'s notes ~1% weight.`, `<span class="v" style="color:var(--bad)">false note used</span>`, 4600);
+    else toast("Privacy wall", `${msgs.length} summaries crossed. Each was checked: only the allowed shared numbers, nothing private.`, `<span class="v" style="color:var(--good)">check passed</span>`, 3600);
   } else {
-    say("6 · Share", `Notes are switched off, so each printer <b>learns alone</b>.`); await wait(1200);
+    view("wall"); say("3 · Share", `Notes are switched off, so each printer <b>learns alone</b>. Nothing crosses the wall.`); await wait(1400);
   }
   tethers(r);
   if (!alive(my)) return;
 
-  // 7 check: error bars over test parts
-  view("plates");
-  const d = gapUm(r);
-  say("7 · Check", `Bars show <b>how far each guess was from ${isReal() ? "what the scanner measured" : "the true size"}</b>, magnified. <span style="color:var(--net)">Blue: together</span>, <span style="color:var(--alone)">gray: alone</span>.` + (d != null ? ` This round together was <b>${f1(Math.abs(d))} µm ${d >= 0 ? "closer" : "further"}</b>, a fraction of a hair's width.` : ""));
-  await Promise.all(SITES.map(s => stalks(s, r, 900)));
-  badges(r);
-  await wait(1600);
+  // 4 score: the chart gains a point, the printers show their numbers
+  view("home");
+  const n = meanErr(D, r, "networked"), i = meanErr(D, r, "isolated");
+  say("4 · Score", `Each model guesses the test parts' true sizes. The chart adds round ${r}: <span style="color:var(--alone)">alone ${f1(i)}</span>, <span style="color:var(--net)">together ${f1(n)} µm</span>${n > YMAX ? `, <b style="color:var(--bad)">thrown off by the false note</b>` : ""} (both printers averaged).`);
+  chart(r); badges(r);
+  await wait(2200);
 }
-function flashWall() { tween(600, t => { wallMat.opacity = .9 + Math.sin(t * Math.PI) * 1.6; wallMat.color.setHex(t < .99 ? 0x9cffd6 : 0x7fd6ff); }); }
+function flashStation(site) { const st = ST[site]; st.pieces.forEach(m => { const c = m.material.emissive.getHex(); m.material.emissive.setHex(0xf06a6a); m.material.emissiveIntensity = .8; setTimeout(() => { m.material.emissive.setHex(c); m.material.emissiveIntensity = m.userData.q.status === "ok" ? .12 : 0; }, 700); }); }
+function flashWall(bad = false) { tween(600, t => { wallMat.opacity = .9 + Math.sin(t * Math.PI) * 1.6; wallMat.color.setHex(t < .99 ? (bad ? 0xff8a8a : 0x9cffd6) : 0x7fd6ff); }); }
 
 // ---------- state & controls
 let at = 0, busy = false, autoOn = false;
 function settle(r) { // static state at the end of round r
-  for (const s of SITES) { layPlate(s, r, true); if (r) stalks(s, r); }
-  orbSizes(r); tethers(r); badges(r); progress(r, "done");
+  for (const s of SITES) layPlate(s, r, true);
+  orbSizes(r); tethers(r); badges(r); chart(r); progress(r, "done");
 }
 function goLabel() {
   $("go").disabled = busy;
@@ -709,37 +835,38 @@ async function next() {
   busy = false; progress(r, "done");
   if (r === R) {
     const d = gapUm(R); DONE[SC] = d; claims();
-    const other = SC === "normal" && ALL.liar ? `Try making <b>one printer lie</b>, or replay the audit.` : SC === "liar" && ALL.alone ? `Try turning <b>notes off</b> to compare.` : `Replay the audit, or click any part to inspect it.`;
+    autoOn = false; $("auto").setAttribute("aria-pressed", "false");
     if (isReal()) {
-      say("Done", (d != null ? `On these printers, measured with scanner noise, together ended <b>${f1(Math.abs(d))} µm ${d >= 0 ? "closer" : "further"}</b> than alone. ` : "")
+      say("Done", (d != null ? `On these printers, measured with scanner noise, together ended <b>${f1(Math.abs(d))} µm ${d >= 0 ? "lower" : "higher"}</b> than alone. ` : "")
         + (E ? `Simulation expects only about ${f1(E.measured.together_vs_alone.um)} µm on measured data, so one real run can't confirm or rule out the effect. ` : "")
         + `Replay the audit to check what crossed between the printers.`);
-      autoOn = false; $("auto").setAttribute("aria-pressed", "false"); goLabel(); return;
-    }
-    say("Done", (d != null ? `In this world, together ended <b>${f1(Math.abs(d))} µm ${d >= 0 ? "closer" : "further"}</b> than alone. ` : "")
-      + (E ? (() => {
-          const typ = { normal: E.together_vs_alone.um, alone: E.team_without_notes_vs_alone.um, liar: E.liar_together_vs_alone.um }[SC];
-          const what = { normal: "with notes", alone: "without notes", liar: "with a liar present" }[SC];
-          const fit = d == null ? "" : d - typ > 1 ? ", so this world is a lucky one" : typ - d > 1 ? ", so this world is an unlucky one" : ", so this world is typical";
-          return `Across ${E.worlds} worlds the typical gain ${what} is ${f1(typ)} µm${fit}${SC === "normal" ? ": real, but small" : ""}. `;
-        })() : "") + other);
-    autoOn = false; $("auto").setAttribute("aria-pressed", "false");
+    } else say("Done", doneText(d));
   } else say("Ready", autoOn ? `Next round coming up…` : `Press <b>Print round ${r + 1}</b> when you're ready. Click any part to inspect it.`);
   goLabel();
   if (autoOn && at < R) setTimeout(() => autoOn && next(), 900);
+}
+function doneText(d) { // end of the last round: this world, then the many-world number, then what to try next
+  const n = meanErr(D, R, "networked"), i = meanErr(D, R, "isolated"), o = meanErr(D, R, "oracle"), peak = Math.max(...Array.from({ length: R }, (_, k) => meanErr(D, k + 1, "networked")));
+  const here = d == null ? "" : `In this world, together ended <b>${f1(Math.abs(d))} µm ${d >= 0 ? "below" : "above"}</b> alone`;
+  const T = E && E.together_vs_alone, C = E && E.consistency_check;
+  if (SC === "normal") return `${here}${o != null ? ` (pooled data: ${f1(o)})` : ""}. ` + (T ? `Over ${E.worlds} worlds the gain is ${f1(T.um)} µm (${Math.round(T.pct)}%), as good as pooling the data: real, but small. ` : "") + (ALL.liar ? `Next: press <b>Liar</b> on the chart and print again.` : "");
+  if (SC === "alone") return `${here}. With notes off there is nothing to learn from the other printer. ` + (ALL.normal ? `Press <b>Honest</b> to compare.` : "");
+  if (SC === "liar") return `The false note cost the ${esc(lc(siteName(SITES.find(s => s !== LIAR))))} one round (team error ${Math.round(peak)} µm), then it stopped listening. ` + (ALL.liar_check ? `Next: press <b>Liar + check</b> and watch round 1 again.` : "");
+  if (SC === "liar_check") return `Every false note was set aside on arrival, so there is no spike: together ${f1(n)} vs alone ${f1(i)} µm at the end. ` + (C ? `Over ${C.worlds} worlds: ${C.liar_caught}/${C.liar_notes} caught, ${C.honest_dropped}/${C.honest_notes} honest dropped. An added option, off in the registered run.` : "");
+  return here;
 }
 function reset() {
   epoch++; busy = false; at = 0; $("toasts").innerHTML = ""; $("card").hidden = true;
   settle(0); goLabel(); progress(0); claims();
   say("Ready", D.config.share_messages === false ? `Notes are <b>off</b>: each printer learns alone. Press <b>Print round 1</b>.`
-    : (D.config.bad_sites || []).length ? `The <b style="color:var(--bad)">${esc(siteName(D.config.bad_sites[0]).toLowerCase())}</b> will send wrong notes. Press <b>Print round 1</b>.`
-    : `Both printers have a warm-up plate. Press <b>Print round 1</b> to start.`);
+    : (D.config.bad_sites || []).length ? `The <b style="color:var(--bad)">${esc(lc(siteName(D.config.bad_sites[0])))}</b> will send false notes.${D.config.consistency_check ? " The consistency check is <b>on</b>." : " Nothing checks them."} Press <b>Print round 1</b>.`
+    : `Both printers start from a small warm-up plate. Press <b>Print round 1</b> to start.`);
   view("home");
 }
 function useScenario(k) {
   if (!ALL[k] || k === SC) return;
   SC = k; D = ALL[k]; mapPicks(); reset();
-  toast("Experiment changed", k === "alone" ? "Printers can't send notes now. Same printers, same warm-up." : k === "liar" ? `The ${esc(siteName(LIAR).toLowerCase())} now sends confident, wrong notes.` : "Back to normal: printers share honest notes.", "", 3200);
+  toast("Experiment changed", k === "alone" ? "Printers can't send notes now. Same printers, same warm-up." : k === "liar" ? `The ${esc(lc(siteName(LIAR)))} now sends confident, false notes. Nothing checks them.` : k === "liar_check" ? `Same liar, but each printer now checks incoming notes against its own data and sets aside ones that contradict it. An added option, off in the registered run.` : "Back to normal: printers share honest notes.", "", 3200);
 }
 $("go").onclick = next;
 $("reset").onclick = reset;
@@ -760,7 +887,7 @@ function pick(e) { mouse.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerH
 function unhover(o) {
   if (!o) return;
   if (o.userData.agent) ST[o.userData.site].orbs[o.userData.agent].label.on = false;
-  else if (o.userData.part) o.material.emissiveIntensity = o.userData.q.status === "ok" ? .12 : .25;
+  else if (o.userData.part) o.material.emissiveIntensity = o.userData.q.status === "ok" ? .12 : 0;
 }
 renderer.domElement.addEventListener("pointerdown", e => down = [e.clientX, e.clientY]);
 renderer.domElement.addEventListener("pointermove", e => {
@@ -781,7 +908,7 @@ function partCard(q) {
   const site = q.id.split("-")[0], r = q.id.includes("-seed") ? 0 : +q.id.split("-")[1].slice(1);
   const dv = q.measured != null ? um(q.measured - q.d) : null;
   const rows = [
-    ["Picked by", q.arm === "heldout" ? "Nobody (test part)" : `<span style="color:${CSS[q.arm]}">${NAME[q.arm]}</span>${PICKS[q.id] ? ` · ${esc(who(PICKS[q.id]))}` : ""}`],
+    ["Chosen by", q.arm === "heldout" ? "Nobody (held back to score guesses)" : q.arm === "seed" ? "Warm-up plate" : `<span style="color:${CSS[q.arm]}">${NAME[q.arm]}</span>${PICKS[q.id] ? ` · ${esc(who(PICKS[q.id]))}` : ""}`],
     ["Meant to be", `${q.d.toFixed(1)} mm`],
     ["Came out", q.status === "ok" ? `${Math.abs(dv)} µm too ${dv >= 0 ? "big" : "small"}` : `<span style="color:var(--bad)">didn't print</span>`],
   ];
@@ -790,7 +917,7 @@ function partCard(q) {
   if (e && r) {
     const mx = Math.max(...Object.values(e), 1);
     bars = `<div class="eyebrow" style="margin-top:10px">How far off the guesses were</div>` + ["isolated", "networked", "oracle"].filter(a => e[a] != null).map(a =>
-      `<div class="gbar"><span style="color:${CSS[a]}">${{ isolated: "Alone", networked: "Together", oracle: "All data (ideal)" }[a]}</span><span class="t"><span class="f" style="display:block;width:${e[a] / mx * 100}%;background:${CSS[a]}"></span></span><span class="v">${e[a].toFixed(0)} µm</span></div>`).join("");
+      `<div class="gbar"><span style="color:${CSS[a]}">${{ isolated: "Alone", networked: "Together", oracle: "Pooled data" }[a]}</span><span class="t"><span class="f" style="display:block;width:${e[a] / mx * 100}%;background:${CSS[a]}"></span></span><span class="v">${e[a].toFixed(0)} µm</span></div>`).join("");
   }
   $("card").innerHTML = `<button class="x" aria-label="Close">×</button><div class="eyebrow">${esc(siteName(site))} · ${r ? "round " + r : "warm-up"}</div>
     <h4>${q.kind === "pin" ? "Pin" : "Hole"}, ${q.d.toFixed(1)} mm</h4>${rows.map(([k, v]) => `<div class="row"><span>${k}</span><span>${v}</span></div>`).join("")}${bars}`;
@@ -819,10 +946,22 @@ function frame(now) {
   if (follow) { camera.position.lerp(camGoal[0], .03); controls.target.lerp(camGoal[1], .035); }
   controls.update(); renderer.render(scene, camera); placeLabels();
 }
-mapPicks(); reset();
+const SEG = [["normal", "Honest"], ["alone", "Notes off"], ["liar", "Liar"], ["liar_check", "Liar + check"]].filter(([k]) => ALL[k]);
+$("seg").innerHTML = SEG.map(([k, t]) => `<button role="radio" data-k="${k}" class="${k.startsWith("liar") ? "lie" : ""}" aria-checked="${k === SC}">${t}</button>`).join("");
+if (SEG.length < 2) $("seg").hidden = true;
+$("seg").querySelectorAll("button").forEach(b => b.onclick = () => useScenario(b.dataset.k));
+const chartH = () => { document.documentElement.style.setProperty("--chartH", $("chart").offsetHeight + "px"); offsetView(); };
+new ResizeObserver(chartH).observe($("chart"));
+if (E) { // the intro's numbers come from the same evidence file the claims use
+  const T = E.together_vs_alone, P = E.pooled_vs_alone, S = E.sites_needed, C = E.consistency_check;
+  const many = S && S.rows.length > 1 ? ` With many printers that each know little: ${S.rows.map(r => Math.round(r.pct) + "%").join(", ")} at ${S.rows.map(r => r.sites).join(", ")} printers.` : "";
+  $("introCards").innerHTML = `<div><b>Faster together</b>With two printers the error drops ${Math.round(T.pct)}% (${f1(T.um)} µm), about the same as pooling all raw data (${Math.round(P.pct)}%).${many}</div>
+    <div><b>Data never leaves</b>Only the summaries cross, and each is logged in a tamper-evident chain. Replay the audit yourself.</div>
+    <div><b>Liars are caught on arrival</b>${C ? `With the consistency check on, ${C.liar_caught} of ${C.liar_notes} false notes were set aside, ${C.honest_dropped} of ${C.honest_notes} honest ones lost. Without it, a liar costs one round.` : "Make one printer lie and watch the other stop listening."}</div>`;
+}
 $("runKind").textContent = isReal() ? "· real printers" : "· simulation";
-mapPicks(); reset(); offsetView(); camera.updateProjectionMatrix();
 if (innerWidth <= 900) { $("lab").classList.add("collapsed"); $("labToggle").textContent = "show"; }
+mapPicks(); reset(); offsetView();
 requestAnimationFrame(frame);
 </script>
 </body>
