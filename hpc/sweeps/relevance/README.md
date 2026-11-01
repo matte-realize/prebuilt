@@ -228,6 +228,40 @@ Matched pairs keep full weight; mismatched pairs are down-weighted on average, b
 - **What it shows:** in a mixed fleet, matched sites still gain, and the defences make the gain larger (+16% → +25% at 8 sites) while cutting the harm to unmatched sites (−15% → −1%). The fixed spread lets unmatched sites pull matched ones off; down-weighting them helps both sides.
 - **What it doesn't:** trust doesn't yet cleanly sort senders into "listen" and "ignore" within three rounds; it nudges. Unmatched sites still don't gain (they have no one to learn from) and the 8-site run is 20 worlds. Simulation only; added options, off in the registered config.
 
+## 11. Sharper trust in mixed fleets: longer runs and predictive trust (frozen config, data-poor sites, 8 sites, 30 worlds)
+
+Section 10's fleet (8 sites, 4 share physics, 4 draw their shared parameters on their own), run for 8 rounds. Two ideas: (A) give adaptive spread more rounds; (B) **predictive trust** (`Config.predictive_trust`, off in the frozen config): each round, before a sender's note is used again, the receiver checks how well that note alone predicts its own newly measured held-out pieces, compared with its own data alone. That gives a score d in nats, and the receiver scales the note's spread by max(1, e^−d), the likelihood ratio against it, capped at 10⁴. `sharper_trust.py`, `analyze_sharper_trust.py`, `results/sharper_trust.jsonl.gz`, `sharper-trust-summary.json`. Together vs alone, paired median, true-size error:
+
+| Round | Condition | Matched sites | Unmatched sites | Separation (AUC) |
+|---|---|---|---|---|
+| 3 | fixed (frozen) | +16.2% (26/30) | −20.3% (8/30) | |
+| 3 | adaptive + check | +20.2% (26/30) | −11.4% (9/30) | 0.60 |
+| 3 | predictive | +27.6% (29/30) | +14.5% (24/30) | 0.72 |
+| 6 | fixed | +17.2% (26/30) | −25.7% (8/30) | |
+| 6 | adaptive + check | +26.0% (28/30) | −7.4% (13/30) | 0.66 |
+| 6 | predictive | +33.4% (30/30) | +14.8% (23/30) | 0.76 |
+| 8 | fixed | +17.3% (26/30) | −26.6% (6/30) | |
+| 8 | adaptive | +30.7% (26/30) | −10.6% (11/30) | 0.71 |
+| 8 | adaptive + check | +14.3% (25/30) | −12.2% (13/30) | 0.71 |
+| 8 | predictive | +32.1% (27/30) | +10.5% (19/30) | 0.77 |
+
+AUC is the chance that a mismatched sender gets a larger spread multiplier than a matched sender, measured at matched receivers. 0.5 means no separation; 1 means perfect.
+
+- **(A) Longer runs help adaptive spread, but slowly.** AUC rises from 0.60 to 0.66 to 0.71, and the share of mismatched senders down-weighted more than 2× rises from 12% to 22% to 32%. Matched pairs stay at full weight (1–2% above 2×). Unmatched sites are still hurt at round 8 (−11%).
+  - Adaptive + check at round 8 (+14% matched) is lower than adaptive alone (+31%), and I haven't explained that.
+- **(B) Predictive trust ranks senders better and changes the outcome.** Matched sites gain 28–33%, against 16–17% under fixed. Unmatched sites go from hurt (−20 to −27%) to helped (+11 to +15%).
+  - A likely reason they're helped: some other site's independent draw happens to sit close to theirs, and predictive trust finds it.
+  - Against fixed, predictive is better in 23–24 of 30 worlds for matched sites and 27–28 of 30 for unmatched.
+  - Adding the check (`pred_check`) changes little.
+- **Neither rule cleanly separates the groups.** Predictive trust's median multiplier for a mismatched sender at a matched receiver is 2.7× at round 3 and 22× at round 8, but 35% of mismatched senders still pass under 2×. It also down-weights 18–24% of matched senders more than 2×, a false-alarm rate adaptive spread doesn't have. Don't claim either rule "identifies" bad partners.
+- **Leakage check (`--split`, `results/sharper_trust_split.jsonl.gz`, `sharper-trust-split-summary.json`).** Predictive trust scores notes on held-out pieces, and the evaluation uses those same pieces. So we reran with trust scoring only half of the held-out pieces (`predictive_half`) and measured error on each half separately (30 worlds, 6 rounds). On the half trust never saw:
+  - Matched sites: +23.7% at round 3 and +32.6% at round 6, against +16.4% and +19.5% under fixed. The gain holds.
+  - Unmatched sites: +2.8% and +6.8% (20/30, p=0.10), against −19.3% and −21.5% under fixed. Their gain shrinks: on the half trust saw it was +7.7% and +17.5%. Part of the unmatched gain in the table above is optimism from choosing notes on the test pieces.
+  - What survives: predictive trust removes the harm to mismatched sites and lifts matched sites to about a third better than alone. It does not reliably make mismatched sites better off.
+- Cost: one extra fit per sender, per receiver, per round (56 at 8 sites), about 15% more time per run here.
+
+Caveats: simulation only, one fleet layout (8 sites, half mismatched). Trust uses the receiver's held-out pieces, as the existing sender trust already does, so a fair test needs pieces trust never sees; the split above is that test. The rounds 6 and 8 rows come from the same runs as round 3, read at a later round.
+
 ## 12. Corrected designs: a calibrated interval (60 worlds, seed plate fit, simulation)
 
 `compensate_calibration.py` fits each site on its full seed plate (1000 particles), asks `model.compensate` for pins and holes at 2, 3, 5, 7 mm, and compares with the simulator's true printed size at the draw size. 960 cases. `analyze_compensate_calibration.py` writes `results/compensate-calibration-summary.json`.

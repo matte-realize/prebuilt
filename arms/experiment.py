@@ -21,6 +21,7 @@ from __future__ import annotations
 import math
 import os
 import pickle
+import zlib
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 
@@ -104,6 +105,15 @@ class Config:
     # z^2 against the receiver's own fit, floored at 1). Senders whose physics agree keep full
     # weight; senders that keep disagreeing fade out smoothly. Off in the frozen config.
     adaptive_spread: bool = False
+    # Predictive trust: each round, before a sender's note is used again, the receiver asks how
+    # well that note (alone, at its base spread, full trust) predicts the receiver's own held-out
+    # pieces, against the receiver's own data alone: d = sum over measured held-out pieces of
+    # log p(y | own + note) - log p(y | own). The note was sent before this round's pieces were
+    # measured, so it's a genuine prediction. A sender's message variance is then scaled by
+    # max(1, exp(-d)) (the likelihood ratio against it, capped). Off in the frozen config.
+    predictive_trust: bool = False
+    predictive_cap: float = 1e4
+    predictive_half: bool = False    # leakage check: score notes only on held-out pieces with an even trust_half()
     bad_offset: float = 3.0          # bad sites: how far their beliefs sit from the prior mean, in prior std
     selection: str = "agents"        # "agents" (auction) or "random": every arm picks pieces uniformly (baseline)
     agents: tuple[str, ...] = tuple(AGENT_NAMES)
@@ -137,6 +147,7 @@ class SiteState:
     roster: Roster | None = None
     inbox: dict[str, Message] = field(default_factory=dict)
     disagree: dict[str, list[float]] = field(default_factory=dict)  # adaptive spread: sender -> mean z^2 per round
+    predictive: dict[str, list[float]] = field(default_factory=dict)  # predictive trust: sender -> d (nats) per round
     trust: dict[str, float] = field(default_factory=dict)
     flags: list = field(default_factory=list)            # this round: (Flag, judged_by result) pairs
     unmet: dict[str, int] = field(default_factory=dict)  # template -> unmet-needs entries seen, own + incoming
@@ -278,16 +289,25 @@ def _rng_seed(rng: np.random.Generator) -> int:
     return int(rng.integers(2**31))
 
 
-def _fit(st: SiteState, pieces, data: Data, cfg: Config, rng, messages: dict[str, Message] | None = None) -> ParticlePosterior:
+def predictive_multiplier(d: float, cap: float = 1e4) -> float:
+    """Variance multiplier from a sender's predictive score d (nats): the likelihood ratio against it."""
+    return float(min(cap, max(1.0, np.exp(min(-d, np.log(cap))))))
+
+
+def _fit(st: SiteState, pieces, data: Data, cfg: Config, rng, messages: dict[str, Message] | None = None,
+         raw: bool = False) -> ParticlePosterior:
+    """raw=True: messages at their base spread and full trust (predictive trust's test fit)."""
     post = st.posterior(st.process, pieces, n=cfg.n_particles, seed=_rng_seed(rng), mh_steps=cfg.mh_steps)
     for sender, msg in (messages or {}).items():
         means, cov = protocol.likelihood_factor(msg)
         if means:
             cov = cov + np.diag([(cfg.between_site_sd * SHARED_STD[k]) ** 2 for k in means])
-            if cfg.adaptive_spread and st.disagree.get(sender):
+            if not raw and cfg.adaptive_spread and st.disagree.get(sender):
                 cov = cov * max(1.0, float(np.mean(st.disagree[sender])))
+            if not raw and cfg.predictive_trust and st.predictive.get(sender):
+                cov = cov * predictive_multiplier(st.predictive[sender][-1], cfg.predictive_cap)
         if means:
-            post.set_prior_from_summary(means, cov, st.trust.get(sender, 0.0), key=sender)
+            post.set_prior_from_summary(means, cov, 1.0 if raw else st.trust.get(sender, 0.0), key=sender)
     post.update([m for _, m in data])
     return post
 
@@ -417,9 +437,28 @@ def heldout_lpds(post: ParticlePosterior, escrow: Data, site: str | None = None)
     return [post.log_predictive(p, m.measured_d, site) for p, m in escrow if m.status == "ok"]
 
 
+def trust_half(piece_id: str) -> int:
+    """Stable split of held-out pieces (predictive_half): 0 = used for trust, 1 = evaluation only."""
+    return zlib.crc32(piece_id.encode()) % 2
+
+
+def _predictive(st: SiteState, pieces, cfg: Config, rng) -> None:
+    """Predictive trust: score each inbox note on the receiver's measured held-out pieces."""
+    data = st.data["networked"]
+    escrow = [(p, m) for p, m in st.escrow if trust_half(p.piece_id) == 0] if cfg.predictive_half else st.escrow
+    base = heldout_lpds(_fit(st, pieces, data, cfg, rng), escrow)
+    if not base:
+        return
+    for sender, msg in st.inbox.items():
+        with_note = heldout_lpds(_fit(st, pieces, data, cfg, rng, {sender: msg}, raw=True), escrow)
+        st.predictive.setdefault(sender, []).append(float(np.sum(with_note) - np.sum(base)))
+
+
 def _credit(r: int, st: SiteState, pieces, contrib: dict[str, str], cfg: Config, rng, res: Results) -> None:
     data = st.data["networked"]
     msgs = st.inbox
+    if cfg.predictive_trust and msgs:
+        _predictive(st, pieces, cfg, rng)
     full = heldout_lpds(_fit(st, pieces, data, cfg, rng, msgs), st.escrow)
 
     dlpd = {}
