@@ -1,4 +1,4 @@
-# Prebuilt
+# <img src="assets/logo.svg" width="36" height="36" alt="" align="top"> Prebuilt
 
 **Every 3D printer prints parts slightly the wrong size, in its own way. Prebuilt lets printers learn their errors from each other without sharing a single measurement.** Built for the ScienceClaw Hackathon, MIT Media Lab, Oct 30 – Nov 1, 2026.
 

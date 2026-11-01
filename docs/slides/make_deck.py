@@ -75,6 +75,7 @@ def plate_svg(label: bool = True) -> str:
     return "".join(parts)
 
 
+LOGO = '<svg class="logo" viewBox="0 0 32 32" width="16" height="16" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>'
 SLIDES = []
 
 
@@ -87,7 +88,7 @@ slide("ScienceClaw · Manufacturing & Materials", "Prebuilt",
   <div class="stack">
     <p class="lede">Printers at different sites learn each other's lessons without ever sharing a measurement.</p>
     <p>Two simulated printer sites, resin SLA and PLA FDM, each print a test plate, measure it and fit a model of their own machine. Only the mean and uncertainty of three shared parameters cross between them, schema-checked and on a hash chain. <span class="flag">Every result here is simulation.</span></p>
-    <p class="meta">Matthew Shi and team · MIT Media Lab · Nov 1, 2026</p>
+    <p class="meta">Matthew Shi and team · ScienceClaw · MIT Media Lab</p>
   </div>
   <figure class="fig">{plate_svg()}</figure>
 </div>""",
@@ -206,13 +207,12 @@ def render() -> str:
     sections = []
     for i, (kicker, title, body, note) in enumerate(SLIDES, 1):
         sections.append(f"""<section class="slide" id="s{i}" aria-label="Slide {i}: {title}">
-  <header><span class="kick">{kicker}</span><span class="num">{i:02d} / {len(SLIDES):02d}</span></header>
+  <header><span class="kick">{LOGO}{kicker}</span><span class="num">{i:02d} / {len(SLIDES):02d}</span></header>
   <h2>{title}</h2>
   <div class="body">{body}</div>
   <aside class="note">{note}</aside>
 </section>""")
-    return (TEMPLATE.replace("Prebuilt · draft deck · 10 slides", f"Prebuilt · backup deck · {len(SLIDES)} slides")
-            .replace("%%SLIDES%%", "\n".join(sections)))
+    return TEMPLATE.replace("%%SLIDES%%", "\n".join(sections))
 
 
 TEMPLATE = (HERE / "deck_template.html").read_text()

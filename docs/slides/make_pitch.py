@@ -67,6 +67,8 @@ def plate_svg() -> str:
     return "".join(parts) + "</svg>"
 
 
+LOGO = '<svg class="logo" viewBox="0 0 32 32" width="16" height="16" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>'
+
 SLIDES = [
     ("0:00–0:25 · The problem", "Every shop re-learns its own printer",
      f"""<div class="split">
@@ -88,7 +90,7 @@ SLIDES = [
 <div class="stays"><b>Stays home:</b> every measurement, every machine-specific parameter.</div>""",
      "Point at the middle: that's the whole interface. Errors that every printer shares (small features shrink, edges drift) are learned together; everything else stays local. Both sites are simulated printers whose true behavior we know, which is how every result is scored."),
 
-    ("0:45–1:30 · Demo", "Watch the network learn",
+    ("0:45–1:30 · Live run", "Watch the network learn",
      """<div class="demo" id="demo">
   <svg class="sites" viewBox="0 0 440 300" aria-label="Two sites exchanging belief summaries across a boundary">
     <g id="trustG"><text x="220" y="22" text-anchor="middle" class="tiny">resin's trust in PLA</text>
@@ -130,7 +132,7 @@ SLIDES = [
 <p class="foot">Simulation with hidden truth, frozen config, paired per world. The consistency check is an added protocol option, off in the registered config, tested in {CHECK["worlds"]} worlds. The agent layer adds nothing measurable: with messages cut, learned credibility ties equal votes. At two sites the gain is 1.6 µm, below what you can measure on a real part, so we don't claim it there.</p>""",
      "Say it plainly: these are simulation numbers, the gain comes from sharing between sites, not from the agents, and at two sites it is a couple of microns. It grows with the number of data-poor sites."),
 
-    ("2:00–2:25 · Science, not a demo", "Grounded in a real printer, scored in simulation",
+    ("2:00–2:25 · Rigor", "Grounded in a real printer, scored in simulation",
      """<div class="timeline">
   <div><span class="t">Real printer</span><p>Formlabs Form Studio 1: a 1.5 mm pin measured 1.41–1.48 mm by micrometer, 24–89 µm small.</p></div>
   <div><span class="t">Vendor spec</span><p>±0.08 mm on 1–30 mm features. Real error is tens of µm, as the spec says.</p></div>
@@ -360,15 +362,16 @@ DEMO_JS = """
 def render() -> str:
     sections = []
     for i, (kicker, title, body, note) in enumerate(SLIDES, 1):
+        when, _, kicker = kicker.partition(" · ")   # the timing stays in the speaker note only
+        note = f"{when}. {note}"
         sections.append(f"""<section class="slide" id="s{i}" aria-label="Slide {i}: {title}">
-  <header><span class="kick">{kicker}</span><span class="num">{i} / {len(SLIDES)}</span></header>
+  <header><span class="kick">{LOGO}{kicker}</span><span class="num">{i} / {len(SLIDES)}</span></header>
   <h2>{title}</h2>
   <div class="body">{body}</div>
   <aside class="note">{note}</aside>
 </section>""")
     html = (HERE / "deck_template.html").read_text()
     html = html.replace("<title>Prebuilt Deck</title>", "<title>Prebuilt Pitch</title>")
-    html = html.replace("Prebuilt · draft deck · 10 slides", "Prebuilt · 3-minute pitch · 6 slides")
     html = html.replace("</style>", EXTRA_CSS + "</style>", 1)
     html = html.replace("%%SLIDES%%", "\n".join(sections))
     return html + DEMO_JS.replace("%%DATA%%", json.dumps(DATA))

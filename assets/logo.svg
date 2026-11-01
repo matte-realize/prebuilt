@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Prebuilt">
+  <polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/>
+  <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/>
+  <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/>
+  <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/>
+  <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/>
+</svg>

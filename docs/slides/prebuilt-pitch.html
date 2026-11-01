@@ -1,4 +1,5 @@
 <title>Prebuilt Pitch</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%20width%3D%2232%22%20height%3D%2232%22%20role%3D%22img%22%20aria-label%3D%22Prebuilt%22%3E%20%3Cpolygon%20points%3D%2216%2C3%2028%2C10%2016%2C17%204%2C10%22%20fill%3D%22%23eb6834%22/%3E%20%3Cpolygon%20points%3D%224%2C10%2016%2C17%2016%2C30%204%2C23%22%20fill%3D%22%238d9bad%22/%3E%20%3Cpolygon%20points%3D%2228%2C10%2016%2C17%2016%2C30%2028%2C23%22%20fill%3D%22%234f6070%22/%3E%20%3Cpolyline%20points%3D%224%2C10%2016%2C17%2028%2C10%20M16%2C17%2016%2C30%22%20fill%3D%22none%22%20stroke%3D%22%23ffffff%22%20stroke-opacity%3D%22.55%22%20stroke-width%3D%22.8%22%20stroke-linejoin%3D%22round%22/%3E%20%3Cpolygon%20points%3D%2216%2C6.6%2022%2C10%2016%2C13.4%2010%2C10%22%20fill%3D%22%23ffffff%22%20fill-opacity%3D%22.28%22/%3E%20%3C/svg%3E">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -128,6 +129,9 @@ body.present .slide.on { display: grid; }
 body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; bottom: 1.2cqw; font: 1.2cqw var(--mono); color: var(--amber); }
 @media (prefers-reduced-motion: no-preference) { .slide.on { animation: in .18s ease-out; } }
 @keyframes in { from { opacity: .4; } to { opacity: 1; } }
+.brandmark { display: flex; align-items: center; gap: 10px; }
+.slide header .kick { display: inline-flex; align-items: center; gap: .6em; }
+.slide header .kick .logo { width: 1.5em; height: 1.5em; flex: none; }
 
 /* Pitch: projected, so bigger type and content centred in the frame. */
 .slide { grid-template-rows: auto auto 1fr; }
@@ -208,14 +212,14 @@ body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; 
 
 <main class="deck">
   <div class="bar">
-    <h1>Prebuilt · 3-minute pitch · 6 slides</h1>
+    <h1 class="brandmark"><svg class="logo" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>Prebuilt</h1>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button id="notes" type="button" aria-pressed="false">Speaker notes</button>
       <button id="present" type="button">Present (→ ← Esc)</button>
     </div>
   </div>
 <section class="slide" id="s1" aria-label="Slide 1: Every shop re-learns its own printer">
-  <header><span class="kick">0:00–0:25 · The problem</span><span class="num">1 / 6</span></header>
+  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" width="16" height="16" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>The problem</span><span class="num">1 / 6</span></header>
   <h2>Every shop re-learns its own printer</h2>
   <div class="body"><div class="split">
   <div class="stack">
@@ -225,10 +229,10 @@ body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; 
   </div>
   <figure class="fig"><svg viewBox="-6 -6 112 112" class="plate" role="img" aria-label="The seed test plate: pins and holes, 1 to 7 mm"><rect x="0" y="0" width="100" height="100" rx="1.2" class="pl"/><rect x="47" y="97.5" width="6" height="2.6" class="cut"/><rect x="3" y="3" width="4" height="4" class="cut"/><rect x="93" y="3" width="4" height="4" class="cut"/><rect x="3" y="93" width="4" height="4" class="cut"/><circle cx="25" cy="15" r="2.45" class="pin"/><circle cx="45" cy="15" r="2.05" class="pin ho"/><circle cx="75" cy="15" r="0.75" class="pin"/><circle cx="15" cy="25" r="1.15" class="hole"/><circle cx="75" cy="25" r="1.85" class="hole ho"/><circle cx="85" cy="25" r="2.65" class="hole"/><circle cx="25" cy="35" r="3.5" class="pin ho"/><circle cx="35" cy="45" r="0.75" class="hole"/><circle cx="45" cy="45" r="3.1" class="hole"/><circle cx="55" cy="45" r="0.55" class="hole ho"/><circle cx="85" cy="45" r="3.5" class="pin"/><circle cx="45" cy="55" r="2.0" class="pin"/><circle cx="55" cy="55" r="2.85" class="pin"/><circle cx="85" cy="55" r="2.9" class="pin ho"/><circle cx="25" cy="65" r="3.1" class="pin"/><circle cx="35" cy="65" r="2.65" class="hole ho"/><circle cx="55" cy="65" r="3.5" class="hole"/><circle cx="65" cy="65" r="2.25" class="hole"/><circle cx="25" cy="75" r="1.6" class="pin"/><circle cx="65" cy="75" r="3.65" class="pin ho"/><circle cx="75" cy="75" r="1.15" class="pin"/><circle cx="15" cy="85" r="2.4" class="hole ho"/><circle cx="25" cy="85" r="1.8" class="hole"/><circle cx="45" cy="85" r="1.4" class="hole"/></svg><figcaption>The test plate: pins and holes, 1–7 mm. Print it, measure it, and you know your printer.</figcaption></figure>
 </div></div>
-  <aside class="note">Hold up a printed plate. The point: precision is a property of your machine, and the only way to learn it is to print.</aside>
+  <aside class="note">0:00–0:25. Hold up a printed plate. The point: precision is a property of your machine, and the only way to learn it is to print.</aside>
 </section>
 <section class="slide" id="s2" aria-label="Slide 2: Two printer sites, one boundary, only beliefs cross">
-  <header><span class="kick">0:25–0:45 · What we built</span><span class="num">2 / 6</span></header>
+  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" width="16" height="16" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>What we built</span><span class="num">2 / 6</span></header>
   <h2>Two printer sites, one boundary, only beliefs cross</h2>
   <div class="body"><div class="arch">
   <div class="node"><span class="proc">SLA · simulated</span><h3>Resin site</h3><p>prints, measures, learns its own model</p></div>
@@ -236,10 +240,10 @@ body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; 
   <div class="node"><span class="proc">FDM · simulated</span><h3>PLA site</h3><p>different machine, different physics</p></div>
 </div>
 <div class="stays"><b>Stays home:</b> every measurement, every machine-specific parameter.</div></div>
-  <aside class="note">Point at the middle: that's the whole interface. Errors that every printer shares (small features shrink, edges drift) are learned together; everything else stays local. Both sites are simulated printers whose true behavior we know, which is how every result is scored.</aside>
+  <aside class="note">0:25–0:45. Point at the middle: that's the whole interface. Errors that every printer shares (small features shrink, edges drift) are learned together; everything else stays local. Both sites are simulated printers whose true behavior we know, which is how every result is scored.</aside>
 </section>
 <section class="slide" id="s3" aria-label="Slide 3: Watch the network learn">
-  <header><span class="kick">0:45–1:30 · Demo</span><span class="num">3 / 6</span></header>
+  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" width="16" height="16" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>Live run</span><span class="num">3 / 6</span></header>
   <h2>Watch the network learn</h2>
   <div class="body"><div class="demo" id="demo">
   <svg class="sites" viewBox="0 0 440 300" aria-label="Two sites exchanging belief summaries across a boundary">
@@ -271,10 +275,10 @@ body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; 
     <span class="tiny" id="cap">Simulation with hidden truth, frozen config, 20 worlds. Model error on held-out pieces, µm.</span>
   </div>
 </div></div>
-  <aside class="note">In Present mode it plays by itself. Narrate the caption line. Then L: resin's error spikes in round 1, trust collapses to 0.01 once held-out pieces expose the lie, and by round 3 resin is back level with learning alone. Without a check, a liar costs one round. Then C: the consistency check sets PLA's note aside at the boundary, no spike. With the check, none (slide 4).</aside>
+  <aside class="note">0:45–1:30. In Present mode it plays by itself. Narrate the caption line. Then L: resin's error spikes in round 1, trust collapses to 0.01 once held-out pieces expose the lie, and by round 3 resin is back level with learning alone. Without a check, a liar costs one round. Then C: the consistency check sets PLA's note aside at the boundary, no spike. With the check, none (slide 4).</aside>
 </section>
 <section class="slide" id="s4" aria-label="Slide 4: The win is many sites, not many agents">
-  <header><span class="kick">1:30–2:00 · Results, in simulation</span><span class="num">4 / 6</span></header>
+  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" width="16" height="16" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>Results, in simulation</span><span class="num">4 / 6</span></header>
   <h2>The win is many sites, not many agents</h2>
   <div class="body"><div class="cols3 hero">
   <div class="cell"><span class="big">12%</span><p>lower error than learning alone, in 75 of 100 worlds. Pooling all the raw data: also 12%.</p></div>
@@ -282,10 +286,10 @@ body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; 
   <div class="cell"><span class="big">0 rounds</span><p>for a liar: a consistency check catches its notes on arrival (180 of 180, 0 honest notes dropped). Without it, a liar costs one round.</p></div>
 </div>
 <p class="foot">Simulation with hidden truth, frozen config, paired per world. The consistency check is an added protocol option, off in the registered config, tested in 60 worlds. The agent layer adds nothing measurable: with messages cut, learned credibility ties equal votes. At two sites the gain is 1.6 µm, below what you can measure on a real part, so we don't claim it there.</p></div>
-  <aside class="note">Say it plainly: these are simulation numbers, the gain comes from sharing between sites, not from the agents, and at two sites it is a couple of microns. It grows with the number of data-poor sites.</aside>
+  <aside class="note">1:30–2:00. Say it plainly: these are simulation numbers, the gain comes from sharing between sites, not from the agents, and at two sites it is a couple of microns. It grows with the number of data-poor sites.</aside>
 </section>
 <section class="slide" id="s5" aria-label="Slide 5: Grounded in a real printer, scored in simulation">
-  <header><span class="kick">2:00–2:25 · Science, not a demo</span><span class="num">5 / 6</span></header>
+  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" width="16" height="16" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>Rigor</span><span class="num">5 / 6</span></header>
   <h2>Grounded in a real printer, scored in simulation</h2>
   <div class="body"><div class="timeline">
   <div><span class="t">Real printer</span><p>Formlabs Form Studio 1: a 1.5 mm pin measured 1.41–1.48 mm by micrometer, 24–89 µm small.</p></div>
@@ -294,10 +298,10 @@ body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; 
   <div><span class="t">Why not real</span><p>The sharing gain is 1.6 µm. Two readings of one pin differed by 65 µm. Only hidden truth can score it.</p></div>
 </div>
 <p class="foot">Registered before printing: two printers can't show the sharing gain on real parts. Negative control: when printers share no physics, sharing gains nothing, so the gain isn't built into the scoring. The simulator says when the gain becomes measurable: many sites, each with little data.</p></div>
-  <aside class="note">Judge beat: this is the rigor slide. Hold up the printed plate. The real printer tells us the simulator is the right size (this pin sits at its small edge, 1.8th percentile, so say 'edge', not 'middle'); the simulator is the only place a 1.6 µm gain can be scored; the negative control shows the simulator doesn't hand us the result. Don't claim the model was fit on the real printer: one pin, two readings, isn't enough.</aside>
+  <aside class="note">2:00–2:25. Judge beat: this is the rigor slide. Hold up the printed plate. The real printer tells us the simulator is the right size (this pin sits at its small edge, 1.8th percentile, so say 'edge', not 'middle'); the simulator is the only place a 1.6 µm gain can be scored; the negative control shows the simulator doesn't hand us the result. Don't claim the model was fit on the real printer: one pin, two readings, isn't enough.</aside>
 </section>
 <section class="slide" id="s6" aria-label="Slide 6: Fleets where fit decides and data can't leave">
-  <header><span class="kick">2:25–3:00 · Who it's for</span><span class="num">6 / 6</span></header>
+  <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" width="16" height="16" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>Who it's for</span><span class="num">6 / 6</span></header>
   <h2>Fleets where fit decides and data can't leave</h2>
   <div class="body"><div class="split">
   <div class="who">
@@ -311,7 +315,7 @@ body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; 
   <figure class="fig"><svg viewBox="0 0 360 230" class="sites-chart" role="img" aria-label="Lower error than learning alone: 2 sites 11%, 4 sites 28%, 8 sites 35%"><line x1="20" x2="340" y1="186" y2="186" class="axis"/><rect x="20.0" y="145.7" width="74" height="40.3" rx="3" class="bar"/><text x="57.0" y="135.7" text-anchor="middle" class="val">11%</text><text x="57.0" y="206" text-anchor="middle" class="lab">2 sites</text><text x="57.0" y="223" text-anchor="middle" class="sub">39/60 worlds</text><rect x="143.0" y="77.8" width="74" height="108.2" rx="3" class="bar"/><text x="180.0" y="67.8" text-anchor="middle" class="val">28%</text><text x="180.0" y="206" text-anchor="middle" class="lab">4 sites</text><text x="180.0" y="223" text-anchor="middle" class="sub">35/40 worlds</text><rect x="266.0" y="54.2" width="74" height="131.8" rx="3" class="bar"/><text x="303.0" y="44.2" text-anchor="middle" class="val">35%</text><text x="303.0" y="206" text-anchor="middle" class="lab">8 sites</text><text x="303.0" y="223" text-anchor="middle" class="sub">20/20 worlds</text></svg><figcaption>Where it pays: lower error than learning alone, by number of data-poor sites. Round 3, simulation.</figcaption></figure>
 </div>
 <p class="close">Print anywhere, trust the part. <span class="meta mono">github.com/matte-realize/prebuilt · all numbers simulation</span></p></div>
-  <aside class="note">Investor beat: name the buyer and why pooling is off the table for them, then the bars: value grows with the number of sites, which is a network effect. Mixed fleets answers 'what if printers differ': trust makes sharing safe, it doesn't yet identify bad partners. Bioprinting is direction. End on the line. Stop talking.</aside>
+  <aside class="note">2:25–3:00. Investor beat: name the buyer and why pooling is off the table for them, then the bars: value grows with the number of sites, which is a network effect. Mixed fleets answers 'what if printers differ': trust makes sharing safe, it doesn't yet identify bad partners. Bioprinting is direction. End on the line. Stop talking.</aside>
 </section>
 </main>
 

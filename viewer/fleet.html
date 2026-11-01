@@ -3,14 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Prebuilt Fleet Demo</title>
+<title>Prebuilt · Fleet</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%20width%3D%2232%22%20height%3D%2232%22%20role%3D%22img%22%20aria-label%3D%22Prebuilt%22%3E%20%3Cpolygon%20points%3D%2216%2C3%2028%2C10%2016%2C17%204%2C10%22%20fill%3D%22%23eb6834%22/%3E%20%3Cpolygon%20points%3D%224%2C10%2016%2C17%2016%2C30%204%2C23%22%20fill%3D%22%238d9bad%22/%3E%20%3Cpolygon%20points%3D%2228%2C10%2016%2C17%2016%2C30%2028%2C23%22%20fill%3D%22%234f6070%22/%3E%20%3Cpolyline%20points%3D%224%2C10%2016%2C17%2028%2C10%20M16%2C17%2016%2C30%22%20fill%3D%22none%22%20stroke%3D%22%23ffffff%22%20stroke-opacity%3D%22.55%22%20stroke-width%3D%22.8%22%20stroke-linejoin%3D%22round%22/%3E%20%3Cpolygon%20points%3D%2216%2C6.6%2022%2C10%2016%2C13.4%2010%2C10%22%20fill%3D%22%23ffffff%22%20fill-opacity%3D%22.28%22/%3E%20%3C/svg%3E">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <style>
-/* Layout: the 2-printer demo's dark lab, widened to a ring of eight printers around one privacy hub. Caption top-left, link back top-right, controls bottom centre, results chart bottom right. Single dark look by choice, as in demo.html. */
+/* Layout: the 2-printer view's dark lab, widened to a ring of eight printers around one privacy hub. Caption top-left, link back top-right, controls bottom centre, results chart bottom right. Single dark look by choice, as in demo.html. */
 :root {
   --night: #0b1016; --glass: rgba(14, 21, 30, .82); --line: rgba(160, 185, 210, .16); --ink: #e7eef5; --muted: #93a3b5; --faint: #5f6f82;
   --alone: #8d9bad; --net: #5b8cff; --good: #3cc48d; --wall: #7fd6ff;
@@ -104,10 +105,10 @@ button { cursor: pointer; }
 <div id="labels"></div>
 
 <div id="cap" class="hud glass">
-  <div class="brand"><span>Prebuilt · eight printers</span><small>· simulation</small></div>
+  <div class="brand"><svg class="logo" viewBox="0 0 32 32" width="20" height="20" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg><span>Prebuilt · eight printers</span><small>· simulation</small></div>
   <div class="line"><span class="chip idle" id="chip">ready</span><span id="say">Eight printers, each starting from a 4-piece warm-up plate. Press <b>Print round 1</b>.</span></div>
 </div>
-<a id="back" class="hud glass" href="index.html">← two-printer demo</a>
+<a id="back" class="hud glass" href="index.html">← two printers</a>
 
 <div id="chart" class="hud glass" aria-live="polite">
   <div class="hd"><b>Fleet error on test parts</b><span>µm, lower is better</span></div>
