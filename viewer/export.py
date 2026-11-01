@@ -4,6 +4,7 @@
     python -m viewer.export --source sim --rounds 3 --report --open            # scrolling report
     python -m viewer.export --source sim --rounds 3 --bad-site pla --open
     python -m viewer.export --checkpoint receipts/real/state.pkl --open     # a real (or rehearsal) run
+    python -m viewer.export --fleet 8 --open                                # eight printers (writes out/fleet.html)
 
 Reads only what a run already keeps (the checkpoint state: results, site data,
 receipt chains). Writes viewer/out/index.html. No server needed; the 3D demo loads three.js from a CDN.
@@ -27,6 +28,49 @@ from network.protocol import deserialize
 
 HERE = Path(__file__).parent
 SITES = {"resin": "resin", "pla": "pla"}
+# Fleet page (fleet.html): the data-poor setup of hpc/sweeps/coldstart (grid cell n=8, seed_pieces=4, slots=2),
+# 3 rounds. FLEET_SEED is the world shown; see FLEET_WHY.
+FLEET_SETUP = {"seed_pieces": 4, "slots": 2, "rounds": 3}
+FLEET_SEED = 9
+FLEET_WHY = "typical world: fleet gain close to the 20-world mean (35%), together better at most printers"
+
+
+def fleet_sites(n: int) -> dict:
+    """resin0, pla0, resin1, ... as in hpc/sweeps/coldstart/ceiling.py."""
+    return {f"{p}{i}": p for i in range(n // 2) for p in ("resin", "pla")}
+
+
+def _fleet_run(job) -> tuple:
+    prereg, n, seed, share = job
+    from prereg.check import load as load_prereg
+    from prereg.check import sim_config
+    from sim.reference import make_world
+    sites = fleet_sites(n)
+    cfg = sim_config(load_prereg(prereg)[0], rounds=FLEET_SETUP["rounds"], seed=seed, seed_pieces=FLEET_SETUP["seed_pieces"],
+                     slots_per_arm=FLEET_SETUP["slots"], share_messages=share)
+    with tempfile.TemporaryDirectory() as d:
+        ckpt = f"{d}/state.pkl"
+        run_experiment(make_world(sites, seed), sites, cfg, checkpoint=ckpt)
+        state = load(ckpt)
+    res, sts = state["res"], state["sites"]
+    rep = audit(list(res.chains.values()))
+    return ("share" if share else "alone"), _clean({
+        "rounds": state["next_round"] - 1,
+        "sites": {s: st.process for s, st in sts.items()},
+        "scores": [{k: r[k] for k in ("round", "site", "arm", "mae_truth")} for r in res.scores if r["arm"] in ("isolated", "networked")],
+        "plates": {s: [{"round": pl["round"], "pieces": [{k: q[k] for k in ("kind", "d", "slot", "arm", "status")} for q in pl["pieces"]]}
+                       for pl in plates_of(st)] for s, st in sts.items()},
+        "messages": [{k: m[k] for k in ("from", "to", "round", "bytes")} for c in res.chains.values() for m in messages_of(c)],
+        "audit": {"passed": rep.passed, "crossings": rep.crossings, "rejected": rep.rejected_at_boundary},
+    })
+
+
+def fleet_data(prereg: str, n: int, seed: int) -> dict:
+    """One n-site world in the data-poor setup, with sharing on and with the network cut (run in parallel)."""
+    from concurrent.futures import ProcessPoolExecutor
+    with ProcessPoolExecutor(2) as ex:
+        runs = dict(ex.map(_fleet_run, [(prereg, n, seed, True), (prereg, n, seed, False)]))
+    return {"runs": runs, "seed": seed, "why": FLEET_WHY if seed == FLEET_SEED else "", "setup": FLEET_SETUP, "n": n}
 
 
 def run_sim(args) -> dict:
@@ -193,7 +237,25 @@ def main() -> None:
     ap.add_argument("--summary-seeds", type=int, default=0, help="3D demo: worlds per condition in the summary (0 = none)")
     ap.add_argument("--liar", default="pla", choices=list(SITES), help="3D demo: the site that lies in the 'one site lies' run")
     ap.add_argument("--fragment", action="store_true", help="omit <html>/<head>/<body>, for hosts that add their own")
+    ap.add_argument("--fleet", type=int, metavar="N", help="the N-printer page (fleet.html; data-poor setup, writes out/fleet.html)")
+    ap.add_argument("--fleet-seed", type=int, default=FLEET_SEED, help=f"fleet page world (default {FLEET_SEED}: {FLEET_WHY})")
     args = ap.parse_args()
+
+    if args.fleet:
+        if args.fleet < 2 or args.fleet % 2:
+            ap.error("--fleet takes an even number of printers (half resin, half PLA)")
+        print(f"running {args.fleet} printers, seed {args.fleet_seed}, with sharing and with the network cut (a few minutes)...")
+        data = fleet_data(args.prereg, args.fleet, args.fleet_seed)
+        ev = HERE / "evidence.json"
+        if ev.exists():
+            data["evidence"] = json.loads(ev.read_text())
+        out = Path(args.out) if args.out != str(HERE / "out" / "index.html") else HERE / "out" / "fleet.html"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(render(data, args.fragment, "fleet.html"))
+        print(f"wrote {out}")
+        if args.open:
+            subprocess.run(["open" if sys.platform == "darwin" else "xdg-open", str(out)], check=False)
+        return
 
     if args.checkpoint:
         state, label = load(args.checkpoint), f"checkpoint {args.checkpoint}"
@@ -220,6 +282,8 @@ def main() -> None:
         data["evidence"] = json.loads(ev.read_text())
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
+    if not args.report and (out.parent / "fleet.html").exists():  # link the 2-vs-8 chart to the fleet page built alongside
+        data["fleet_page"] = "fleet.html"
     out.write_text(render(data, args.fragment, "template.html" if args.report else "demo.html"))
     print(f"wrote {out}")
     if args.open:

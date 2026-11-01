@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prebuilt Fleet Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+/* Layout: the 2-printer demo's dark lab, widened to a ring of eight printers around one privacy hub. Caption top-left, link back top-right, controls bottom centre, results chart bottom right. Single dark look by choice, as in demo.html. */
+:root {
+  --night: #0b1016; --glass: rgba(14, 21, 30, .82); --line: rgba(160, 185, 210, .16); --ink: #e7eef5; --muted: #93a3b5; --faint: #5f6f82;
+  --alone: #8d9bad; --net: #5b8cff; --good: #3cc48d; --wall: #7fd6ff;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "IBM Plex Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--night); color: var(--ink); font: 15px/1.5 var(--body); overflow: hidden; -webkit-font-smoothing: antialiased; }
+#stage { position: fixed; inset: 0; }
+#stage canvas { display: block; outline: none; }
+button, a { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--net); outline-offset: 2px; }
+.glass { background: var(--glass); border: 1px solid var(--line); border-radius: 14px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.hud { position: fixed; z-index: 5; }
+
+#cap { top: calc(14px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); max-width: min(440px, calc(100vw - 32px)); padding: 12px 16px; }
+#cap .brand { display: flex; align-items: center; gap: 8px; font: 700 19px/1 var(--display); letter-spacing: .02em; }
+#cap .brand small { font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+#cap .line { display: flex; gap: 10px; align-items: baseline; margin-top: 10px; }
+#cap .chip { flex: none; font: 600 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: #fff; background: var(--net); border-radius: 6px; padding: 5px 7px; }
+#cap .chip.idle { background: rgba(255, 255, 255, .1); color: var(--muted); }
+#say { font-size: 15px; line-height: 1.4; }
+#say b { font-weight: 600; }
+
+#back { top: calc(14px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); padding: 9px 14px; font-size: 13.5px; text-decoration: none; color: var(--muted); }
+#back:hover { color: var(--ink); }
+
+#deck { bottom: calc(14px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); padding: 10px; display: flex; gap: 10px; align-items: center; max-width: calc(100vw - 32px); flex-wrap: wrap; justify-content: center; }
+.tbtn { border: 1px solid var(--line); background: rgba(255, 255, 255, .05); border-radius: 10px; padding: 9px 13px; font-size: 14px; }
+.tbtn[aria-pressed="true"] { border-color: var(--ink); background: rgba(255, 255, 255, .1); }
+#go { background: var(--net); border: 0; color: #fff; font: 600 17px var(--display); letter-spacing: .03em; border-radius: 12px; padding: 12px 22px; min-width: 190px; }
+#go:disabled { background: rgba(91, 140, 255, .35); cursor: default; }
+.share { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); padding: 0 4px; }
+.tg { width: 44px; height: 26px; border-radius: 13px; border: 0; background: rgba(255, 255, 255, .14); position: relative; transition: background .2s; flex: none; }
+.tg::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .2s; }
+.tg[aria-checked="true"] { background: var(--net); }
+.tg[aria-checked="true"]::after { transform: translateX(18px); }
+.tg:disabled { opacity: .4; cursor: wait; }
+.prog { display: flex; gap: 5px; align-items: center; padding: 0 4px; }
+.prog i { width: 22px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .12); display: block; }
+.prog i.done { background: var(--net); }
+
+#chart { right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); width: min(312px, calc(100vw - 32px)); padding: 12px 14px 10px; }
+#chart .hd { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+#chart .hd b { font: 600 17px/1.1 var(--display); letter-spacing: .02em; }
+#chart .hd span { font: 500 11px var(--mono); color: var(--muted); white-space: nowrap; }
+#chart .sub { font-size: 12px; color: var(--muted); margin: 2px 0 8px; line-height: 1.35; }
+#chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+#chart .dots { display: flex; gap: 4px; align-items: center; margin-top: 6px; font-size: 11.5px; color: var(--muted); flex-wrap: wrap; }
+#chart .dots i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--alone); display: block; }
+#chart .dots i.w { background: var(--net); border-color: var(--net); }
+#chart .foot { margin: 6px 0 0; font-size: 11.5px; line-height: 1.4; color: var(--muted); }
+#chart .foot b { color: var(--ink); font-weight: 600; }
+#chart .pt-new { animation: pop .5s ease-out both; transform-box: fill-box; transform-origin: center; }
+@keyframes pop { from { opacity: 0; transform: scale(.2); } }
+
+#labels { position: fixed; inset: 0; pointer-events: none; z-index: 3; }
+.lab { position: absolute; left: 0; top: 0; white-space: nowrap; will-change: transform; }
+.lab.badge { font: 500 11.5px/1.25 var(--mono); padding: 4px 7px; border-radius: 7px; background: rgba(10, 16, 22, .86); border: 1px solid var(--line); color: var(--muted); }
+.lab.badge b { font-weight: 600; }
+.lab.badge .nm { display: block; font: 600 13px/1.1 var(--display); letter-spacing: .03em; color: var(--ink); margin-bottom: 1px; }
+.lab.badge .a { color: var(--alone); } .lab.badge .n { color: #9ab8ff; }
+.lab.badge.win { border-color: rgba(91, 140, 255, .55); }
+.lab.hub { font: 500 11px/1.25 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--wall); text-align: center; padding: 4px 8px; border-radius: 6px; background: rgba(10, 16, 22, .7); border: 1px solid rgba(127, 214, 255, .35); }
+.lab.hub span { display: block; letter-spacing: .04em; text-transform: none; color: var(--muted); }
+
+@media (max-width: 900px) {
+  #cap { max-width: calc(100vw - 32px); padding: 10px 12px; }
+  #say { font-size: 13.5px; }
+  #back { top: auto; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); right: auto; left: max(16px, env(safe-area-inset-left, 0px)); display: none; }
+  #chart { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); width: auto; padding: 10px 12px 8px; }
+  #chart .sub, #chart .foot { display: none; }
+  #chart svg { max-height: 120px; }
+  .lab.badge { font-size: 10px; padding: 3px 5px; }
+  .lab.badge .nm { font-size: 11.5px; }
+  #deck { left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); transform: none; max-width: none; flex-wrap: nowrap; gap: 6px; padding: 8px; }
+  #go { min-width: 0; flex: 1; font-size: 16px; padding: 11px 12px; }
+  .prog { display: none; }
+  .share { padding: 0; gap: 6px; font-size: 12.5px; }
+  .tbtn { padding: 9px 11px; }
+}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="labels"></div>
+
+<div id="cap" class="hud glass">
+  <div class="brand"><span>Prebuilt · eight printers</span><small>· simulation</small></div>
+  <div class="line"><span class="chip idle" id="chip">ready</span><span id="say">Eight printers, each starting from a 4-piece warm-up plate. Press <b>Print round 1</b>.</span></div>
+</div>
+<a id="back" class="hud glass" href="index.html">← two-printer demo</a>
+
+<div id="chart" class="hud glass" aria-live="polite">
+  <div class="hd"><b>Fleet error on test parts</b><span>µm, lower is better</span></div>
+  <p class="sub" id="chSub"></p>
+  <svg id="chSvg" viewBox="0 0 300 150" role="img" aria-label="Fleet-average model error by round"></svg>
+  <div class="dots" id="chDots"></div>
+  <p class="foot" id="chFoot"></p>
+</div>
+
+<div id="deck" class="hud glass">
+  <button class="tbtn" id="reset" aria-label="Start over">↺</button>
+  <button id="go">Print round 1 ▸</button>
+  <div class="prog" id="prog" aria-hidden="true"></div>
+  <button class="tbtn" id="auto" aria-pressed="false">Auto</button>
+  <label class="share"><button class="tg" id="share" role="switch" aria-checked="true" aria-label="Printers share notes"></button>Sharing</label>
+</div>
+
+<script>
+const BLOB = /*__DATA__*/null;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const f1 = v => (Math.round(v * 10) / 10).toFixed(1);
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const RUNS = BLOB.runs, EV = BLOB.evidence, R = RUNS.share.rounds;
+let MODE = "share", D = RUNS.share;
+const SITES = Object.keys(D.sites);
+const siteName = s => { const m = /^(resin|pla)(\d+)$/.exec(s); return m ? `${m[1] === "resin" ? "Resin" : "PLA"} ${+m[2] + 1}` : s; };
+
+// ---------- numbers
+const err = (d, r, site, arm) => { const v = d.scores.filter(x => x.round === r && x.site === site && x.arm === arm && x.mae_truth != null); return v.length ? v[0].mae_truth * 1000 : null; };
+const fleet = (d, r, arm) => { const v = SITES.map(s => err(d, r, s, arm)).filter(x => x != null); return v.reduce((a, b) => a + b, 0) / v.length; };
+// What each mode compares, per printer: sharing on = alone vs together in the same run (same pieces, same world);
+// sharing off = the together model with the network cut vs the same model with sharing (two runs, same world).
+const LBL = () => MODE === "share" ? { base: "alone", ours: "together" } : { base: "network cut", ours: "with sharing" };
+const pair = (r, s) => MODE === "share" ? [err(RUNS.share, r, s, "isolated"), err(RUNS.share, r, s, "networked")] : [err(RUNS.alone, r, s, "networked"), err(RUNS.share, r, s, "networked")];
+const fleetPair = r => MODE === "share" ? [fleet(RUNS.share, r, "isolated"), fleet(RUNS.share, r, "networked")] : [fleet(RUNS.alone, r, "networked"), fleet(RUNS.share, r, "networked")];
+
+// ---------- scene
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
+renderer.outputEncoding = THREE.sRGBEncoding; renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
+$("stage").appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x070b10); scene.fog = new THREE.Fog(0x070b10, 40, 90);
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, .1, 300);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = .08; controls.maxPolarAngle = Math.PI * .45; controls.minDistance = 10; controls.maxDistance = 70;
+function home() {
+  const a = innerWidth / innerHeight, k = a < .7 ? 2.5 : a < 1 ? 1.8 : a < 1.4 ? 1.35 : 1.12;
+  const t = new THREE.Vector3(0, 0, a < 1 ? 3.2 : 2.6); return [t.clone().add(new THREE.Vector3(0, 24, 15).multiplyScalar(k)), t];
+}
+function offsetView() { // wide screens: drop the ring a little so the top badges clear the caption
+  if (innerWidth > 900) camera.setViewOffset(innerWidth, innerHeight, 0, -Math.round(innerHeight * .045), innerWidth, innerHeight); else camera.clearViewOffset();
+  camera.updateProjectionMatrix();
+}
+{ const [p, t] = home(); camera.position.copy(p); controls.target.copy(t); offsetView(); }
+scene.add(new THREE.HemisphereLight(0x9fb8e8, 0x0a0806, .3));
+const key = new THREE.DirectionalLight(0xfff1e0, 1.4); key.position.set(8, 22, 12); key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16, near: 1, far: 60 }); scene.add(key);
+const rim = new THREE.DirectionalLight(0x7fd6ff, .35); rim.position.set(-10, 8, -12); scene.add(rim);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(160, 160), new THREE.MeshStandardMaterial({ color: 0x06090d, roughness: .95, metalness: 0 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+const grid = new THREE.GridHelper(80, 80, 0x16212c, 0x101821); grid.position.y = .002; scene.add(grid);
+const std = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: .55, metalness: .25, ...o });
+
+// privacy hub: a ring-shaped wall at the centre; notes pass through it, measurements never do
+const wallTex = (() => { const c = document.createElement("canvas"); c.width = 64; c.height = 256; const g = c.getContext("2d");
+  g.fillStyle = "rgba(127,214,255,0.05)"; g.fillRect(0, 0, 64, 256); g.fillStyle = "rgba(127,214,255,0.22)"; for (let y = 0; y < 256; y += 8) g.fillRect(0, y, 64, 1);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(10, 1.5); return t; })();
+const HUB_R = 2.2, HUB_H = 3.2, RING = 9.2;
+const hub = new THREE.Mesh(new THREE.CylinderGeometry(HUB_R, HUB_R, HUB_H, 64, 1, true), new THREE.MeshBasicMaterial({ map: wallTex, transparent: true, opacity: .9, side: THREE.DoubleSide, depthWrite: false, color: 0x7fd6ff }));
+hub.position.y = HUB_H / 2; scene.add(hub);
+for (const y of [0.01, HUB_H]) { const e = new THREE.Mesh(new THREE.TorusGeometry(HUB_R, .025, 8, 96), new THREE.MeshBasicMaterial({ color: 0x7fd6ff, transparent: true, opacity: .6 })); e.rotation.x = Math.PI / 2; e.position.y = y; scene.add(e); }
+const hubGlow = new THREE.PointLight(0x7fd6ff, .0, 9); hubGlow.position.y = HUB_H / 2; scene.add(hubGlow);
+
+// ---------- labels with overlap culling (higher priority wins)
+const LABELS = [];
+function label(html, posFn, cls, prio = 1) { const el = document.createElement("div"); el.className = "lab " + cls; el.innerHTML = html; $("labels").appendChild(el); const L = { el, posFn, prio, on: true, w: 0 }; LABELS.push(L); return L; }
+function setLabel(L, html, cls) { L.el.innerHTML = html; if (cls != null) L.el.className = "lab " + cls; L.w = 0; }
+const tv = new THREE.Vector3();
+function placeLabels() {
+  const placed = [];
+  for (const L of LABELS.slice().sort((a, b) => b.prio - a.prio)) {
+    if (!L.on) { L.el.style.display = "none"; continue; }
+    tv.copy(L.posFn()).project(camera);
+    if (tv.z > 1 || Math.abs(tv.x) > 1.1 || Math.abs(tv.y) > 1.1) { L.el.style.display = "none"; continue; }
+    L.el.style.display = "";
+    if (!L.w) { L.w = L.el.offsetWidth; L.h = L.el.offsetHeight; }
+    const x = Math.min(Math.max((tv.x * .5 + .5) * innerWidth - L.w / 2, 6), innerWidth - L.w - 6), y = Math.min(Math.max((-tv.y * .5 + .5) * innerHeight - L.h, 6), innerHeight - L.h - 6);
+    const box = [x - 2, y - 1, x + L.w + 2, y + L.h + 1];
+    if (placed.some(b => box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1])) { L.el.style.display = "none"; continue; }
+    placed.push(box); L.el.style.transform = `translate(${x}px, ${y}px)`;
+  }
+}
+label("Privacy hub<span>only summaries cross</span>", () => new THREE.Vector3(0, HUB_H + .9, 0), "hub", 9);
+
+// ---------- printers in a ring
+const PLATE = 2.4, CELL = PLATE / 8, TABLE_Y = .8, PIECE_H = .22;
+const slotX = c => -PLATE / 2 + CELL * (c + .5), slotZ = r => -PLATE / 2 + CELL * (r + .5);
+const ST = {};
+SITES.forEach((site, i) => {
+  const ang = -Math.PI / 2 + Math.PI / SITES.length + i * 2 * Math.PI / SITES.length, x0 = Math.cos(ang) * RING, z0 = Math.sin(ang) * RING * .82;
+  const g = new THREE.Group(); g.position.set(x0, 0, z0); g.rotation.y = -ang - Math.PI / 2; scene.add(g);
+  const resin = D.sites[site] === "resin";
+  const table = new THREE.Mesh(new THREE.BoxGeometry(3.2, TABLE_Y, 3.2), std(0x18212c, { metalness: .5, roughness: .4 }));
+  table.position.y = TABLE_Y / 2; table.castShadow = table.receiveShadow = true; g.add(table);
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(PLATE + .2, .06, PLATE + .2), std(resin ? 0xa9b3bf : 0x2a2f36, { metalness: resin ? .85 : .2, roughness: resin ? .25 : .7 }));
+  plate.position.y = TABLE_Y + .03; plate.receiveShadow = true; g.add(plate);
+  if (resin) { const vat = new THREE.Mesh(new THREE.BoxGeometry(PLATE + .35, .32, PLATE + .35), new THREE.MeshPhysicalMaterial({ color: 0xffb347, transparent: true, opacity: .12, roughness: .1, depthWrite: false })); vat.position.y = TABLE_Y + .16; g.add(vat); }
+  const frameMat = std(0x2c3947, { metalness: .6, roughness: .35 });
+  for (const [px, pz] of [[-1.5, -1.5], [1.5, -1.5], [-1.5, 1.5], [1.5, 1.5]]) { const p = new THREE.Mesh(new THREE.BoxGeometry(.1, 2.1, .1), frameMat); p.position.set(px, TABLE_Y + 1.05, pz); p.castShadow = true; g.add(p); }
+  for (const pz of [-1.5, 1.5]) { const b = new THREE.Mesh(new THREE.BoxGeometry(3.1, .1, .1), frameMat); b.position.set(0, TABLE_Y + 2.1, pz); g.add(b); }
+  const head = new THREE.Mesh(new THREE.BoxGeometry(.38, resin ? .18 : .3, .38), std(0x39414c)); head.position.set(0, TABLE_Y + 1.85, 0); head.castShadow = true; g.add(head);
+  const badge = label("", () => new THREE.Vector3(x0, TABLE_Y + 2.6, z0), "badge", 7);
+  ST[site] = { g, head, pieces: [], x0, z0, badge, mid: new THREE.Vector3(x0, TABLE_Y + 1.2, z0) };
+});
+
+// ---------- pieces
+const plateOf = (site, r) => (D.plates[site] || []).find(p => p.round === r);
+function pieceMesh(q) {
+  const rad = .03 + (q.d - 1) / 7 * .09, test = q.arm === "heldout", col = test ? 0x2fc2c4 : 0xc9d1da;
+  const mat = std(col, { emissive: col, emissiveIntensity: .12, roughness: .5, metalness: .05 });
+  let mesh;
+  if (q.kind === "pin") { mesh = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, PIECE_H, 20), mat); mesh.geometry.translate(0, PIECE_H / 2, 0); }
+  else { mesh = new THREE.Mesh(new THREE.BoxGeometry(.26, PIECE_H * .55, .26), mat); mesh.geometry.translate(0, PIECE_H * .275, 0); }
+  mesh.castShadow = true; const [r, c] = q.slot; mesh.position.set(slotX(c), TABLE_Y + .06, slotZ(r));
+  if (q.status !== "ok") { mat.color.setHex(0x4a3a3c); mat.emissiveIntensity = 0; mesh.scale.y = .35; }
+  return mesh;
+}
+function layPlate(site, r, grow) {
+  const st = ST[site]; st.pieces.forEach(m => st.g.remove(m)); st.pieces = [];
+  const p = plateOf(site, r); if (!p) return [];
+  st.pieces = p.pieces.map(q => { const m = pieceMesh(q); m.userData.sy = m.scale.y; if (grow) m.scale.y = .001; st.g.add(m); return m; });
+  return st.pieces;
+}
+
+// ---------- animation helpers
+const anims = [];
+const tween = (ms, fn) => new Promise(res => { if (reduce) { fn(1); return res(); } anims.push({ t0: performance.now(), ms, fn, res }); });
+function stepAnims(now) { for (let i = anims.length - 1; i >= 0; i--) { const a = anims[i], t = Math.min(1, (now - a.t0) / a.ms); a.fn(t); if (t >= 1) { anims.splice(i, 1); a.res(); } } }
+const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+const sleep = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
+const noteGeo = new THREE.OctahedronGeometry(.3), noteMat = new THREE.MeshStandardMaterial({ color: 0x2aa8e0, emissive: 0x1a8fd0, emissiveIntensity: .55, roughness: .35, metalness: .1 });
+function fly(from, to, ms, lift = 2.2) {
+  const m = new THREE.Mesh(noteGeo, noteMat); m.position.copy(from); scene.add(m);
+  return tween(ms, t => { const e = ease(t); m.position.lerpVectors(from, to, e); m.position.y += Math.sin(Math.PI * e) * lift; m.rotation.y = t * 6; if (t >= 1) scene.remove(m); });
+}
+
+// ---------- state, badges, chart
+let at = 0, busy = false, autoOn = false;
+function badges(r) {
+  for (const s of SITES) {
+    const st = ST[s];
+    const [a, n] = r ? pair(r, s) : [null, null];
+    const nums = a != null && n != null ? `<span class="nums"><span class="a">${LBL().base} <b>${f1(a)}</b></span> · <span class="n">${LBL().ours} <b>${f1(n)}</b></span> µm</span>` : `<span class="nums">data stays here</span>`;
+    setLabel(st.badge, `<span class="nm">${esc(siteName(s))}</span>${nums}`, "badge" + (a != null && n < a ? " win" : ""));
+  }
+}
+function chart(r) {
+  const W = 300, H = 150, L = 26, Rr = 84, T = 14, B = 20, pw = W - L - Rr, ph = H - T - B;
+  const all = Object.values(RUNS).flatMap(d => Array.from({ length: d.rounds }, (_, i) => [fleet(d, i + 1, "isolated"), fleet(d, i + 1, "networked")]).flat());
+  const ymax = Math.max(10, Math.ceil(Math.max(...all) / 5) * 5 + 5);
+  const x = i => L + pw * (i - 1) / Math.max(R - 1, 1), y = v => T + ph * (1 - v / ymax);
+  const mono = `font-family="IBM Plex Mono, monospace"`, ticks = [0, ymax / 3, ymax * 2 / 3, ymax].map(v => Math.round(v));
+  let s = ticks.map(v => `<line x1="${L}" x2="${L + pw}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(160,185,210,${v ? .13 : .35})" ${v ? 'stroke-dasharray="2 4"' : ""}/><text x="${L - 6}" y="${y(v) + 3.5}" text-anchor="end" ${mono} font-size="11" fill="#7f8fa1">${v}</text>`).join("");
+  s += Array.from({ length: R }, (_, i) => `<text x="${x(i + 1)}" y="${H - 4}" text-anchor="middle" ${mono} font-size="10.5" fill="${i + 1 <= r ? "#93a3b5" : "#4d5b6b"}">round ${i + 1}</text>`).join("");
+  const ends = [];
+  for (const [k, name, col, dash] of [[0, LBL().base, "#8d9bad", MODE === "share" ? "" : "2 0"], [1, LBL().ours, "#5b8cff", MODE === "share" ? "" : "5 4"]]) {
+    const pts = []; for (let i = 1; i <= r; i++) pts.push([i, fleetPair(i)[k]]);
+    for (let j = 1; j < pts.length; j++) s += `<line x1="${x(pts[j - 1][0])}" y1="${y(pts[j - 1][1])}" x2="${x(pts[j][0])}" y2="${y(pts[j][1])}" stroke="${col}" stroke-width="${k ? 3 : 2.2}" stroke-linecap="round" ${dash && dash !== "2 0" ? `stroke-dasharray="${dash}"` : ""}/>`;
+    for (const [i, v] of pts) s += `<circle ${i === r ? 'class="pt-new"' : ""} cx="${x(i)}" cy="${y(v)}" r="${k ? 4 : 3.4}" fill="${col}" stroke="#0b1016" stroke-width="1.5"/>`;
+    if (pts.length) { const [li, lv] = pts[pts.length - 1]; ends.push({ name, col, v: lv, x: x(li), y: y(lv) }); }
+  }
+  if (r) {
+    const [a, n] = fleetPair(r), pct = 100 * (a - n) / a, ya = y(a), yb = y(n), xm = x(r) - 12;
+    if (pct > .5 && yb - ya > 5) {
+      const tight = yb - ya < 16;
+      s += `<path d="M${xm + 4},${ya} H${xm} V${yb} H${xm + 4}" fill="none" stroke="#cfe0ff" stroke-width="1.2"/><text x="${tight ? xm + 2 : xm - 4}" y="${tight ? ya - 12 : (ya + yb) / 2 + 5}" text-anchor="${tight ? "middle" : "end"}" font-family="Barlow Condensed, sans-serif" font-weight="700" font-size="16" fill="#cfe0ff" stroke="#0b1016" stroke-width="3.5" paint-order="stroke">−${Math.round(pct)}%</text>`;
+    }
+  }
+  ends.sort((a, b) => a.y - b.y);
+  for (let j = 1; j < ends.length; j++) ends[j].ly = Math.max(ends[j].y, (ends[j - 1].ly ?? ends[j - 1].y) + 15);
+  for (const e of ends) s += `<text x="${e.x + 9}" y="${(e.ly ?? e.y) + 4}" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="${e.col}"><tspan font-weight="600" font-family="Barlow Condensed, sans-serif" font-size="16">${f1(e.v)}</tspan> ${esc(e.name)}</text>`;
+  if (!r) s += `<text x="${L + pw / 2}" y="${T + ph / 2}" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="#93a3b5">Print round 1 to plot the first point</text>`;
+  $("chSvg").innerHTML = s;
+  $("chSvg").setAttribute("aria-label", "Fleet-average error by round: " + [0, 1].map(k => `${k ? LBL().ours : LBL().base} ${Array.from({ length: r }, (_, i) => f1(fleetPair(i + 1)[k])).join(", ")}`).join("; "));
+  $("chSub").innerHTML = MODE === "share"
+    ? `One simulated world, ${SITES.length} printers averaged. Each starts with ${BLOB.setup.seed_pieces} test parts and prints ${BLOB.setup.slots} a round.`
+    : `Sharing off: the same world and the same model with the notes cut (grey), against the run with sharing (blue, dashed).`;
+  const better = s2 => { const [a, n] = pair(r, s2); return n < a; }, wins = r ? SITES.filter(better).length : 0;
+  $("chDots").innerHTML = r ? `${SITES.map(s2 => `<i class="${better(s2) ? "w" : ""}" title="${esc(siteName(s2))}"></i>`).join("")}<span>${LBL().ours} better at ${wins} of ${SITES.length}</span>` : "";
+  const row = EV && EV.sites_needed && EV.sites_needed.rows.find(z => z.sites === SITES.length);
+  const two = EV && EV.sites_needed && EV.sites_needed.rows.find(z => z.sites === 2);
+  $("chFoot").innerHTML = row ? `Over ${row.worlds} worlds at round ${EV.sites_needed.round}: ${SITES.length} printers <b>${Math.round(row.pct)}%</b> lower than alone (${row.wins}/${row.n})${two ? `, against ${Math.round(two.pct)}% with 2` : ""}. This world: ${f1(100 * (1 - fleet(RUNS.share, R, "networked") / fleet(RUNS.share, R, "isolated")))}%.` : "";
+}
+function progress() { $("prog").innerHTML = Array.from({ length: R }, (_, i) => `<i class="${i < at ? "done" : ""}"></i>`).join(""); }
+function say(chip, html) { $("chip").textContent = chip; $("chip").className = "chip" + (chip === "ready" || chip === "done" ? " idle" : ""); $("say").innerHTML = html; }
+function setGo() { $("go").disabled = busy || at >= R; $("go").textContent = at >= R ? "All rounds printed" : `Print round ${at + 1} ▸`; }
+
+async function round() {
+  if (busy || at >= R) return;
+  busy = true; setGo(); $("share").disabled = true;
+  const r = at + 1;
+  say(`round ${r}`, `Every printer prints and measures its round-${r} plate. Measurements stay on each printer.`);
+  const grown = SITES.flatMap(s => layPlate(s, r, true));
+  SITES.forEach(s => { const h = ST[s].head; tween(1400, t => { h.position.x = Math.sin(t * Math.PI * 4) * .7; h.position.z = Math.cos(t * Math.PI * 3) * .5; }); });
+  await tween(1400, t => grown.forEach((m, i) => { const k = Math.min(1, Math.max(0, t * 1.6 - (i % 9) * .06)); m.scale.y = Math.max(.001, k * m.userData.sy); }));
+  if (MODE === "share") {
+    const n = D.messages.filter(m => m.round === r).length;
+    say(`round ${r}`, `Each printer sends <b>6 numbers</b> (mean and spread of 3 shared parameters) to the others: ${n} notes, no measurements.`);
+    hubGlow.intensity = 1.2;
+    await Promise.all(SITES.map((s, i) => sleep(i * 60).then(() => fly(ST[s].mid, new THREE.Vector3(0, HUB_H * .6, 0), 900, 1.6))));
+    await Promise.all(SITES.map((s, i) => sleep(i * 60).then(() => fly(new THREE.Vector3(0, HUB_H * .6, 0), ST[s].mid, 900, 1.6))));
+    hubGlow.intensity = 0;
+  } else {
+    say(`round ${r}`, `Sharing is off: nothing crosses the hub. Every printer learns from its own plate only.`);
+    await sleep(700);
+  }
+  at = r; badges(r); chart(r); progress();
+  const [a, n] = fleetPair(r), wins = SITES.filter(s => { const [x1, x2] = pair(r, s); return x2 < x1; }).length;
+  say(r < R ? `round ${r}` : "done", MODE === "share"
+    ? `Round ${r}: fleet error <b>${f1(a)}</b> µm alone, <b>${f1(n)}</b> µm together (${Math.round(100 * (a - n) / a)}% lower); together is better at ${wins} of ${SITES.length} printers.${r === R ? " Flip <b>Sharing</b> off to compare." : ""}`
+    : `Round ${r}, network cut: the same model reaches <b>${f1(a)}</b> µm without notes, against <b>${f1(n)}</b> µm with them.`);
+  busy = false; setGo(); $("share").disabled = false;
+  if (autoOn && at < R) setTimeout(round, reduce ? 200 : 900);
+}
+function reset() {
+  if (busy) return;
+  at = 0; SITES.forEach(s => layPlate(s, 0, false)); badges(0); chart(0); progress(); setGo();
+  say("ready", MODE === "share" ? `Eight printers, each starting from a ${BLOB.setup.seed_pieces}-piece warm-up plate. Press <b>Print round 1</b>.` : `Sharing is off: no notes will cross. Press <b>Print round 1</b>.`);
+}
+$("go").onclick = round;
+$("reset").onclick = reset;
+$("auto").onclick = () => { autoOn = !autoOn; $("auto").setAttribute("aria-pressed", autoOn); if (autoOn && !busy && at < R) round(); };
+$("share").onclick = () => {
+  if (busy) return;
+  MODE = MODE === "share" ? "alone" : "share"; D = RUNS[MODE]; $("share").setAttribute("aria-checked", MODE === "share");
+  const r = at; SITES.forEach(s => layPlate(s, r, false)); badges(r); chart(r);
+  say(r ? `round ${r}` : "ready", MODE === "share" ? "Sharing on: the printers swap summaries after every round." : "Sharing off: grey is the same model with the notes cut; dashed blue is with sharing.");
+};
+addEventListener("keydown", e => { if ((e.key === " " || e.key === "Enter") && !(e.target.closest && e.target.closest("button"))) { e.preventDefault(); round(); } });
+addEventListener("resize", () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; const [p, t] = home(); camera.position.copy(p); controls.target.copy(t); offsetView(); });
+
+function frame(now) {
+  requestAnimationFrame(frame); stepAnims(now);
+  if (!reduce) wallTex.offset.y = -now / 1000 * .04;
+  controls.update(); renderer.render(scene, camera); placeLabels();
+}
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

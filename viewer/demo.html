@@ -569,7 +569,7 @@ function chartMany() { // 2 vs 8 printers, side by side, same sweep and same y a
   $("chSvg").innerHTML = s;
   $("chSvg").setAttribute("aria-label", "Model error by round, alone vs together: " + P.map(r => `${r.sites} printers ${r.curve_um.isolated.map(f1).join(", ")} alone, ${r.curve_um.networked.map(f1).join(", ")} together`).join("; "));
   $("chSub").innerHTML = `Same setup, more printers. Each starts with ${E.sites_needed.seed_pieces} test parts and prints ${E.sites_needed.per_round} a round. <span style="color:#8d9bad">Grey: alone</span>, <span style="color:#5b8cff">blue: together</span>. Averages over simulated worlds; the 3D scene shows two.`;
-  $("chFoot").innerHTML = `Round ${E.sites_needed.round}: ${P.map(r => `${r.sites} printers <b>${Math.round(r.pct)}%</b> lower (${r.wins}/${r.n} worlds)`).join(" vs ")}. The gap more than triples: ${f1(P[0].alone_um - P[0].together_um)} → ${f1(P[P.length - 1].alone_um - P[P.length - 1].together_um)} µm. 4 printers: ${Math.round((pick(4) || {}).pct || 0)}%.`;
+  $("chFoot").innerHTML = `Round ${E.sites_needed.round}: ${P.map(r => `${r.sites} printers <b>${Math.round(r.pct)}%</b> lower (${r.wins}/${r.n} worlds)`).join(" vs ")}. The gap more than triples: ${f1(P[0].alone_um - P[0].together_um)} → ${f1(P[P.length - 1].alone_um - P[P.length - 1].together_um)} µm. 4 printers: ${Math.round((pick(4) || {}).pct || 0)}%.` + (BLOB.fleet_page ? ` <a href="${esc(BLOB.fleet_page)}" style="color:#9ab8ff;font-weight:600;pointer-events:auto">See 8 printers in 3D →</a>` : "");
   document.querySelectorAll("#seg button").forEach(b => b.setAttribute("aria-checked", b.dataset.k === "many"));
 }
 function chart(r) {
