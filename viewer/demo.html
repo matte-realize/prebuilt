@@ -544,33 +544,37 @@ function gapLabel(xa, ya, yb, pct) { // bracket between alone and together at th
   const xm = xa - 12, tight = yb - ya < 16;
   return `<path d="M${xm + 4},${ya} H${xm} V${yb} H${xm + 4}" fill="none" stroke="#cfe0ff" stroke-width="1.2"/><text x="${tight ? xm + 2 : xm - 4}" y="${tight ? ya - 14 : (ya + yb) / 2 + 4}" text-anchor="${tight ? "middle" : "end"}" font-family="Barlow Condensed, sans-serif" font-weight="600" font-size="14" fill="#cfe0ff" stroke="#0b1016" stroke-width="3.5" paint-order="stroke">−${Math.round(pct)}%</text>`;
 }
-function chartMany() {
-  const row = manyRow(), cv = row.curve_um, n = cv.isolated.length;
-  const W = 300, H = 156, L = 26, Rr = 94, T = 24, B = 20, pw = W - L - Rr, ph = H - T - B;
-  const ymax = Math.max(10, Math.ceil(Math.max(...Object.values(cv).flat()) / 5) * 5 + 5);
-  const x = i => L + pw * (i - 1) / Math.max(n - 1, 1), y = v => T + ph * (1 - v / ymax);
-  const mono = `font-family="IBM Plex Mono, monospace"`, ticks = [0, ymax / 3, ymax * 2 / 3, ymax].map(v => Math.round(v));
-  let s = ticks.map(v => `<line x1="${L}" x2="${L + pw}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(160,185,210,${v ? .13 : .35})" ${v ? 'stroke-dasharray="2 4"' : ""}/><text x="${L - 6}" y="${y(v) + 3.5}" text-anchor="end" ${mono} font-size="11" fill="#7f8fa1">${v}</text>`).join("");
-  s += Array.from({ length: n }, (_, i) => `<text x="${x(i + 1)}" y="${H - 4}" text-anchor="middle" ${mono} font-size="10.5" fill="#93a3b5">round ${i + 1}</text>`).join("");
-  const ends = [];
-  for (const [a, name, col, dash] of SERIES) {
-    const v = cv[a]; if (!v) continue;
-    for (let i = 1; i < n; i++) s += `<line x1="${x(i)}" y1="${y(v[i - 1])}" x2="${x(i + 1)}" y2="${y(v[i])}" stroke="${col}" stroke-width="${a === "networked" ? 3 : 2.2}" stroke-linecap="round" ${dash ? `stroke-dasharray="${dash}"` : ""}/>`;
-    v.forEach((u, i) => s += `<circle class="pt-new" cx="${x(i + 1)}" cy="${y(u)}" r="${a === "networked" ? 4 : 3.4}" fill="${col}" stroke="#0b1016" stroke-width="1.5"/>`);
-    ends.push({ name, col, v: v[n - 1], x: x(n), y: y(v[n - 1]) });
-  }
-  s += gapLabel(x(n), y(cv.isolated[n - 1]), y(cv.networked[n - 1]), row.pct);
-  ends.sort((a, b) => a.y - b.y);
-  for (let j = 1; j < ends.length; j++) ends[j].ly = Math.max(ends[j].y, (ends[j - 1].ly ?? ends[j - 1].y) + 15);
-  for (const e of ends) s += `<text x="${e.x + 9}" y="${(e.ly ?? e.y) + 4}" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="${e.col}"><tspan font-weight="600" font-family="Barlow Condensed, sans-serif" font-size="16">${f1(e.v)}</tspan> ${esc(e.name)}</text>`;
+function chartMany() { // 2 vs 8 printers, side by side, same sweep and same y axis: the only change is how many printers share
+  const rows = E.sites_needed.rows, pick = n => rows.find(x => x.sites === n && x.curve_um), P = [pick(2), pick(8)].filter(Boolean);
+  const n = P[0].curve_um.isolated.length, W = 300, H = 170, L = 26, T = 30, B = 20, gap = 16, pw = (W - L - 4 - gap) / 2, ph = H - T - B;
+  const ymax = Math.max(10, Math.ceil(Math.max(...P.flatMap(r => [...r.curve_um.isolated, ...r.curve_um.networked])) / 5) * 5);
+  const y = v => T + ph * (1 - v / ymax), mono = `font-family="IBM Plex Mono, monospace"`, ticks = [0, ymax / 3, ymax * 2 / 3, ymax].map(v => Math.round(v));
+  let s = ticks.map(v => `<text x="${L - 6}" y="${y(v) + 3.5}" text-anchor="end" ${mono} font-size="11" fill="#7f8fa1">${v}</text>`).join("");
+  P.forEach((row, k) => {
+    const x0 = L + k * (pw + gap), x = i => x0 + 6 + (pw - 40) * (i - 1) / Math.max(n - 1, 1), cv = row.curve_um;
+    s += ticks.map(v => `<line x1="${x0}" x2="${x0 + pw}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(160,185,210,${v ? .13 : .35})" ${v ? 'stroke-dasharray="2 4"' : ""}/>`).join("");
+    s += `<text x="${x0 + pw / 2}" y="${T - 14}" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="600" font-size="15" fill="#e6edf4">${row.sites} printers</text>`;
+    s += [1, n].map(i => `<text x="${x(i)}" y="${H - 4}" text-anchor="middle" ${mono} font-size="10" fill="#93a3b5">r${i}</text>`).join("");
+    for (const [a, , col] of SERIES.filter(([a]) => a !== "oracle")) {
+      const v = cv[a];
+      for (let i = 1; i < n; i++) s += `<line x1="${x(i)}" y1="${y(v[i - 1])}" x2="${x(i + 1)}" y2="${y(v[i])}" stroke="${col}" stroke-width="${a === "networked" ? 3 : 2.2}" stroke-linecap="round"/>`;
+      v.forEach((u, i) => s += `<circle class="pt-new" cx="${x(i + 1)}" cy="${y(u)}" r="${a === "networked" ? 3.8 : 3.2}" fill="${col}" stroke="#0b1016" stroke-width="1.5"/>`);
+    }
+    const xe = x(n), ya = y(cv.isolated[n - 1]), yb = y(cv.networked[n - 1]);
+    s += `<path d="M${xe + 5},${ya} H${xe + 9} V${yb} H${xe + 5}" fill="none" stroke="#cfe0ff" stroke-width="1.2"/>`;
+    s += `<text x="${xe + 12}" y="${(ya + yb) / 2 + 5}" font-family="Barlow Condensed, sans-serif" font-weight="700" font-size="${k ? 17 : 15}" fill="#cfe0ff">−${Math.round(row.pct)}%</text>`;
+    s += `<text x="${x0 + pw / 2}" y="${T - 2}" text-anchor="middle" ${mono} font-size="9.5" fill="#93a3b5">${f1(cv.isolated[n - 1])} → ${f1(cv.networked[n - 1])} µm</text>`;
+  });
+  $("chSvg").setAttribute("viewBox", `0 0 ${W} ${H}`);
   $("chSvg").innerHTML = s;
-  $("chSvg").setAttribute("aria-label", `Model error by round, 8 printers, average of ${row.worlds} worlds: ` + SERIES.map(([a, nm]) => `${nm} ${cv[a].map(f1).join(", ")}`).join("; "));
-  $("chSub").innerHTML = `Where sharing pays: 8 printers that each start with ${E.sites_needed.seed_pieces} test parts and print ${E.sites_needed.per_round} a round. Average of ${row.worlds} simulated worlds; the 3D scene still shows two.`;
-  $("chFoot").innerHTML = `Round ${E.sites_needed.round}: together <b>${Math.round(row.pct)}%</b> lower than alone, better in ${row.wins} of ${row.n} worlds. Same method, more printers: ${E.sites_needed.rows.map(x => `${x.sites} → ${Math.round(x.pct)}%`).join(", ")}. Pooling every raw measurement in one model fits worse at this size.`;
+  $("chSvg").setAttribute("aria-label", "Model error by round, alone vs together: " + P.map(r => `${r.sites} printers ${r.curve_um.isolated.map(f1).join(", ")} alone, ${r.curve_um.networked.map(f1).join(", ")} together`).join("; "));
+  $("chSub").innerHTML = `Same setup, more printers. Each starts with ${E.sites_needed.seed_pieces} test parts and prints ${E.sites_needed.per_round} a round. <span style="color:#8d9bad">Grey: alone</span>, <span style="color:#5b8cff">blue: together</span>. Averages over simulated worlds; the 3D scene shows two.`;
+  $("chFoot").innerHTML = `Round ${E.sites_needed.round}: ${P.map(r => `${r.sites} printers <b>${Math.round(r.pct)}%</b> lower (${r.wins}/${r.n} worlds)`).join(" vs ")}. The gap more than triples: ${f1(P[0].alone_um - P[0].together_um)} → ${f1(P[P.length - 1].alone_um - P[P.length - 1].together_um)} µm. 4 printers: ${Math.round((pick(4) || {}).pct || 0)}%.`;
   document.querySelectorAll("#seg button").forEach(b => b.setAttribute("aria-checked", b.dataset.k === "many"));
 }
 function chart(r) {
   if (MANY && manyRow()) return chartMany();
+  $("chSvg").setAttribute("viewBox", "0 0 300 156");
   const W = 300, H = 156, L = 26, Rr = 94, T = 24, B = 20, pw = W - L - Rr, ph = H - T - B; // T leaves a band above the axis for off-scale points
   const x = i => L + (R > 1 ? pw * (i - 1) / (R - 1) : pw / 2), y = v => v > YMAX ? T - 12 : T + ph * (1 - v / YMAX);
   const fresh = CHART_SC === SC && r === CHART_AT + 1; CHART_AT = r; CHART_SC = SC;
@@ -986,7 +990,7 @@ function frame(now) {
   controls.update(); renderer.render(scene, camera); placeLabels();
 }
 const SEG = [["normal", "Honest"], ["alone", "Notes off"], ["liar", "Liar"], ["liar_check", "Liar + check"]].filter(([k]) => ALL[k]);
-if (manyRow()) SEG.push(["many", "8 printers"]);
+if (manyRow()) SEG.push(["many", "2 vs 8 printers"]);
 $("seg").innerHTML = SEG.map(([k, t]) => `<button role="radio" data-k="${k}" class="${k.startsWith("liar") ? "lie" : k === "many" ? "many" : ""}" aria-checked="${k === SC}">${t}</button>`).join("");
 if (SEG.length < 2) $("seg").hidden = true;
 $("seg").querySelectorAll("button").forEach(b => b.onclick = () => {
