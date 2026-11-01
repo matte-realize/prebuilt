@@ -1,24 +1,35 @@
 # Spec: Claims and Rubric
 
-## 4. Pre-registered claims
+## 4. Claims
 
-Committed to the repository with a hash and timestamp before the first print.
+### 4.1 Registered claims
 
-- **H1 (privacy-preserving performance).** At equal print budgets, the networked collective reaches held-out error closer to the pooled-data oracle than to isolated sites, while no raw data crosses a site boundary.
-- **H2 (transfer).** A site joining the network (PLA, one round behind) reaches target held-out error with fewer pieces than an isolated site, because process-agnostic knowledge arrives as messages.
-- **H3 (robustness).** A deliberately miscalibrated agent, or a site broadcasting bad beliefs, loses credibility and the network recovers without intervention.
-- **H4 (privacy, verified).** Receipts prove that no raw measurement, plate file, or site-specific parameter crossed a site boundary.
-- **H5 (baseline).** The calibrated model predicts fit better than generic vendor clearance guidance. Expected; reported, not the headline.
-- **H6 (discovery, exploratory).** The network surfaces at least one effect absent from the physics model (candidate: build-plate position dependence). Labeled exploratory in advance.
+Committed in `prereg/prereg.yaml` before any print (its sha256 is recorded in `eval/figures/README.md`):
+
+- **Network vs. isolated (`network_vs_oracle`).** At equal print budgets, the networked arm beats isolated sites on held-out error, near the pooled-data oracle, with no raw data crossing a site boundary. Primary metric: isolated − networked held-out MAE in µm. **Result, simulation only:** 1.6 µm (12%) at two sites, better in 75 of 100 worlds; the oracle also gains 12%.
+- **Sim-to-real range (`sim_to_real_range`).** The measured value on real printers lands in a range predicted from simulation after seed calibration. **Not tested:** no full real-printer run took place (fallback tier D, Section 14). The only real-printer evidence is three micrometer readings on one Formlabs Form Studio 1 (a 1.5 mm pin measured 1.41–1.48 mm, within the vendor's ±0.08 mm spec and inside the simulator's range).
+- **Robustness (`robustness_sim`).** In simulation, a site broadcasting corrupted beliefs loses trust and the networked arm stays at least as good as isolated after round 1, while honest senders keep trust. **Result:** the liar's trust falls to ~0.01 after one round, but round 1 is costly; the opt-in consistency check removes that cost (Section 6.4).
+
+### 4.2 Designed, not registered
+
+From the full design, reported as exploratory or not built:
+
+- **Transfer** (a site joining one round behind learns faster): not run; both sites start together.
+- **Privacy, verified:** built. `eval/audit.py` replays the receipt chains and checks that nothing outside the message schema crossed.
+- **Fit vs. vendor guidance:** fit-class accuracy is scored (`eval/fit.py`) but can't separate the arms (0.94–0.98 in every arm); not compared against vendor guidance.
+- **Discovery** (an effect absent from the physics model): the hypothesis agent and the position-template spawn exist and are exploratory; the hypothesis agent has not been run against a live model.
+
+### 4.3 Exploratory findings (simulation)
+
+Many data-poor sites gain 11% / 28% / 35% at 2 / 4 / 8 sites; the agent layer adds nothing measurable and its piece choices don't beat random; a negative control with no shared physics gains nothing (−13%); corrected designs cut size error from 132 to 9 µm (median). Details: `hpc/sweeps/relevance/README.md`, `hpc/sweeps/coldstart/README.md`.
 
 ## 5. Rubric mapping
 
 | Criterion | Weight | What earns it |
 |---|---|---|
-| Problem significance | 20 | Distributed manufacturing can't pool data; characterization repeated at every site |
-| Scientific/technical impact | 25 | Near-oracle learning under privacy (H1), cross-process transfer (H2), discovered effect (H6), pre-registration, held-out escrow |
-| Decentralized agency | 20 | Decentralization is a hard constraint; per-site collectives, message-only exchange, credibility auction, challenges, spawn/retire, hypothesis agent |
-| Collective capability | 25 | Network vs. isolated sites vs. oracle (H1), transfer (H2), recovery (H3), scaling with number of sites |
-| Execution and validation | 10 | Real held-out fits, verifiable receipts including privacy proof (H4), end-to-end loop, honest reporting |
-| Reuse bonus | +10 | Test-plate spec, scanner tool, hidden-truth multi-site benchmark, clearing-rule and message-protocol library |
-
+| Problem significance | 20 | Distributed manufacturing can't pool data; characterization is repeated at every site |
+| Scientific/technical impact | 25 | Sharing matches pooling under privacy; claims registered before printing; held-out escrow; negative control; honest limits (sim only) |
+| Decentralized agency | 20 | Decentralization is a hard constraint; per-site agents, message-only exchange, learned trust between sites, opt-in consistency check, adaptive spread and predictive trust |
+| Collective capability | 25 | Network vs. isolated vs. oracle; gain grows with the number of data-poor sites; recovery from a lying site; mixed fleets |
+| Execution and validation | 10 | End-to-end loop (console, real-printer path, rehearsal), verifiable receipts and privacy audit, real micrometer sanity check |
+| Reuse bonus | +10 | Test-plate spec, scanner tool, hidden-truth multi-site benchmark, message-protocol library |

@@ -2,6 +2,10 @@
 
 The registered real-printer run, step by step, for whoever is at the printers. All commands run from the repo root with `.venv/bin/python` (shown as `py`). To practice the loop or enter hand measurements in a browser instead, use the [console](console.md).
 
+**What has run on real hardware so far:** one Formlabs Form Studio 1 (Alpha Fast resin) printed a plate (see [test-print.md](test-print.md)), and three pins were measured with a micrometer. No flatbed scanner, no second printer, and no full registered run (seed plate plus rounds) has taken place, so every sharing result is simulation. This procedure is ready but untested end to end on real printers; `measure.rehearsal` exercises it with simulated scans.
+
+**No scanner?** A site with only calipers or a micrometer can still take part. With no scans in `scans/<site>/`, the run writes a blank `{plate_id}-manual.csv` (`row,col,kind,measured_d,status`) next to where the scans would go: fill in every piece (`ok` with a diameter in mm, `failed` if it didn't print, `skip` if it printed but you can't measure it) and press Enter. Skipped pieces stay on the chain but are never used as data. The [console](console.md) does the same from a browser table (values over 100 are read as µm), but console runs are practice runs with no prereg hash; a registered run uses this procedure.
+
 ## 0. Before printing
 
 1. `py -m prereg.check` must say **ready for seed**. If it lists `config.*` fields, the config isn't complete. Don't print the seed plates without it: the checkpoint locks the config.

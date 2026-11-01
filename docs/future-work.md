@@ -4,25 +4,30 @@ What the simulations say about the current setup, what would make the agents and
 
 ## What the simulations say about the current setup
 
-- **Sharing works, but the effect is small here.** By round 3, networked beats isolated by 1.6 µm (12%) against true size, in 75 of 100 worlds, at or below the pooled-data oracle. It comes from the messages: with messages cut, the same agents gain nothing (2.4%, 56/100).
-- **It's too small to matter for fit or to see on real prints.** Model error is ~11–13 µm, scanner noise ~31 µm, the resin slip-fit band 100 µm. On measured diameters the gain is 1.5%.
-- **Learned credibility adds nothing measurable to accuracy.** With messages cut, the agents at learned credibility don't beat the same agents at uniform credibility. Challenge and spawn were off in these sweeps (as in the frozen config), so this says nothing about them. Likely causes: a small design space (pins and holes, 1–8 mm), ~8 parameters per site, agents that read the same posterior.
-- **Many data-poor sites is the lever.** Neither four sites (2.3 µm) nor less data with two sites (2.7 µm, not significant) helps much alone; four data-poor sites give 6.9 µm (27%, 51/60) and show through scanner noise (11% measured).
-- **A bad site is cut off after one round, but round 1 is costly** (40 vs 14 µm), and afterwards the network is only back to where it would be with no messages. Lower `trust_init` only trims round 1. The consistency check (receiver compares each note with its own data) catches every lying note, drops no honest ones, and removes both problems in simulation.
-- **A saboteur agent inside a site does almost no harm and isn't caught.** Piece choice barely matters here, so the agent market has nothing to protect; its credibility stays level with an honest agent's.
+All simulation, against printers whose true behavior is known (`hpc/sweeps/relevance/README.md`, section numbers below).
+
+- **Sharing works, but at two sites the effect is small.** By round 3, networked beats isolated by 1.6 µm (12%) against true size, in 75 of 100 worlds, matching the pooled-data oracle. It comes from the messages: with messages cut, the same agents gain nothing (2.4%, 56/100). Section 1.
+- **It's too small to see on real prints at two sites.** Model error is ~11–13 µm, scanner noise ~31 µm, the resin slip-fit band 100 µm. On measured diameters the gain is 1.5%. Section 1.
+- **Many data-poor sites is the lever.** Sites that start with 4 test pieces and print 2 a round gain 11% / 28% / 35% at 2 / 4 / 8 sites (8 sites: 20 of 20 worlds). Sections 2 and 7.
+- **The agent layer adds nothing measurable.** Learned credibility doesn't beat uniform credibility, the agents' piece choices don't beat random (section 8), and a saboteur agent inside a site does almost no harm and isn't caught (section 3). Likely causes: a small design space (pins and holes, 1–8 mm), ~8 parameters per site, agents that read the same posterior.
+- **The gain isn't built into the simulator.** In a negative control where printers share no physics, sharing gains nothing (−13%). Section 6.
+- **Liars and mismatched printers can be handled, as opt-in options.** The consistency check catches a blatant liar's notes on arrival (180/180, no honest note dropped) but only about half of subtle ones; adding adaptive spread caps the round-1 cost at 5% for every liar tried and removes the harm when printers share nothing (−13% → −0.4%). In a mixed fleet of 8 (half mismatched), the defences lift the matching printers from +16% to +25% and cut the harm to the others from −15% to −1%; predictive trust goes further (matching +33%, mismatched +7% at round 6, on held-out parts trust never saw). None of them cleanly identifies a mismatched printer (best AUC 0.77). Sections 5, 8, 10, 11.
+- **Small features:** on a sub-millimetre plate the gain holds at 7–9% and doesn't grow; below about 0.5 mm the physics model stops being believable. Section 9.
+- **Corrected designs work and their interval is calibrated:** size error 132 → 9 µm (median, 60 worlds), 90% interval covering 81–96% in cross-validation. Section 12.
 
 So the honest pitch: a privacy-preserving learning network whose value grows with the number of sites, with trust and privacy you can verify. Not "multi-agent swarm intelligence" yet.
 
 ## What would make the agents and the network matter
 
-Deliberately left out of the hackathon build:
+Not built:
 
-1. **Harder parts.** Multi-feature parts (holes, pins, slots, thin walls) whose errors interact; printability limits (overhangs, bridges, minimum wall) so tests can fail and cost something; assemblies that must fit, scored on fit or yield, not microns.
-2. **More printer types.** Several resins, PLA, PETG, nylon, so sites differ more and there is more to transfer within and across families.
-3. **A real swarm.** Many sites (8–32) that divide the labor of testing (a shared board of what each site is probing, so the network avoids redundant tests), each with specialist agents per feature or failure mode that actually see different evidence.
-4. **A model that scales.** The particle posterior handles ~8 parameters; multi-feature parts need 30–60. A model linear in its parameters with an exact Gaussian posterior (plus a logistic failure model) scales to many sites on CPU and makes messages exact summaries.
-5. **Catching liars in round 1.** The consistency check and adaptive spread work in simulation (`hpc/sweeps/relevance/README.md` sections 5 and 8) and are opt-in protocol options. Next: make them the default and test them against real-printer model mismatch.
-6. **Guard against building a sim that confirms itself.** Fix the world and experiments before running, include a negative control with no shared structure, and always compare against random test selection.
+1. **Real-site validation.** No full real run exists: one Formlabs Form Studio 1 and micrometer readings of 3 pins only. The next step is many real printers with a few hand-measured pieces each, which is the regime where the simulator says the gain becomes measurable.
+2. **Harder parts.** Multi-feature parts (holes, pins, slots, thin walls) whose errors interact; printability limits (overhangs, bridges, minimum wall) so tests can fail and cost something; assemblies that must fit, scored on fit or yield, not microns.
+3. **More printer types.** Several resins, PLA, PETG, nylon, so sites differ more and there is more to transfer within and across families.
+4. **A real swarm.** Many sites (8–32) that divide the labor of testing (a shared board of what each site is probing, so the network avoids redundant tests), each with specialist agents per feature or failure mode that actually see different evidence. Until then the agent layer has to earn its place against random selection.
+5. **A model that scales.** The particle posterior handles ~8 parameters; multi-feature parts need 30–60. A model linear in its parameters with an exact Gaussian posterior (plus a logistic failure model) scales to many sites on CPU and makes messages exact summaries.
+6. **Trust that identifies bad partners.** The defences make sharing safe but only nudge mismatched senders down. Next: make the consistency check and adaptive spread the default, test predictive trust in more fleet layouts, and check all of them against real-printer model mismatch.
+7. **A micro-scale model.** Resin overcure, light scatter and nozzle limits dominate below 1 mm and aren't modelled; micro-scale stays a direction until they are.
 
 ## Long-term direction: agents that assist production of complex products
 

@@ -2,6 +2,8 @@
 
 One fast resin print to see how the plate prints, scans and compares with the model, before the registered seed run. Nothing from this print goes into receipts or the checkpoint.
 
+Done once so far, on a Formlabs Form Studio 1 with Alpha Fast resin, with no scanner: three pins were measured by micrometer (a 1.5 mm pin read 1.41 and 1.48 mm). That is a sanity check of error size, too few pieces to fit the model, which needs the 16 calibration pieces. With only calipers or a micrometer, enter readings in the [console](console.md) instead of scanning.
+
 ## The file
 
 `plates/out/test/resin-test.stl` (regenerate with `python -m plates.fasttest`).

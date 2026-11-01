@@ -1,6 +1,6 @@
 # Relevance sweeps: does sharing matter, and where?
 
-Exploratory analyses on the frozen config unless stated. Simulation only (`sim/reference.py`), default `Config` unless stated. Errors are `mae_truth`: held-out model error against the noise-free sizes, in µm, averaged over sites. Results are committed gzipped (the sweep scripts write plain `.jsonl`; gzip them, or point the analyzers at either). Every gain is paired per world (same world seed, one thing changed). p is an exact two-sided sign test over worlds.
+Exploratory analyses on the frozen (registered) config unless stated. Simulation only (`sim/reference.py`), default `Config` unless stated. Errors are `mae_truth`: held-out model error against the noise-free sizes, in µm, averaged over sites. Results are committed gzipped (the sweep scripts write plain `.jsonl`; gzip them, or point the analyzers at either). Every gain is paired per world (same world seed, one thing changed). p is an exact two-sided sign test over worlds.
 
     PYTHONPATH=. .venv/bin/python hpc/sweeps/relevance/worlds.py 100 hpc/sweeps/relevance/results/worlds.jsonl    # ~4 min on 18 cores
     PYTHONPATH=. .venv/bin/python hpc/sweeps/relevance/regimes.py hpc/sweeps/relevance/results/regimes.jsonl      # ~8 min
@@ -24,7 +24,7 @@ Frozen config from `prereg/prereg.yaml` via `frozen.py` (4000 particles, 6 MH st
 - Absolute size is small: 12.6 → 11.0 µm at round 3. Scanner noise is ~31 µm (median measured MAE), so on measured diameters networked vs isolated is 1.5% at round 8 (69/100). Three real rounds can't detect it.
 - 90% intervals cover 90–91% of true sizes in every arm.
 - Bad site (`bad_sites=pla`): resin's trust in pla goes 1.0 → 0.01 after round 1. Round 1 is costly (39.8 vs 14.3 µm with messages cut, worse in 100/100). After that the damage is contained, but the benefit of the honest site's messages is lost: the bad-site condition is level with no messages.
-- Jake's particles stage found the same drop: at 2000 particles and 3 MH steps, poor mixing inflated isolated − networked (2.2 → 1.4 µm in his runs). Earlier versions of this README used 2000/3 and, before that, eta 20; their gains were larger for that reason.
+- At 2000 particles and 3 MH steps, poor mixing inflates isolated − networked (2.2 → 1.4 µm in the Phase C particles stage, `hpc/sweeps/phase_c/README.md`). Gains reported at 2000/3 or eta 20 are larger for that reason; every number here is at the frozen 4000/6.
 
 ## 2. Regimes, 60 worlds each, 5 rounds (frozen config)
 
@@ -56,14 +56,14 @@ The `geometry` agent is replaced by one that always proposes the least informati
 - Learned credibility doesn't catch it: the saboteur's credibility stays at ~0.195, level with the honest agent's, and it keeps ~20% of networked slots every round. One slot per round moves held-out LPD too little to separate a bad agent from a good one through the noise.
 - So the within-site agent market isn't justified here on accuracy or on robustness. The multi-agent behavior with evidence is between sites: trust drops a lying site to ~1% after one round.
 
-An earlier run of this sweep was invalid: worker processes are reused, and a patch installed for one saboteur job leaked into later honest jobs (90 of 100 worlds came out identical). `saboteur.py` now sets the agent explicitly on every job.
+Worker processes are reused, so `saboteur.py` sets the agent explicitly on every job; otherwise a patch installed for one saboteur job would leak into later honest jobs.
 
-## 4. Prototype: quarantine notes that contradict the receiver's own data (frozen config, 100 worlds, 3 rounds)
+## 4. Consistency check, prototype: quarantine notes that contradict the receiver's own data (frozen config, 100 worlds, 3 rounds)
 
     PYTHONPATH=. .venv/bin/python hpc/sweeps/relevance/consistency.py 100 hpc/sweeps/relevance/results/consistency.jsonl
     .venv/bin/python hpc/sweeps/relevance/analyze_consistency.py hpc/sweeps/relevance/results/consistency.jsonl.gz
 
-After each broadcast, the receiver compares every incoming shared-parameter summary with its own local posterior (own data, no messages): per parameter z = (m_in − m_own) / sqrt(v_in + v_own + s_b²), with s_b = `between_site_sd` × prior std. A note whose Σz² exceeds the chi-square 0.999 quantile (16.3 for 3 parameters) is dropped for that round; trust is untouched, so the sender is re-checked next round. Monkeypatched onto `arms.experiment._broadcast`; no repo code changes.
+After each broadcast, the receiver compares every incoming shared-parameter summary with its own local posterior (own data, no messages): per parameter z = (m_in − m_own) / sqrt(v_in + v_own + s_b²), with s_b = `between_site_sd` × prior std. A note whose Σz² exceeds the chi-square 0.999 quantile (16.3 for 3 parameters) is dropped for that round; trust is untouched, so the sender is re-checked next round. This prototype monkeypatches `arms.experiment._broadcast`; section 5 is the same check built into the protocol.
 
 | Networked, true-size error (µm), median | Round 1 | Round 2 | Round 3 |
 |---|---|---|---|
@@ -77,7 +77,7 @@ After each broadcast, the receiver compares every incoming shared-parameter summ
 - Round-1 damage is gone: resin, which receives the bad notes, goes from 65.9 to 11.4 µm (no notes: 11.5). Check vs no check under attack: 26.5 µm better in round 1, in 100/100 worlds.
 - The honest benefit survives an attack: with the check, the bad-site condition beats no notes by 1.25 µm at round 3 (68/100) and is level with all-honest notes (11.1 vs 11.0), because the bad notes are dropped rather than left at ~1% trust.
 - No cost with honest sites: nothing was dropped, so results are identical.
-- Caveats: this bad site is easy to catch (3 prior std off, 0.1 std wide). A subtle one that stays within the allowed spread passes and is left to trust. On real printers, model mismatch may raise honest Σz² toward the threshold (simulated 99th percentile 12.6 vs 16.3). Adopting it changes the protocol and the frozen config, so it is a secondary analysis for this weekend, not part of the registered experiment.
+- Caveats: this bad site is easy to catch (3 prior std off, 0.1 std wide). A subtle one that stays within the allowed spread passes and is left to trust. On real printers, model mismatch may raise honest Σz² toward the threshold (simulated 99th percentile 12.6 vs 16.3). It is not part of the registered experiment: it is an opt-in protocol option (section 5), off in the frozen config.
 
 ## 5. Consistency check as a protocol option (frozen config + `consistency_check=True`, 60 worlds, 3 rounds)
 
@@ -131,7 +131,7 @@ Warm-up 4 pieces, 2 per round, round 3; % = mean gain / mean isolated error, as 
 | 4 | 40 | 26.5 → 19.0 | 28.5% | 35/40 | <0.001 | 24.3% |
 | 8 | 20 | 26.9 → 17.6 | 34.7% | 20/20 | <0.001 | 36.3% |
 
-The deck's 11% / 29% / 35% (20 of 20 at eight sites) check out against the data.
+Rounded: 11% / 28% (28.5) / 35% at 2 / 4 / 8 sites, 20 of 20 worlds at eight.
 
 Related: `hpc/sweeps/phase_c/README.md` section 1 found the same seed-plate effect on measured MAE (seed 4: 22% at round 3; seed 56: no separation).
 
@@ -191,7 +191,7 @@ Random piece selection (`Config.selection="random"`, every arm) vs the agent auc
 - **The physics doesn't extrapolate far below 1 mm.** Under the priors, the PLA hole model (`poly_k / d`) predicts a negative diameter for 95% of printers at 0.3 mm and 74% at 0.5 mm; resin holes go negative for 14% at 0.3 mm. The terms that dominate at micro scale (resin overcure and light scatter, nozzle limits) aren't modelled, and a real micro-scale process would also measure with less noise than 30–40 µm. Read the small-plate rows as "the method still works on the model as written", not as a micro-scale prediction.
 - Consistency: the normal resin + PLA row reproduces section 8 (+10.0%, 44/60).
 
-So for the pitch: the micro-scale angle stays a direction, not a result. What simulation supports is narrower: on sub-millimetre features the gain holds (7–9%) while the same error is a five times larger fraction of the part.
+So micro-scale is a direction, not a result. What simulation supports is narrower: on sub-millimetre features the gain holds (7–9%) while the same error is a five times larger fraction of the part.
 
 ## 10. Mixed fleets: some printers share physics, some don't (frozen config, data-poor sites, 3 rounds)
 
@@ -248,7 +248,7 @@ Section 10's fleet (8 sites, 4 share physics, 4 draw their shared parameters on 
 AUC is the chance that a mismatched sender gets a larger spread multiplier than a matched sender, measured at matched receivers. 0.5 means no separation; 1 means perfect.
 
 - **(A) Longer runs help adaptive spread, but slowly.** AUC rises from 0.60 to 0.66 to 0.71, and the share of mismatched senders down-weighted more than 2× rises from 12% to 22% to 32%. Matched pairs stay at full weight (1–2% above 2×). Unmatched sites are still hurt at round 8 (−11%).
-  - Adaptive + check at round 8 (+14% matched) is lower than adaptive alone (+31%), and I haven't explained that.
+  - Adaptive + check at round 8 (+14% matched) is lower than adaptive alone (+31%). This is unexplained.
 - **(B) Predictive trust ranks senders better and changes the outcome.** Matched sites gain 28–33%, against 16–17% under fixed. Unmatched sites go from hurt (−20 to −27%) to helped (+11 to +15%).
   - A likely reason they're helped: some other site's independent draw happens to sit close to theirs, and predictive trust finds it.
   - Against fixed, predictive is better in 23–24 of 30 worlds for matched sites and 27–28 of 30 for unmatched.

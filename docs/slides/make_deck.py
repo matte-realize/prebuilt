@@ -29,6 +29,10 @@ CHECK = EV["consistency_check"]
 NEG = EV["negative_control"]
 SITES = EV["sites_needed"]["rows"]
 TRUST = EV["trust_start"]
+_RES = ROOT / "hpc/sweeps/relevance/results"
+TECH = json.loads((_RES / "technical-summary.json").read_text())
+ADAPT = TECH["spread"]["control"]["adaptive"]["vs_alone"]
+MIXED = json.loads((_RES / "mixed-fleet-summary.json").read_text())["8"]
 
 
 def curves(path: Path, site: str | None = None) -> dict:
@@ -117,8 +121,8 @@ slide("Inside a site", "Agents pick pieces; sharing does the work",
   <li><b>Credit.</b> Credibility moves with how much an agent's pieces improved held-out prediction.</li>
   <li><b>Exchange.</b> Sites send the three summaries. Trust in each sender moves the same way, so a bad source fades out.</li>
 </ol>
-<p class="foot">The agent layer adds nothing measurable. With messages cut, learned credibility ties equal votes ({pct(CUT["pct"])}, {CUT["wins"]} of {CUT["n"]} worlds, p={CUT["p"]:.2f}). A saboteur agent that always picks the least informative pieces barely hurts and isn't caught: which pieces print hardly matters here. The gain is step 5, between sites. <span class="flag">Simulation only.</span></p>""",
-      "Say it before they ask: the win is many sites, not many agents. Source: hpc/sweeps/relevance/README.md sections 1 and 3.")
+<p class="foot">The agent layer adds nothing measurable. With messages cut, learned credibility ties equal votes ({pct(CUT["pct"])}, {CUT["wins"]} of {CUT["n"]} worlds, p={CUT["p"]:.2f}). A saboteur agent that always picks the least informative pieces barely hurts and isn't caught, and the agents' piece choices don't beat random: which pieces print hardly matters here. The gain is step 5, between sites. <span class="flag">Simulation only.</span></p>""",
+      "Say it before they ask: the win is many sites, not many agents. Agents vs random piece choice: +1%, 31 of 60 worlds (isolated arm). Source: hpc/sweeps/relevance/README.md sections 1, 3 and 8.")
 
 slide("Sim-to-real", "Grounded in a real printer, scored in simulation",
       """<div class="timeline">
@@ -143,8 +147,8 @@ slide("Robustness · simulation", "A liar costs one round; with the check, none"
   <div class="cell"><span class="big">{CHECK["liar_caught"]}/{CHECK["liar_notes"]}</span><p>lying notes caught on arrival by the consistency check, {CHECK["honest_dropped"]} of {CHECK["honest_notes"]} honest notes dropped. Round 1 at the lied-to site: {CHECK["resin_round1_um"]["liar_no_check"]:.0f} → {CHECK["resin_round1_um"]["liar_check"]:.1f} µm.</p></div>
   <div class="cell"><span class="big">{pct(SITES[-1]["pct"])}</span><p>lower error at {SITES[-1]["sites"]} data-poor sites, better in {SITES[-1]["wins"]} of {SITES[-1]["n"]} worlds: {SITES_TXT} (4 seed pieces, 2 a round, round 3). Many sites that each know little is where sharing pays.</p></div>
 </div>
-<p class="foot">Both cells: the same {CHECK["worlds"]} worlds, round 1. The check compares each incoming summary with the receiver's own fit (chi-square 0.999) and is an added protocol option, off in the registered config, tested in {CHECK["worlds"]} worlds; this liar is easy to catch, a subtle one would pass and be left to trust. Starting trust at 0.3 instead only trims round 1 ({TRUST["trust 1.0 | liar"][0]:.0f} → {TRUST["trust 0.3 | liar"][0]:.0f} µm). <span class="flag">Simulation only.</span></p>""",
-      "Sources: viewer/evidence.json (consistency_check, sites_needed), hpc/sweeps/coldstart/README.md.")
+<p class="foot">Both cells: the same {CHECK["worlds"]} worlds, round 1. The check compares each incoming summary with the receiver's own fit (chi-square 0.999) and is an added protocol option, off in the registered config, tested in {CHECK["worlds"]} worlds; this liar is easy to catch. A subtle one (0.5–1 prior std off) slips past the check a quarter to half the time; adding adaptive spread caps the round-1 cost at 5% for every liar tried. Starting trust at 0.3 instead only trims round 1 ({TRUST["trust 1.0 | liar"][0]:.0f} → {TRUST["trust 0.3 | liar"][0]:.0f} µm). <span class="flag">Simulation only.</span></p>""",
+      "Sources: viewer/evidence.json (consistency_check, sites_needed), hpc/sweeps/coldstart/README.md, hpc/sweeps/relevance/README.md section 8 (subtle liars).")
 
 slide("Verifiability", "Every crossing is on a receipt",
       """<div class="split">
@@ -168,20 +172,21 @@ slide("Is the simulator built to confirm itself?", "Negative control: share noth
       f"""<div class="cols3">
   <div class="cell"><span class="big">+{pct(NEG["normal"]["together_vs_alone"]["pct"])}</span><p>Normal worlds, physics really shared: together vs alone, better in {NEG["normal"]["together_vs_alone"]["wins"]} of {NEG["normal"]["together_vs_alone"]["n"]}.</p></div>
   <div class="cell"><span class="big">−{-NEG["control"]["together_vs_alone"]["pct"]:.0f}%</span><p>Same worlds, each printer's "shared" physics drawn independently: sharing hurts, better in only {NEG["control"]["together_vs_alone"]["wins"]} of {NEG["control"]["together_vs_alone"]["n"]}.</p></div>
-  <div class="cell"><span class="big">−{-NEG["control"]["check"]["together_vs_alone"]["pct"]:.0f}%</span><p>With the consistency check on: it drops {NEG["control"]["check"]["dropped"]} of {NEG["control"]["check"]["notes"]} contradictory notes and the cost is no longer significant.</p></div>
+  <div class="cell"><span class="big">{f'{ADAPT["pct"]:+.1f}'.replace("-", "−")}%</span><p>With adaptive spread (each receiver learns how far to trust a sender from how much they agree): printers that share nothing lose nothing, {ADAPT["wins"]} of {ADAPT["n"]}. In normal worlds it keeps the full gain.</p></div>
 </div>
-<p class="foot">{NEG["worlds"]} worlds, round 3, paired per world. The gain isn't built into the scoring: it comes from physics the printers share. The flip side: if real printers share less than the model assumes, sharing hurts. That is why real-site validation comes next. <span class="flag">Simulation only.</span></p>""",
-      "Source: viewer/evidence.json negative_control, hpc/sweeps/relevance/README.md section 6.")
+<p class="foot">{NEG["worlds"]} worlds, round 3, paired per world. The gain isn't built into the scoring: it comes from physics the printers share. The flip side: with the registered fixed spread, printers that share less than the model assumes are hurt. The consistency check alone cuts that to −{-NEG["control"]["check"]["together_vs_alone"]["pct"]:.0f}% (drops {NEG["control"]["check"]["dropped"]} of {NEG["control"]["check"]["notes"]} notes); adaptive spread removes it. Both are added options, off in the registered config. <span class="flag">Simulation only.</span></p>""",
+      "Sources: viewer/evidence.json negative_control, hpc/sweeps/relevance/README.md sections 6 and 8.")
 
 slide("Next", "Print anywhere, trust the part",
       f"""<div class="split">
   <div class="stack"><p class="lede">Any shop that can print a flat plate can join, learn its machine faster, and keep its data.</p>
   <p>Two printers is the smallest network, and there the gain is a couple of microns. The simulator says when it pays: many sites that each know little ({SITES_TXT}).</p>
+  <p><b>Parts that fit the first time:</b> corrected designs cut size error from 132 to 9 µm (median, 60 worlds), with a calibrated 90% interval. <b>Safe when printers differ:</b> with half of eight printers sharing no physics, the defences lift the matching ones to {MIXED["matched"]["both"]["vs_alone"]["pct"]:.0f}% better and cut the harm to the others from −{-MIXED["unmatched"]["fixed"]["vs_alone"]["pct"]:.0f}% to −{-MIXED["unmatched"]["both"]["vs_alone"]["pct"]:.0f}%.</p>
   <p>Released: the process-agnostic test plate and generator, a hand-measurement sheet and scanner pipeline, the local console, and the hidden-truth multi-site simulator. Next: real sites.</p>
   <p class="meta mono">github.com/matte-realize/prebuilt</p></div>
   <figure class="fig small">{plate_svg(label=False)}</figure>
 </div>""",
-      "Close on the plate. Many-machine networks and complex products are direction, not results: see docs/future-work.md.")
+      "Close on the plate. Buyers: dental labs, print farms and service bureaus, distributed manufacturing (pitch slide 6). Corrected designs: hpc/sweeps/relevance/README.md section 12. Mixed fleets: section 10; predictive trust (section 11) is newer and opt-in, and neither rule identifies bad partners. Many-machine networks and complex products are direction, not results: see docs/future-work.md.")
 
 
 def render() -> str:

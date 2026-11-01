@@ -42,7 +42,7 @@ The top card always shows the one thing to do next.
 2. **Measure plate.** One row per piece by row, col and kind. Nominal sizes are hidden by default so they don't anchor the reading; a checkbox shows them. For each piece enter the diameter and a status:
    - **ok** with a value in mm. A value over 100 is read as µm (a micrometer reading like `1475.782` becomes 1.4758 mm) and the conversion is shown next to it.
    - **failed**: the piece didn't print.
-   - **skip**: it printed but wasn't measured (e.g. every hole, when all you have is a micrometer). **Skip all holes** does that in one click.
+   - **skip**: it printed but wasn't measured (e.g. every hole, when all you have is a micrometer). **Skip all holes** and **Skip all pins** do that in one click.
 
    **Submit** writes `{plate_id}-manual.csv` in the run's `scans/<site>/`, the same sheet `RealPrinter` reads with no scanner, and the run continues. **Whole plate failed** answers `fail`; past the prereg's failed-plate fraction the plate is reprinted once and you'll be asked again (with a note saying so).
 

@@ -12,7 +12,7 @@ Two diagnostic predictors are scored next to the arms (they pick no pieces):
 - `known_shared`: the isolated arm's data plus the site's **true** shared parameters (a tight Gaussian, 0.1 prior std). Roughly the most that sharing shared-parameter summaries can give. Not a strict bound at cold start: there, networked beats it, because the network also changes which pieces get printed.
 - `true θ`: the site's true parameters. What's left is the unmodeled radial plate term (~8 µm). Not a strict floor either: fitted parameters absorb part of it.
 
-## 1. Why 12% is about the ceiling in the current setup
+## 1. Why about 12% is the ceiling in the current setup
 
 | 2 sites, seed 16, 6/round (current) | Round 3 | Round 5 |
 |---|---|---|
@@ -32,7 +32,7 @@ Round 3, networked vs isolated:
 | 4 sites | 18.7% (30/40) | 28.5% (35/40) | 26.7% (30/40) |
 | 8 sites | — | **34.7% (20/20)**, 26.9 → 17.6 µm | **38.1% (18/20)**, 40.3 → 24.9 µm |
 
-- **Network size is the lever that holds up.** At a seed of 4 pieces and 2 per round, gain goes 11% → 29% → 35% from 2 → 4 → 8 sites, and 8 sites wins in every world. Each extra site is another independent estimate of the same shared physics.
+- **Network size is the lever that holds up.** At a seed of 4 pieces and 2 per round, gain goes 11% → 28% → 35% from 2 → 4 → 8 sites, and 8 sites wins in every world. Each extra site is another independent estimate of the same shared physics.
 - **Coming in with no data roughly doubles the relative gain at 2 sites** (11% → 24%). But that is partly because isolated is so bad (41 µm): the absolute errors are 2–3× the current setup's. Relative gain at cold start is a fair headline only alongside the absolute numbers.
 - **At 8 sites the oracle stops being an upper bound** (35.9 vs 24.9 µm at seed 0). Its pooled posterior has 3 + 8×(5–8) dimensions, and 15 MH steps don't mix it. Networked passes summaries and keeps each fit small, so it scales where pooling raw data does not.
 

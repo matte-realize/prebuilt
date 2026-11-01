@@ -1,10 +1,10 @@
-# Phase D sweeps: robustness, ablation, scaling
+# Phase D sweeps: robustness and ablation
 
-Batched Warp simulator (`sim.batch.run_batch`, orient_std 0 = the world `run.py --source sim` uses) on the laptop RTX 5060. Config from `prereg/prereg.yaml` (sha256 `e59b618f…0528`) through `prereg.check.sim_config`: 16 seed pieces, 6 slots, 3 rounds, 4000 particles, 6 MH steps, eta 5, trust_init 1.0, cred_floor 0.05, discount 0.2, between_site_sd 0.25. Nothing retuned. Seeds 3000-3199. Code at base 04eed15 plus this directory.
+Batched Warp simulator (`sim.batch.run_batch`, orient_std 0 = the world `run.py --source sim` uses) on a laptop RTX 5060. Config from `prereg/prereg.yaml` (sha256 `e59b618f…0528`) through `prereg.check.sim_config`: 16 seed pieces, 6 slots, 3 rounds, 4000 particles, 6 MH steps, eta 5, trust_init 1.0, cred_floor 0.05, discount 0.2, between_site_sd 0.25. Nothing retuned. Seeds 3000-3199. Code at base 04eed15 plus this directory.
 
     .venv/bin/python hpc/sweeps/phase_d/sweep.py robustness --seeds 200   # ~25 min on the laptop GPU
     .venv/bin/python hpc/sweeps/phase_d/sweep.py ablation --seeds 200     # reuses the honest runs
-    .venv/bin/python hpc/sweeps/phase_d/sweep.py scaling --seeds 100
+    .venv/bin/python hpc/sweeps/phase_d/sweep.py scaling --seeds 100     # site scaling; results not committed (see hpc/sweeps/coldstart)
     .venv/bin/python hpc/sweeps/phase_d/analyze.py robustness             # writes results/robustness.md
     .venv/bin/python hpc/sweeps/phase_d/figures.py                        # eval/figures/*.png, *.pdf
 
@@ -39,7 +39,7 @@ Why the tail: leftover trust. Harm correlates with the liar's final trust at 0.6
 
 Side effect: the round 1 lie also distorts the honest site's agent credibility. The top agent holds 0.76-0.78 at rounds 2-3 against 0.26-0.27 without the attack (which agent varies by seed). It doesn't correlate with the harm (0.03-0.08), but it doesn't recover within 3 rounds either. The lying site's own credibility is unchanged, as expected, because only its outgoing message is corrupted.
 
-Tier D said the honest site was "not harmed by round 3" from 10 seeds (resin, −0.9 ± 1.3 µm vs isolated). At 200 seeds that direction gives +0.4 ± 0.6 µm, consistent with it; the other direction (pla honest), which tier D didn't run, is +3.1 ± 2.9 µm.
+The 10-seed tier D run (`demo/tier-d/`) found the honest resin site at −0.9 ± 1.3 µm vs isolated at round 3. At 200 seeds that direction gives +0.4 ± 0.6 µm, consistent with it; the other direction (pla honest) is +3.1 ± 2.9 µm. The opt-in consistency check removes the round-1 damage in simulation (`hpc/sweeps/relevance/README.md` section 5).
 
 ## 2. Ablation
 

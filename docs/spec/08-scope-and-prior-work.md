@@ -23,10 +23,10 @@ The registered tiers and which claims each keeps are in `prereg/prereg.yaml` (`f
 
 ## 15. Scope
 
-**Core:** two sites, four arms, message protocol with enforced boundary, held-out escrow, scanner pipeline, multi-site simulator, receipts, many-seed simulation.
-**Aim (in order):** challenge round → site-scaling sweep → hypothesis agent → spawn/retire (simulation) → PLA demo assembly → noise on shared summaries → spawn/retire on real printers.
-**Cut:** red-team critic, curing chemistry, separate centralized solver (the oracle covers it).
-**Cut first if behind:** real-printer spawn/retire, then the demo assembly.
+**Built:** two sites, three arms, message protocol with enforced boundary, held-out escrow, scanner pipeline and hand-measurement sheet, multi-site simulator (NumPy and Warp), GPU posterior, receipts and privacy audit, many-world sweeps, real-printer path with checkpoint and resume, operator console, corrected designs.
+**Built, off in the registered config:** challenge round, spawn of the position agent, consistency check, adaptive spread, predictive trust.
+**Built, exploratory:** hypothesis agent (not run against a live model).
+**Not built:** human-grid arm, orientation agent, demo assembly, noise on shared summaries, a site joining a round behind, a full real two-printer run.
 
 ## 16. Reuse deliverables
 
@@ -35,7 +35,7 @@ Built for reuse outside this project (usage in the [README](../../README.md#reus
 - Process-agnostic test-plate spec and generator
 - Scanner measurement tool
 - Hidden-truth multi-site simulator benchmark
-- Clearing rule and typed message protocol as a small library
+- Clearing rule and typed message protocol (`agents/auction.py`, `network/protocol.py`), usable on their own but not packaged separately
 
 ## 17. Prior work and competitors
 
