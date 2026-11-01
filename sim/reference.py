@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import zlib
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -69,20 +70,32 @@ class SimPrinter:
 
 
 def make_world(sites: dict[str, str], seed: int, shared_jitter: float = 0.2, radial_std: float = 0.02,
-               crn: bool = False) -> dict[str, SimPrinter]:
+               crn: bool = False, independent_shared: bool = False,
+               independent_sites: Iterable[str] = ()) -> dict[str, SimPrinter]:
     """sites: site name -> process. Returns one SimPrinter per site.
+
+    independent_shared=True is the negative control: every site draws its "shared"
+    parameters on its own from the prior, so there is no common physics to learn
+    from other sites, and sharing should gain nothing.
+
+    independent_sites does the same for the named sites only (a mixed fleet): those
+    sites keep prior draws for their "shared" parameters, the rest share the common
+    draw. Same draws either way, so worlds stay paired.
 
     crn=True gives every arm common random numbers for print noise (diagnostic);
     the hidden truth is the same either way.
     """
     rng = np.random.default_rng(seed)
     shared = {s.name: rng.normal(s.prior_mean, s.prior_std) for s in physics.SHARED}
+    independent = set(independent_sites)
     printers = {}
     for site, proc in sites.items():
         theta = physics.sample_prior(proc, 1, rng)[0]
         for j, s in enumerate(physics.PARAMS[proc]):
             if s.tag == "shared":
-                theta[j] = np.clip(shared[s.name] + shared_jitter * s.prior_std * rng.standard_normal(), s.lo, s.hi)
+                v = np.clip(shared[s.name] + shared_jitter * s.prior_std * rng.standard_normal(), s.lo, s.hi)
+                if not (independent_shared or site in independent):  # same draws either way: worlds stay paired
+                    theta[j] = v
         printers[site] = SimPrinter(site, proc, theta, float(rng.normal(0, radial_std)), np.random.default_rng(rng.integers(2**32)))
     if crn:
         for i, p in enumerate(printers.values()):

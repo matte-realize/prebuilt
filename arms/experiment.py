@@ -2,8 +2,7 @@
 
     run_experiment(printers, processes, cfg) -> Results
 
-A pure function with no global state. Sweeps call it directly (handoff
-contract 3 in docs/build/06-task-split.md).
+A pure function with no global state. Sweeps call it directly.
 
 Arms, all sharing every plate with equal slot budgets and random placement:
   isolated   one agent, own site's data only, max information gain
@@ -21,6 +20,7 @@ from __future__ import annotations
 import math
 import os
 import pickle
+import zlib
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 
@@ -36,6 +36,7 @@ from model.posterior import Layout, ParticlePosterior
 from network import protocol
 from plates import heldout
 from plates.layout import build_plate_indexed, plate_to_dict
+from plates.library import candidates
 from plates.seed import SEED_PIECES, seed_plate
 from receipts.chain import ReceiptChain, canonical, sha256
 
@@ -45,7 +46,8 @@ Data = list[tuple[Piece, Measurement]]
 
 
 # Measurements that say nothing about the printer: kept on the receipt chain, never used as data.
-NOT_DATA = {"failed-plate", "scanner-miss"}
+# "not-measured": a piece on a hand sheet nobody measured (measure.real.NOT_MEASURED).
+NOT_DATA = {"failed-plate", "scanner-miss", "not-measured"}
 
 
 @dataclass
@@ -73,30 +75,52 @@ class Config:
     oracle_particles: int | None = None
     # True: isolated and oracle also choose pieces by the agent auction (uniform
     # credibility), so the arms differ only in the data each model sees.
-    # False: the walkthrough's single max-information agent for both.
+    # False: one max-information agent for both (the original plan).
     same_agents: bool = True
     # Metropolis moves per resample for the oracle. Random-walk MH mixes about 1/dim as
     # fast per step, so with the same 3 steps a single site gets, the 18-dim hierarchical
     # oracle carries roughly twice the Monte Carlo error in its predictions and loses to
-    # networked on identical data (07-status finding 4). None = mh_steps scaled by the
+    # networked on identical data (docs/design-notes.md, point 4). None = mh_steps scaled by the
     # oracle's dimension over the largest single site's; 3 = the old behavior.
     oracle_mh_steps: int | None = None
     # Metropolis moves per resample for every single-site fit. All arms are limited by
-    # mixing at 3 (finding 4); T sweeps 3 vs 6 in tuning.py's particles stage.
+    # mixing at 3 (design notes, point 4); tuning.py's particles stage sweeps 3 vs 6.
     mh_steps: int = 3
-    # Diagnostics (docs/build/07-status.md finding 4); defaults are the real design.
+    # Diagnostics (docs/design-notes.md, point 4); defaults are the real design.
     # oracle_data: which arm's measurements the oracle posterior pools ("oracle", or
     #   "networked" = exactly the networked arm's data, so only inference differs).
     oracle_data: str = "oracle"
     # Ablations
     share_messages: bool = True      # False = cut the network
     bad_sites: tuple[str, ...] = ()  # sites that broadcast corrupted beliefs
+    # Receiver-side consistency check (hpc/sweeps/relevance/consistency.py): drop, for this
+    # round, an incoming note whose shared-parameter summary contradicts the receiver's own
+    # data (chi-square at 0.999 over the shared parameters). Trust is left alone, so the
+    # sender is re-checked every round. Off in the frozen config.
+    consistency_check: bool = False
+    # Adaptive spread: instead of assuming every sender's shared parameters sit within
+    # between_site_sd of the receiver's, each receiver scales a sender's message variance by
+    # how much the two have actually disagreed (running mean over rounds of the per-parameter
+    # z^2 against the receiver's own fit, floored at 1). Senders whose physics agree keep full
+    # weight; senders that keep disagreeing fade out smoothly. Off in the frozen config.
+    adaptive_spread: bool = False
+    # Predictive trust: each round, before a sender's note is used again, the receiver asks how
+    # well that note (alone, at its base spread, full trust) predicts the receiver's own held-out
+    # pieces, against the receiver's own data alone: d = sum over measured held-out pieces of
+    # log p(y | own + note) - log p(y | own). The note was sent before this round's pieces were
+    # measured, so it's a genuine prediction. A sender's message variance is then scaled by
+    # max(1, exp(-d)) (the likelihood ratio against it, capped). Off in the frozen config.
+    predictive_trust: bool = False
+    predictive_cap: float = 1e4
+    predictive_half: bool = False    # leakage check: score notes only on held-out pieces with an even trust_half()
+    bad_offset: float = 3.0          # bad sites: how far their beliefs sit from the prior mean, in prior std
+    selection: str = "agents"        # "agents" (auction) or "random": every arm picks pieces uniformly (baseline)
     agents: tuple[str, ...] = tuple(AGENT_NAMES)
     seed_pieces: int | None = SEED_PIECES  # calibration pieces on the seed plate (None = all 56)
     # Challenge round (spec 6.5 step 3) and spawn of dormant agents (6.7). Off for the
     # registered claim: they run only in the networked arm, so they change its piece
-    # selection and bring back the confound same_agents removes (07-status, headline
-    # chart). Reported as a secondary simulation analysis with both on.
+    # selection and bring back the confound same_agents removes (docs/design-notes.md,
+    # prereg choices). Reported as a secondary simulation analysis with both on.
     challenge: bool = False
     challenge_eig: float = 0.05      # nats; a proposal the flagger expects to learn less from is "predictable"
     dormant: tuple[str, ...] = ()    # templates that can wake (DORMANT_NAMES = all); () = no spawning
@@ -121,6 +145,8 @@ class SiteState:
     truth: dict[str, float] = field(default_factory=dict)  # sim only: noise-free held-out diameters, eval only
     roster: Roster | None = None
     inbox: dict[str, Message] = field(default_factory=dict)
+    disagree: dict[str, list[float]] = field(default_factory=dict)  # adaptive spread: sender -> mean z^2 per round
+    predictive: dict[str, list[float]] = field(default_factory=dict)  # predictive trust: sender -> d (nats) per round
     trust: dict[str, float] = field(default_factory=dict)
     flags: list = field(default_factory=list)            # this round: (Flag, judged_by result) pairs
     unmet: dict[str, int] = field(default_factory=dict)  # template -> unmet-needs entries seen, own + incoming
@@ -140,6 +166,7 @@ class Results:
     challenges: list[dict] = field(default_factory=list)  # one row per flag
     spawned: list[dict] = field(default_factory=list)
     predictions: list[dict] = field(default_factory=list)  # one row per (round, site, arm, held-out piece); viewer only
+    checks: list[dict] = field(default_factory=list)  # consistency check: one row per (round, receiver, sender)
 
 
 def run_experiment(
@@ -153,9 +180,9 @@ def run_experiment(
     """Run (or, if `checkpoint` exists, resume) an experiment.
 
     With `checkpoint`, the full state is pickled after the seed plates and after
-    every round, so a crash mid-Saturday loses at most the round in progress.
+    every round, so a crash mid-run loses at most the round in progress.
     `posterior` builds every fit; sweeps pass a GPU or batched implementation
-    with the same API (handoff contracts 2 and 3).
+    with the same API.
     """
     cfg = cfg or Config()
     state = _load(checkpoint) if checkpoint and os.path.exists(checkpoint) else None
@@ -195,7 +222,7 @@ def run_experiment(
             _credit(r, st, pieces, contribs[s], cfg, rng, res)
             _unmet_needs(r, st, pieces, cfg, rng)
         if cfg.share_messages:
-            _broadcast(r, sites, pieces, cfg, rng)
+            _broadcast(r, sites, pieces, cfg, rng, res)
         for st in sites.values():
             _spawn(r, st, cfg, res)
         oracle_post = _fit_oracle(sites, pieces, cfg, rng)
@@ -261,14 +288,25 @@ def _rng_seed(rng: np.random.Generator) -> int:
     return int(rng.integers(2**31))
 
 
-def _fit(st: SiteState, pieces, data: Data, cfg: Config, rng, messages: dict[str, Message] | None = None) -> ParticlePosterior:
+def predictive_multiplier(d: float, cap: float = 1e4) -> float:
+    """Variance multiplier from a sender's predictive score d (nats): the likelihood ratio against it."""
+    return float(min(cap, max(1.0, np.exp(min(-d, np.log(cap))))))
+
+
+def _fit(st: SiteState, pieces, data: Data, cfg: Config, rng, messages: dict[str, Message] | None = None,
+         raw: bool = False) -> ParticlePosterior:
+    """raw=True: messages at their base spread and full trust (predictive trust's test fit)."""
     post = st.posterior(st.process, pieces, n=cfg.n_particles, seed=_rng_seed(rng), mh_steps=cfg.mh_steps)
     for sender, msg in (messages or {}).items():
         means, cov = protocol.likelihood_factor(msg)
         if means:
             cov = cov + np.diag([(cfg.between_site_sd * SHARED_STD[k]) ** 2 for k in means])
+            if not raw and cfg.adaptive_spread and st.disagree.get(sender):
+                cov = cov * max(1.0, float(np.mean(st.disagree[sender])))
+            if not raw and cfg.predictive_trust and st.predictive.get(sender):
+                cov = cov * predictive_multiplier(st.predictive[sender][-1], cfg.predictive_cap)
         if means:
-            post.set_prior_from_summary(means, cov, st.trust.get(sender, 0.0), key=sender)
+            post.set_prior_from_summary(means, cov, 1.0 if raw else st.trust.get(sender, 0.0), key=sender)
     post.update([m for _, m in data])
     return post
 
@@ -306,6 +344,12 @@ def _uniform_auction(posts, data, k: int, cfg: Config, site: str | None = None) 
 
 def _choose(st: SiteState, sites: dict[str, SiteState], pieces, oracle_post, cfg: Config, rng):
     k = cfg.slots_per_arm
+    if cfg.selection == "random":  # baseline: no agents, every arm draws its pieces uniformly
+        lib = candidates()
+        items = [(lib[i], arm) for arm in ("isolated", "oracle", "networked")
+                 for i in rng.choice(len(lib), size=k, replace=False)]
+        st.chain.append("clearing", {"selection": "random", "pieces": [c.key for c, a in items if a == "networked"]})
+        return items, [None] * (3 * k)
     items, contrib = [], []
 
     iso_data = st.data["isolated"]
@@ -392,9 +436,28 @@ def heldout_lpds(post: ParticlePosterior, escrow: Data, site: str | None = None)
     return [post.log_predictive(p, m.measured_d, site) for p, m in escrow if m.status == "ok"]
 
 
+def trust_half(piece_id: str) -> int:
+    """Stable split of held-out pieces (predictive_half): 0 = used for trust, 1 = evaluation only."""
+    return zlib.crc32(piece_id.encode()) % 2
+
+
+def _predictive(st: SiteState, pieces, cfg: Config, rng) -> None:
+    """Predictive trust: score each inbox note on the receiver's measured held-out pieces."""
+    data = st.data["networked"]
+    escrow = [(p, m) for p, m in st.escrow if trust_half(p.piece_id) == 0] if cfg.predictive_half else st.escrow
+    base = heldout_lpds(_fit(st, pieces, data, cfg, rng), escrow)
+    if not base:
+        return
+    for sender, msg in st.inbox.items():
+        with_note = heldout_lpds(_fit(st, pieces, data, cfg, rng, {sender: msg}, raw=True), escrow)
+        st.predictive.setdefault(sender, []).append(float(np.sum(with_note) - np.sum(base)))
+
+
 def _credit(r: int, st: SiteState, pieces, contrib: dict[str, str], cfg: Config, rng, res: Results) -> None:
     data = st.data["networked"]
     msgs = st.inbox
+    if cfg.predictive_trust and msgs:
+        _predictive(st, pieces, cfg, rng)
     full = heldout_lpds(_fit(st, pieces, data, cfg, rng, msgs), st.escrow)
 
     dlpd = {}
@@ -507,25 +570,58 @@ def _spawn(r: int, st: SiteState, cfg: Config, res: Results) -> None:
         st.chain.append("spawn", {"round": r, "agent": t, "unmet": st.unmet[t], "credibility": roster.cred})
 
 
-def _broadcast(r: int, sites: dict[str, SiteState], pieces, cfg: Config, rng) -> None:
+def _broadcast(r: int, sites: dict[str, SiteState], pieces, cfg: Config, rng, res: Results | None = None) -> None:
     """Each site sends the shared-parameter summary of its own data only (no echo of others' messages)."""
-    outgoing = {}
+    outgoing, own = {}, {}
     for s, st in sites.items():
         local = _fit(st, pieces, st.data["networked"], cfg, rng)
         summ, _, _ = local.summary("shared")
+        own[s] = summ
         if s in cfg.bad_sites:
-            summ = _corrupt(summ)
+            summ = _corrupt(summ, cfg.bad_offset)
         outgoing[s] = Message(s, r, summ, dict(st.roster.cred), [], list(st.unmet_out))
     for s, msg in outgoing.items():
         for o, other in sites.items():
             if o != s:
                 other.inbox[s] = protocol.send(msg, sites[s].chain, other.chain)
+    if cfg.adaptive_spread:
+        for o, other in sites.items():
+            for s in [s for s in other.inbox if other.inbox[s].round == r]:
+                z2 = _z2(other.inbox[s].shared_params, own[o], cfg)
+                if z2:
+                    other.disagree.setdefault(s, []).append(float(np.mean(z2)))
+    if cfg.consistency_check and res is not None:
+        for o, other in sites.items():
+            for s in [s for s in other.inbox if other.inbox[s].round == r]:
+                stat, dropped = consistency(other.inbox[s].shared_params, own[o], cfg)
+                res.checks.append({"round": r, "receiver": o, "sender": s, "chi2": stat, "dropped": dropped})
+                other.chain.append("consistency_check", {"round": r, "sender": s, "chi2": round(stat, 3), "dropped": dropped})
+                if dropped:
+                    del other.inbox[s]
 
 
-def _corrupt(summ: dict[str, tuple[float, float]]) -> dict[str, tuple[float, float]]:
-    """A bad-faith site: confident beliefs 3 prior std away from the prior mean."""
+def _z2(incoming: dict[str, tuple[float, float]], own: dict[str, tuple[float, float]], cfg: Config) -> list[float]:
+    """Per shared parameter: squared disagreement of a note with the receiver's own fit, in units of
+    the combined variance plus the between-site spread the model allows."""
+    return [(m - own[k][0]) ** 2 / (v + own[k][1] + (cfg.between_site_sd * SHARED_STD[k]) ** 2)
+            for k, (m, v) in incoming.items() if k in own]
+
+
+CHI2_999 = {1: 10.83, 2: 13.82, 3: 16.27}  # chi-square 0.999 quantiles by degrees of freedom
+
+
+def consistency(incoming: dict[str, tuple[float, float]], own: dict[str, tuple[float, float]], cfg: Config) -> tuple[float, bool]:
+    """Chi-square of an incoming shared-parameter summary against the receiver's own (mean, var),
+    with the between-site spread the model already allows. Returns (statistic, drop?)."""
+    z2 = _z2(incoming, own, cfg)
+    stat = float(np.sum(z2))
+    return stat, bool(z2) and stat > CHI2_999[min(len(z2), 3)]
+
+
+def _corrupt(summ: dict[str, tuple[float, float]], offset: float = 3.0) -> dict[str, tuple[float, float]]:
+    """A bad-faith site: confident beliefs `offset` prior std away from the prior mean."""
     prior = {s.name: s for s in SHARED}
-    return {k: (prior[k].prior_mean + 3 * prior[k].prior_std, (0.1 * prior[k].prior_std) ** 2) for k in summ}
+    return {k: (prior[k].prior_mean + offset * prior[k].prior_std, (0.1 * prior[k].prior_std) ** 2) for k in summ}
 
 
 def _score(r: int, st: SiteState, pieces, oracle_post, cfg: Config, rng, res: Results) -> None:

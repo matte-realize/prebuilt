@@ -142,3 +142,102 @@ def _init_site(tmp_path):
     from arms.experiment import ARMS, SiteState
     from receipts.chain import ReceiptChain
     return SiteState("resin", "resin", ReceiptChain("resin"), {a: [] for a in ARMS})
+
+
+def test_no_scanner_every_piece_measured_by_hand(tmp_path):
+    import csv
+    from measure.real import RealPrinter
+    from plates.seed import seed_plate
+
+    plate = seed_plate("resin")
+    sheet = tmp_path / f"{plate.plate_id}-manual.csv"
+    answers = []
+
+    def ask(q):  # operator fills half the sheet, presses Enter, then finishes it
+        answers.append(q)
+        rows = list(csv.DictReader(open(sheet)))
+        n = len(rows) // 2 if len(answers) == 1 else len(rows)
+        for i, r in enumerate(rows[:n]):
+            r["measured_d"], r["status"] = ("", "failed") if i == 0 else ("3.05", "")
+        with open(sheet, "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=list(rows[0]))
+            w.writeheader()
+            w.writerows(rows)
+        return ""
+
+    pr = RealPrinter("resin", str(tmp_path), ask=ask, plate_dir=tmp_path)
+    ms = pr.print_and_measure(plate)
+    assert len(answers) == 2 and len(ms) == len(plate.pieces)
+    assert sum(m.status == "failed" for m in ms) == 1 and all(m.method == "caliper" for m in ms)
+    assert (tmp_path / f"{plate.plate_id}-measurements.json").exists()
+    assert pr.pop_events()[0]["event"] == "measured by hand, no scans"
+
+
+def test_hand_sheet_skip_is_not_data_and_not_a_failure(tmp_path):
+    import csv
+    from arms.experiment import NOT_DATA
+    from measure.real import NOT_MEASURED, RealPrinter, _failed_fraction, read_manual_sheet
+    from plates.seed import seed_plate
+
+    plate = seed_plate("resin")
+    sheet = tmp_path / f"{plate.plate_id}-manual.csv"
+
+    def ask(q):  # micrometer only: every pin measured, every hole skipped
+        with open(sheet, "w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["row", "col", "kind", "measured_d", "status"])
+            for p in plate.pieces:
+                w.writerow([*p.slot, p.kind, "3.0" if p.kind == "pin" else "", "" if p.kind == "pin" else "skip"])
+        return ""
+
+    pr = RealPrinter("resin", str(tmp_path), ask=ask, plate_dir=tmp_path, failed_plate_fraction=0.5)
+    ms = pr.print_and_measure(plate)  # holes are half the plate: must not trip the reprint rule
+    holes = [m for p, m in zip(plate.pieces, ms) if p.kind == "hole"]
+    assert holes and all(m.status == "skipped" and m.method == NOT_MEASURED and m.measured_d is None for m in holes)
+    assert NOT_MEASURED in NOT_DATA and _failed_fraction(ms) == 0.0
+    assert not any(e["event"] == "reprint" for e in pr.pop_events())
+    ms, todo = read_manual_sheet(sheet, plate)
+    assert todo == []
+
+
+def test_console_practice_run_headless(tmp_path):
+    """The console's runner end to end with a fake operator: approve, fill with simulated readings."""
+    import time
+    from console.runner import Run, Settings
+
+    run = Run(Settings(resin="real", pla="sim", rounds=1, particles=300, consistency_check=True), tmp_path).start()
+    seen = []
+    t0 = time.time()
+    while run.thread.is_alive() and time.time() - t0 < 120:
+        p = run.prompt
+        if p is None:
+            time.sleep(0.02)
+            continue
+        seen.append((p.kind, p.plate_id))
+        assert p.site == "resin" and p.plate["pieces"]
+        if p.kind == "approve":
+            run.answer(p.id, "y")
+        else:
+            rows = run.fill(p.id)
+            if p.plate_id.endswith("r1"):  # one skipped piece, typed as a micrometer reading elsewhere
+                rows[0]["status"], rows[0]["value"] = "skip", None
+                ok = next(r for r in rows[1:] if r["status"] == "ok")
+                ok["value"] = ok["value"] * 1000
+            run.submit_measurements(p.id, rows, "sim-fill")
+        while run.prompt is not None and run.prompt.id == p.id:
+            time.sleep(0.01)
+    run.thread.join(5)
+    assert run.status == "done", run.error + "\n".join(run.log_lines[-30:])
+    assert seen == [("approve", "resin-seed"), ("measure", "resin-seed"), ("approve", "resin-r1"), ("measure", "resin-r1")]
+    v = run.view()
+    assert {(r["site"], r["arm"]) for r in v["scores"]} == {(s, a) for s in ("resin", "pla") for a in ("isolated", "networked", "oracle")}
+    assert all(r["mae"] > 0 for r in v["scores"])
+    assert all(r["mae_truth"] is None for r in v["scores"] if r["site"] == "resin")  # real site: no hidden truth
+    assert v["audit"]["passed"] and v["crossed"]["measurements"] == 0 and v["crossed"]["numbers"] > 0
+    assert v["checks"] and v["filled"] == ["resin-seed", "resin-r1"]
+    d = run.dir
+    for f in ["state.pkl", "results.json", "run.json", "log.txt", "receipts/resin.jsonl", "receipts/pla.jsonl",
+              "plates/resin/resin-r1.stl", "scans/resin/resin-r1-manual.csv", "scans/resin/resin-r1-measurements.json"]:
+        assert (d / f).exists(), f
+    sheet = (d / "scans/resin/resin-r1-manual.csv").read_text()
+    assert "skip" in sheet and "sim-fill" in sheet

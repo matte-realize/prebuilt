@@ -1,8 +1,35 @@
 # Prebuilt
 
-A decentralized collective of scientist agents that characterizes 3D printers (resin SLA and PLA FDM) across sites that never share raw data, only beliefs. Built for the ScienceClaw Hackathon, MIT Media Lab, Oct 30 – Nov 1, 2026.
+**Every 3D printer prints parts slightly the wrong size, in its own way. Prebuilt lets printers learn their errors from each other without sharing a single measurement.** Built for the ScienceClaw Hackathon, MIT Media Lab, Oct 30 – Nov 1, 2026.
 
-Each site prints test plates of pins and holes, scans them, and fits a physics model of its printer. Agents at each site bid for plate slots in a credibility-weighted auction. Sites exchange only posterior summaries of process-agnostic parameters, through a typed, schema-checked boundary that is recorded on hash-chained receipts. Three arms run side by side on every plate: **isolated** (own data only), **networked** (own data plus other sites' messages) and **oracle** (all raw data pooled). The question is how much of the isolated-to-oracle gap the network closes without pooling data.
+Each site prints a test plate of pins and holes, measures it, and fits a physics model of its own printer. Sites swap only the mean and uncertainty of three parameters every printer shares, through a schema-checked boundary recorded on hash-chained receipts. Measurements, part geometry and machine settings never leave the site.
+
+## What we found (simulation, against printers whose true behavior we know)
+
+- **Sharing matches pooling the raw data.** Two sites: 12% lower model error than learning alone (1.6 µm), in 75 of 100 worlds; pooling all raw data also gives 12%.
+- **It pays with many data-poor sites:** 11% / 28% / 35% at 2 / 4 / 8 sites.
+- **The win is sharing, not agents.** The agent layer adds nothing measurable, and its piece choices don't beat random.
+- **Liars and mismatched printers are handled.** A consistency check catches a lying site's notes on arrival (180/180, 0/540 honest dropped). Adaptive spread, where each site learns how far to trust another from how much they agree, removes the harm when printers share no physics (−13% → −0.4%) and keeps the gain when they do. Both are added options, off in the registered config.
+- **Mixed fleets stay safe.** Eight data-poor printers, half sharing no physics with the rest (20 worlds): with both defences the matching printers gain 25% instead of 16%, and the harm to the others falls from −15% to −1%. A newer opt-in rule, predictive trust (each printer scores incoming notes on its own held-out parts), lifts the matching printers to 33% better than alone by round 6 (20% with fixed sharing) and takes the others from 21% worse to 7% better, scored on parts the trust step never saw (30 worlds). Neither rule cleanly identifies a mismatched printer.
+- **Small features:** on a sub-millimetre plate the gain holds at 7–9%; it doesn't grow.
+- **Parts that fit the first time:** corrected designs from a learned printer cut size error from 132 to 9 µm (median, 60 simulated worlds), with a 90% interval that's calibrated for what the model misses.
+- **Grounded in a real printer:** on a Formlabs Form Studio 1, a 1.5 mm pin measured 1.41–1.48 mm by micrometer, within the vendor's ±0.08 mm spec and inside the simulator's range. At two sites the sharing gain is below what a real part can show, so we claim it only in simulation, as registered before printing.
+
+Details: [`hpc/sweeps/relevance/README.md`](hpc/sweeps/relevance/README.md), [`hpc/sweeps/coldstart/README.md`](hpc/sweeps/coldstart/README.md).
+
+**Who it's for:** fleets where fit decides, such as dental labs, print farms and service bureaus: many printers, little data each, data that can't leave. The direction is smaller features (microfluidics, bioprinting), where printer error matters more and data is scarcer ([future work](docs/future-work.md)).
+
+## Try it
+
+```
+python -m console                                    # full pipeline in the browser: real or simulated sites, hand measurements
+python -m console --share                            # same, with a public link (access key) so others can use it
+
+python -m viewer.export --open                       # 3D demo (works offline)
+python -m viewer.export --fleet 8 --open             # eight printers in 3D (same setup as the 8-site result, ~4 min to build)
+open docs/slides/prebuilt-pitch.html                 # 3-minute pitch; demo on slide 3 (P, L, C)
+python -m model.compensate --checkpoint <state.pkl> --site resin --kind hole --target 5.0   # corrected design size
+```
 
 ## Setup
 
@@ -19,10 +46,10 @@ Run commands from the repo root.
 ```
 python run.py --source sim --seeds 10 --out sim.json           # all three arms on simulated printers
 python -m eval.figures.headline sim.json --truth                # headline chart
-python -m viewer.export --source sim --rounds 3 --open          # demo page for one run
+python -m viewer.export --source sim --rounds 3 --open          # 3D demo for one run (world 4 by default)
 python -m measure.rehearsal --rounds 2 --out /tmp/reh           # the real-printer loop, simulated scans
 python -m prereg.check                                          # what the pre-registration still needs
-python run.py --source real                                     # real printers (see the run sheet)
+python run.py --source real                                     # real printers (docs/guides/real-site-run.md)
 ```
 
 ## Where things are
@@ -32,7 +59,7 @@ python run.py --source real                                     # real printers 
 | `contracts.py` | Shared types: `Piece`, `Plate`, `Measurement`, `Printer`, `Model`, `Message` |
 | `plates/` | Test-plate spec, piece library, plate generator, STL export, held-out set |
 | `measure/` | Flatbed scanner pipeline, paper target, caliper entry, real-printer loop, rehearsal |
-| `model/` | Physics models and the particle posterior (NumPy reference; `posterior_warp.py` on GPU) |
+| `model/` | Physics models, the particle posterior (NumPy reference; `posterior_warp.py` on GPU), corrected designs (`compensate.py`) |
 | `agents/` | Agents, auction, credibility, challenge round, hypothesis agent |
 | `network/` | Message schema and boundary enforcement |
 | `arms/` | The three-arm experiment (`run_experiment`) |
@@ -42,11 +69,12 @@ python run.py --source real                                     # real printers 
 | `prereg/` | Pre-registration and the held-out manifest |
 | `hpc/` | Benchmarks, Nebius jobs, Phase C sweeps, Phase D |
 | `viewer/` | Self-contained HTML page for a run |
-| `docs/` | Spec, build walkthrough, task split, status, run sheet ([index](docs/README.md)) |
+| `console/` | Local web UI that drives a practice run from the browser: approve plates, enter hand measurements, watch scores (`python -m console`, [guide](docs/guides/console.md)) |
+| `docs/` | Design notes, guides, spec, slides ([index](docs/README.md)) |
 
 ## Reusable tools
 
-Three parts are meant for reuse outside this project (spec §17).
+Three parts are meant for reuse outside this project (spec §16).
 
 ### 1. Process-agnostic test plate
 
@@ -76,7 +104,7 @@ plate = load_plate("plates/out/resin/resin-seed.json")
 ms, info = measure_scan(cv2.imread("scan-holes.png", cv2.IMREAD_GRAYSCALE), plate, "holes")
 ```
 
-On synthetic scans at 400 dpi it's about 2–5 µm RMS (`docs/build/07-status.md` has the stress test). Check your scanner first with a printed paper target: `python -m measure.target <plate.json> target.pdf`, then `python -m measure.target <plate.json> --check <scan>.png`. With caliper spot checks (`measure/manual.py`), a per-plate offset removes the remaining bias.
+On synthetic scans at 400 dpi it's about 2–5 µm RMS ([design notes](docs/design-notes.md#scanner-stress-test-synthetic) have the stress test). Check your scanner first with a printed paper target: `python -m measure.target <plate.json> target.pdf`, then `python -m measure.target <plate.json> --check <scan>.png`. With caliper spot checks (`measure/manual.py`), a per-plate offset removes the remaining bias.
 
 ### 3. Hidden-truth multi-site simulator benchmark
 
@@ -91,6 +119,6 @@ truth = world["resin"].truth(plate)            # noise-free diameters, for scori
 
 `sim.warp_sim` draws thousands of sites and prints batches of plates in one kernel launch, for sweeps.
 
-## Status
+## More
 
-See [docs/build/07-status.md](docs/build/07-status.md) for findings and decisions, [06-task-split.md](docs/build/06-task-split.md) for who owns what, and [09-run-sheet.md](docs/build/09-run-sheet.md) for printer day.
+[docs/README.md](docs/README.md) indexes everything else: [design notes](docs/design-notes.md) (why the experiment is set up the way it is), the [guides](docs/guides/) (console, real-site run, test print), the spec, and the slides.

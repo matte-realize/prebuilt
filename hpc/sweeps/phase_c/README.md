@@ -1,6 +1,6 @@
 # Phase C sweeps
 
-NumPy reference simulator (`sim/reference.py`) through `arms.run_experiment`, two sites (resin, pla), 2000 particles, current default config (eta 20, trust_init 1.0, cred_floor 0.05, discount 0.2, between_site_sd 0.25) unless stated.
+The sweeps that chose the registered config. NumPy reference simulator (`sim/reference.py`) through `arms.run_experiment`, two sites (resin, pla). Section 1 ran at 2000 particles, 3 MH steps and the config then in force (eta 20, trust_init 1.0, cred_floor 0.05, discount 0.2, between_site_sd 0.25); section 2 states its settings per stage. The outcome is the frozen config in `prereg/prereg.yaml` (section 3). Numbers here at 2000/3 are superseded for results by the frozen-config sweeps in `hpc/sweeps/relevance/` and `hpc/sweeps/phase_d/`.
 
     .venv/bin/python hpc/sweeps/phase_c/seed_plate.py --seeds 40 --rounds 4   # ~10 min on 15 workers
     .venv/bin/python hpc/sweeps/phase_c/analyze.py seed_plate                  # writes results/seed_plate.md
@@ -9,7 +9,7 @@ Errors are `mae_truth` in µm: model error against the noise-free held-out diame
 
 ## 1. Seed-plate decision
 
-**Recommendation: shrink the seed plate to 16 pieces.** Keeping 56 and relying on learning curves doesn't work: with 56 seed pieces and 18 slots, isolated and networked never separate (difference 0.1-0.25 µm, inside 1 SE in every round). Each site's seed plate has already taught it the shared parameters before round 1, so there is no curve to show.
+**Decision: the seed plate has 16 pieces.** Keeping 56 and relying on learning curves doesn't work: with 56 seed pieces and 18 slots, isolated and networked never separate (difference 0.1-0.25 µm, inside 1 SE in every round). Each site's seed plate has already taught it the shared parameters before round 1, so there is no curve to show.
 
 Isolated minus networked, µm (SE), 40 seeds:
 
@@ -28,31 +28,31 @@ Isolated minus networked, µm (SE), 40 seeds:
 
 16 pieces gives the most consistent effect: 4-6 SE in rounds 1-3 with 6 slots, and 2.6-5.8 SE with 18 slots. 4 pieces gives a bigger effect but noisier, and absolute error is worst there (18 µm at round 3). 8 pieces with 18 slots is weak by round 3.
 
-**Slots: 6 (recommended) or 18, close call.**
+**Slots: 6 (registered) over 18, a close call.**
 - 6 slots per arm keeps the effect larger for longer: still 4 SE at round 3, 16% of isolated error. The plate prints 3 × 6 + 8 held-out = 26 pieces, so most of each plate is unused.
 - 18 slots per arm is the current plate layout, fills the plate, and gives better absolute models (9 µm vs 13 µm at round 3). The effect shrinks to 2.6 SE by round 3.
 
-The real-printer claim is sim-to-real (07-status finding 3), so what matters is a clean effect in simulation and a gap-closed that doesn't swing. 6 slots is better on both.
+The real-printer claim is sim-to-real (`docs/design-notes.md`, point 2), so what matters is a clean effect in simulation and a gap-closed that doesn't swing. 6 slots is better on both.
 
-## Oracle-gap-closed is not usable yet
+## Oracle gap closed is not usable as the metric
 
 The oracle is meant to be the upper bound. Here it is usually *worse* than networked: at 16 pieces and 6 slots it scores 11.84 vs 10.87 µm at round 3. So isolated − oracle is smaller than isolated − networked, and the pooled gap-closed comes out above 1 (1.29-2.19). When the denominator gets near zero it blows up; at 32 pieces and 18 slots, round 3 it is −7.9.
 
 Per-seed median gap-closed for 16 pieces, 6 slots is 0.79-0.88 in rounds 1-3. But the IQR is about [−0.2, 1.8], too wide to commit as a predicted range.
 
-The main cause was Monte Carlo mixing, not particle count: the 18-dim oracle got the same 3 MH steps per resample as a 9-dim site. `Config.oracle_mh_steps` now scales them with dimension (07-status finding 4). A 0.3-0.4 µm residual from piece choice remains, so report iso − net in µm alongside gap-closed. Don't draft the range from these numbers; they predate the fix and `same_agents`.
+The main cause was Monte Carlo mixing, not particle count: the 18-dim oracle got the same 3 MH steps per resample as a 9-dim site. `Config.oracle_mh_steps` scales them with dimension (`docs/design-notes.md`, point 4). A 0.3-0.4 µm residual from piece choice remains, so the registered metric is iso − net in µm, with gap closed as a reference. These numbers predate that fix and `same_agents`.
 
 ## Confidence
 
 - High: 56 seed pieces with 18 slots shows no effect, and a smaller seed plate does. Every thinned plate separates; the full plate never does.
 - Moderate: 16 over 8. The SEs overlap at round 3, but 16 is steadier across rounds.
-- Low: every gap-closed number above, until the oracle is fixed.
+- Low: every gap-closed number above (they predate the oracle fix).
 
 Privacy audit passed in 400/400 runs. Wall time per run: 7 s (4 pieces, 6 slots) to 52 s (56 pieces, 18 slots).
 
 ## 2. Tuning sweep (16 seed pieces, 6 slots)
 
-Run on the GCP VM from main at ce27b43 (challenge and spawn off, `same_agents`, scaled `oracle_mh_steps`), 40 seeds, 3 rounds, seeds 2000-2039. Raw rows are committed gzipped; `analyze.py` reads them directly.
+Run on a cloud VM at ce27b43 (challenge and spawn off, `same_agents`, scaled `oracle_mh_steps`), 40 seeds, 3 rounds, seeds 2000-2039. Raw rows are committed gzipped; `analyze.py` reads them directly.
 
     .venv/bin/python hpc/sweeps/phase_c/tuning.py --stage trust --seed-pieces 16 --slots 6 --seeds 40 --workers 31
 
@@ -74,9 +74,9 @@ Full table: [`results/tuning_trust_seed16_slots6.md`](results/tuning_trust_seed1
 - **cred_floor 0.05**: makes no difference at eta 5 (0.02 and 0.05 give identical rows). 0.1 starts retiring agents (0.1 per run). 0.05 is the middle of the range that doesn't bind.
 - iso − net differs across configs by less than 1 SE, so the networking benefit doesn't decide the choice; protection against a bad site does.
 
-The same sweep with challenge and spawn on (main at 8777dae, [`results/tuning_trust_seed16_slots6_challenge_on.md`](results/tuning_trust_seed16_slots6_challenge_on.md)) picks the same values: bad trust 0.03, honest 0.92, net/iso under attack 0.97. So the choice holds for the secondary analysis as well.
+The same sweep with challenge and spawn on (8777dae, [`results/tuning_trust_seed16_slots6_challenge_on.md`](results/tuning_trust_seed16_slots6_challenge_on.md)) picks the same values: bad trust 0.03, honest 0.92, net/iso under attack 0.97. So the choice holds for the secondary analysis as well.
 
-Provisional config for downstream work: [`hpc/phase_d/provisional_config.json`](../../phase_d/provisional_config.json). Nothing reads it automatically: `sim.calibrate` and `run.py` take the config from `prereg/prereg.yaml`. To use it before the prereg is filled in, copy `prereg.yaml`, put these values in its `config` section and pass the copy with `--prereg`. `n_particles` and `oracle_particles` in it are still the defaults until their stages finish; the knobs stage kept `discount` 0.2 and `between_site_sd` 0.25.
+[`hpc/phase_d/provisional_config.json`](../../phase_d/provisional_config.json) holds the trust-stage values at the old 2000-particle default; nothing reads it. `sim.calibrate` and `run.py` take the config from `prereg/prereg.yaml`.
 
 ### Knobs: discount 0.2, between_site_sd 0.25 (the defaults)
 
@@ -112,9 +112,9 @@ Full table: [`results/tuning_particles_seed16_slots6.md`](results/tuning_particl
 
 Every setting with better mixing (6 MH steps, or 8000 particles) shrinks iso − net by 0.5-1.0 µm, and always the same way: isolated gets better, networked slightly worse. So about a third of the 2.2 µm benefit at the old setting is sampler error in the isolated fit that incoming messages happen to correct, not information from the other site. With better mixing the benefit settles at 1.2-1.7 µm, still about 3 SE above zero.
 
-Recommendation: **n_particles 4000, mh_steps 6**. It sits on that plateau with margin (2000, 6 is there too, but only just). 26 s per simulated run is cheap, and on real rounds the fit time is negligible next to printing. `mh_steps` is not in the prereg's `config` section yet; `prereg.check.config_from` accepts any `Config` field, so adding `mh_steps: 6` there is enough. `oracle_mh_steps` scales with it: ceil(6 × 18 / 8) = 14 steps for the oracle.
+Chosen: **n_particles 4000, mh_steps 6** (registered). It sits on that plateau with margin (2000, 6 is there too, but only just). 26 s per simulated run is cheap, and on real rounds the fit time is negligible next to printing. `oracle_mh_steps` scales with it: ceil(6 × 18 / 8) = 14 steps for the oracle.
 
-The trust and knobs stages ran at 2000, 3. A check of those choices at 4000, 6 is listed below.
+The trust and knobs stages ran at 2000, 3; both are rechecked at 4000, 6 below.
 
 ### Oracle: oracle_particles = n_particles; no count makes the oracle an upper bound
 
@@ -130,7 +130,7 @@ Full table: [`results/tuning_oracle_seed16_slots6.md`](results/tuning_oracle_see
 
 Why: with two sites, networked already extracts what the oracle does. A diagnostic run with `Config.oracle_data="networked"` (the oracle pools exactly the networked arm's data, so only inference differs; [`results/diag_oracle_data_networked.jsonl.gz`](results/diag_oracle_data_networked.jsonl.gz), 40 seeds) gives oracle − networked of −0.04, −0.01, +0.05 µm (SE 0.06-0.07) in rounds 1-3, oracle winning in 60%, 48%, 40% of seeds. Two estimators that agree to within 0.05 µm split the seeds about evenly, so a 90% rule can't be met by any particle count. In the real design the arms also print different pieces, which adds noise to each seed's comparison.
 
-Consequences: per-seed oracle gap closed sits near 1 with a wide spread (IQR roughly [0, 1.5]); it is not bounded in [0, 1] and shouldn't be committed. iso − net (now the registered metric) is unaffected. Recommend `oracle_particles: 4000` (= n_particles; extra particles change nothing).
+Consequences: per-seed oracle gap closed sits near 1 with a wide spread (IQR roughly [0, 1.5]); it is not bounded in [0, 1] and shouldn't be committed. iso − net (the registered metric) is unaffected. Registered: `oracle_particles: 4000` (= n_particles; extra particles change nothing).
 
 ### Trust check at 4000 particles, 6 MH steps
 
@@ -169,12 +169,12 @@ Paired difference against the prereg config, last round (SE):
 - Under attack the honest site's median networked/isolated is 1.03-1.05 at eta 5, against 0.97 at 2000/3. Every config with eta ≥ 5 sits at 1.0-1.08, so this is the sampler, not the eta choice: mild, not a failure.
 - iso − net at the prereg config, paired against the same seeds at 2000/3: −1.00 µm (0.48) on the trust seeds, −0.78 (0.40) on the knobs seeds. The same shrinkage the particles stage found.
 
-## 3. Proposed config (for review; prereg.yaml not edited)
+## 3. Registered config
 
-Values for the `config` section of `prereg/prereg.yaml`. Main (1dbf284) already holds eta, cred_floor, trust_init and discount as below; the changes are `n_particles`, `oracle_particles` and a new `mh_steps` line.
+The tuned values in the `config` section of `prereg/prereg.yaml`:
 
     n_particles: 4000            # was 2000; 6 MH steps / 4000 particles removes sampler error that inflated iso - net
-    mh_steps: 6                  # new line; Config default is 3. oracle_mh_steps scales with it (14)
+    mh_steps: 6                  # Config default is 3; oracle_mh_steps scales with it (14)
     oracle_particles: 4000       # = n_particles; 2000-32000 all tie with networked (oracle stage)
     eta: 5
     cred_floor: 0.05
@@ -182,9 +182,9 @@ Values for the `config` section of `prereg/prereg.yaml`. Main (1dbf284) already 
     discount: 0.2
     between_site_sd: 0.25        # unchanged; knobs stage
 
-## 4. Draft predicted range (simulation only, before calibration)
+## 4. Uncalibrated predicted range (simulation only)
 
-Per seed, isolated − networked, µm, both sites averaged, at the proposed config. 100 seeds from `tuning_oracle_seed16_slots6` (oracle_particles 4000 rows):
+Per seed, isolated − networked, µm, both sites averaged, at the registered config. 100 seeds from `tuning_oracle_seed16_slots6` (oracle_particles 4000 rows):
 
 | round | measured MAE (registered): median [IQR] | share > 0 | noise-free MAE: median [IQR] | share > 0 | oracle gap closed, noise-free: median [IQR] |
 |---|---|---|---|---|---|
@@ -192,11 +192,11 @@ Per seed, isolated − networked, µm, both sites averaged, at the proposed conf
 | 2 | 0.62 [−0.64, 2.31] | 63% | 1.62 [−0.30, 4.16] | 72% | 0.62 [−0.39, 1.55] |
 | 3 | 0.60 [−0.39, 1.97] | 61% | 1.75 [−0.44, 3.26] | 69% | 0.68 [−0.03, 1.52] |
 
-The mean effect on noise-free error is clear (1.5-2.0 µm, SE 0.3). But on measured error over 8 held-out pieces per site, measurement noise is about as large as the effect: in about 40% of simulated worlds a single real run would show networked no better than isolated. The real experiment is one seed. This range replaces nothing until `sim.calibrate` reruns it on the real seed plates.
+The mean effect on noise-free error is clear (1.5-2.0 µm, SE 0.3). But on measured error over 8 held-out pieces per site, measurement noise is about as large as the effect: in about 40% of simulated worlds a single real run would show networked no better than isolated. The real experiment is one seed. The registered range comes only from `sim.calibrate` on real seed plates (`hpc/phase_d/README.md`); no full real run took place, so `predicted_range.range` remains unset.
 
 ## Compared with earlier numbers
 
-- The laptop preview (trust stage before `oracle_particles` and `same_agents`) was lost with the `prebuilt-phase-d` worktree. The closest comparison is section 1 (`same_agents` off, old oracle sampler): there the oracle trailed networked by about 1 µm at round 3 (11.84 vs 10.87). Now it ties (11.30 vs 11.52). That change is mostly the oracle MH fix plus `same_agents` together; these runs can't separate the two, and the `oracle_data="networked"` check says the remaining tie is real.
+- The closest comparison with the pre-`same_agents` design is section 1 (`same_agents` off, old oracle sampler): there the oracle trailed networked by about 1 µm at round 3 (11.84 vs 10.87). Now it ties (11.30 vs 11.52). That change is mostly the oracle MH fix plus `same_agents` together; these runs can't separate the two, and the `oracle_data="networked"` check says the remaining tie is real.
 - iso − net (noise-free, round 3) was 2.06 µm in section 1, 2.22 at 2000/3 with `same_agents`, and 1.52 at 4000/6. `same_agents` left it about the same; better sampling lowered it.
 - The trust choice is the same with challenge and spawn on or off, and at 2000/3 or 4000/6.
 
@@ -205,5 +205,5 @@ The mean effect on noise-free error is clear (1.5-2.0 µm, SE 0.3). But on measu
 - High: eta 5, trust_init 1.0, cred_floor 0.05, discount 0.2, between_site_sd 0.25. The choice is stable across three sweeps (challenge on/off, 2000/3 and 4000/6).
 - High: oracle_particles doesn't matter, and the 90% rule can't be met.
 - Moderate: 4000/6 over 2000/6. Both sit on the plateau; the paired SEs are about 0.4 µm.
-- Moderate: the draft range. It is from the uncalibrated sim; real noise and failure rates will move it.
-- Open: whether a 60% chance of a positive result on one real run is acceptable. That is a design question for M (more held-out pieces per plate, or scoring on more rounds, would cut measurement noise).
+- Moderate: the uncalibrated range. Real noise and failure rates would move it.
+- Limit: one real run shows a positive result only about 60% of the time. More held-out pieces per plate don't fix it (`docs/design-notes.md`, point 9): the benefit itself varies between printer pairs.

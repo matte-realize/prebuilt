@@ -1,4 +1,4 @@
-"""Shared interfaces. Change only together (see docs/build/01-kickoff-layout-contracts.md).
+"""Shared interfaces. Every module depends on these; change them together.
 
 The simulator and the real scanner both implement `Printer`, so nothing
 downstream can tell them apart. `Message` is the only thing that crosses a
@@ -33,8 +33,8 @@ class Measurement:
     plate_id: str
     site: str
     measured_d: float | None   # None if failed
-    status: str                # "ok" | "failed"
-    method: str                # "scanner" | "caliper" | "sim"
+    status: str                # "ok" | "failed" | "skipped" (hand sheet: printed, not measured)
+    method: str                # "scanner" | "caliper" | "sim" | "not-measured" | ...
 
 
 class Printer(Protocol):

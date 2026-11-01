@@ -65,6 +65,8 @@ def main() -> None:
     ap.add_argument("--mh-steps", type=int, default=keep, help="sim sweep: MH steps per resample (the oracle's scale from it)")
     ap.add_argument("--bad-site", action="append", default=[], help="sim only: site that broadcasts bad beliefs")
     ap.add_argument("--no-messages", action="store_true", help="ablation: cut the network")
+    ap.add_argument("--consistency-check", action="store_true", help="sim only: receivers drop notes that contradict their own data")
+    ap.add_argument("--adaptive-spread", action="store_true", help="sim only: receivers weight senders by how much they have agreed")
     ap.add_argument("--challenge", action="store_true", help="secondary analysis: run the challenge round (networked arm)")
     ap.add_argument("--spawn", action="store_true", help="secondary analysis: dormant agents can wake (networked arm)")
     ap.add_argument("--seed-pieces", type=int, default=keep, help="sim sweep: calibration pieces on the seed plate (max 56)")
@@ -130,6 +132,10 @@ def main() -> None:
         given["challenge"] = True
     if args.spawn:
         given["dormant"] = tuple(DORMANT_NAMES)
+    if args.consistency_check:
+        given["consistency_check"] = True
+    if args.adaptive_spread:
+        given["adaptive_spread"] = True
     gaps = defaultdict(list)
     all_rows = []
     for k in range(args.seeds):

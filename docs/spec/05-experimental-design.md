@@ -4,60 +4,53 @@
 
 ### 8.1 Arms
 
-All arms share every plate, with equal slot budgets and randomized placement.
+`arms/experiment.py` (`run_experiment`). All arms share every plate, with equal slot budgets (6 per arm) and randomized placement recorded in the receipt.
 
 | Arm | Data access | Selection policy |
 |---|---|---|
-| Human grid | Own site | Uniform sweep over nominal clearance and feature size |
-| Isolated site | Own site only | Single agent, all of its site's evidence, maximum-uncertainty selection |
-| Networked collective | Own site + messages | Full system (Section 6) |
-| Pooled-data oracle | All sites' raw data | Single agent, maximum-uncertainty selection. Upper bound; not realizable in practice |
+| Isolated site | Own site only | The same agent auction, at uniform credibility |
+| Networked collective | Own site + messages | The agent auction at learned credibility (Section 6) |
+| Pooled-data oracle | All sites' raw data, hierarchical | The same agent auction, at uniform credibility. Reference; not realizable in practice |
 
-Each plate's slots split equally across the four arms; positions randomized by a seeded shuffle recorded in the receipt.
+Using the same agents in every arm (`same_agents=True`) means the arms differ only in the data each model sees. The human-grid arm in the original design was not built.
 
 ### 8.2 Held-out set
 
-- Fixed before the first print, hashed and committed.
-- Spread across plates to capture drift.
+- Fixed before any print, hashed and committed (`prereg/heldout.json`): 8 pieces per plate.
 - Measured but escrowed per site: used only for scoring and credibility.
-- Includes geometries outside the training distribution for the "new geometries" claim.
+- In simulation, scored against the noise-free sizes (`mae_truth`), which agents never see.
 
 ### 8.3 Plate sequence
 
-| Plate | Resin site | PLA site |
-|---|---|---|
-| Seed calibration | Fri night | Sat morning (one round behind) |
-| Round 1 | Sat morning | Sat midday |
-| Round 2 | Sat afternoon | Sat evening |
-| Demo assembly + audit | Sat night (optional) | Sat night (preferred; faster) |
+1. Seed calibration plate at each site: 16 calibration pieces + 8 held-out.
+2. Rounds 1–3 (registered): one plate per site per round, chosen by that site's agents.
+3. Privacy audit over both receipt chains.
 
-PLA joins one round behind so H2 tests a genuine new site joining the network.
-
-Every plate carries duplicate pieces. Plates are small, flat, and well supported.
+Both sites start together; a site joining a round behind and a demo assembly were designed but not run.
 
 ### 8.4 Metrics
 
-- Held-out mean absolute error in clearance
+- **Primary:** isolated − networked held-out MAE, in µm (diameter error against truth in simulation, measured MAE on real data)
 - Held-out log predictive density
-- Fit-class accuracy
-- Calibration: coverage of 90% predictive intervals
-- **Oracle gap closed:** (isolated − networked) / (isolated − oracle) on each metric
+- Calibration: coverage of 90% predictive intervals (90–91% in every arm in simulation)
+- Fit-class accuracy (reported, not headlined)
+- Oracle gap closed, (isolated − networked) / (isolated − oracle), reported only as a reference: on measured MAE the denominator is near zero
 - Learning curves per arm vs. pieces printed
-- Transfer: pieces needed to reach target error at the joining site, networked vs. isolated
 
-Uncertainty on real data via bootstrap over pieces; in simulation via many seeds.
+In simulation, uncertainty comes from many paired worlds (same world seed, one thing changed) with an exact sign test.
 
-### 8.5 Print-failure rules (pre-registered)
+### 8.5 Print-failure rules (registered)
 
-- A piece that fails to print, fuses, warps, or breaks is a **printability outcome**, not dropped data; the printability agent is scored on predicting it.
-- If a held-out piece fails, it is reported, and fit metrics are computed on survivors with the failure count shown.
-- A plate is "failed" if fewer than a pre-registered fraction of pieces are measurable; otherwise "partial" and used.
+- A piece that fails to print is a **printability outcome**, not dropped data; the printability agent learns from it.
+- A failed held-out piece is reported, and metrics are computed on survivors.
+- A plate is "failed" if more than the registered fraction (0.5) of its pieces fail; it is reprinted once, then dropped from the round.
 
-### 8.6 Ablations
+### 8.6 Ablations and controls (simulation)
 
-- Remove each agent type; report held-out degradation.
-- Cut the network (no messages): networked collective should fall to isolated performance.
-- Inject a miscalibrated agent and a bad-faith site; track credibility and recovery.
-- Scaling in simulation: number of sites (2, 5, 10, 25) and agents per site; plot oracle gap closed.
-- Share only same-process vs. all messages; measure what cross-process transfer actually contributes.
+- Cut the network (`share_messages=False`): the gain comes from messages (with messages cut, the same agents gain 2.4%, not significant).
+- Random piece selection (`selection="random"`): the agents' choices don't beat random.
+- A saboteur agent inside a site, and a bad-faith site broadcasting corrupted beliefs (`bad_sites`, at offsets of 0.5–3 prior std).
+- Negative control (`independent_shared=True`): printers that share no physics; sharing gains nothing (−13%).
+- Scaling: 2, 4 and 8 data-poor sites; mixed fleets where half the sites share no physics; a sub-millimetre plate.
 
+Results: `hpc/sweeps/relevance/README.md`, `hpc/sweeps/coldstart/README.md`, `hpc/sweeps/phase_d/`.

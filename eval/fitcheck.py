@@ -1,4 +1,4 @@
-"""Hand fit checks against predicted fit classes (spec 7.4, walkthrough measurement step 4).
+"""Hand fit checks against predicted fit classes (spec 7.4; docs/guides/real-site-run.md step 4.7).
 
 At the printer, push a few printed pins into printed holes and write what you feel to
 `scans/<site>/<plate_id>-fitcheck.csv`:
