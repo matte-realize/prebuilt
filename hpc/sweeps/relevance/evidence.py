@@ -131,18 +131,23 @@ def sites_needed(path: Path, cell=(4, 2), r=HORIZON) -> dict:
     """coldstart/results/grid.jsonl at warm-up 4, 2 pieces/round: networked vs isolated by number of sites.
     pct is the coldstart README's metric (mean gain / mean isolated error); the paired gain() is alongside."""
     acc = defaultdict(dict)
+    curves = defaultdict(lambda: {a: [[] for _ in range(r)] for a in ("isolated", "networked", "oracle")})
     for line in _open(path):
         d = json.loads(line)
         c = d["cell"]
         if (c.get("seed_pieces"), c.get("slots")) != cell or set(c) != {"n", "seed_pieces", "slots"}:
             continue
         acc[c["n"]][d["seed"]] = (_site_mean(d["scores"], "isolated", r), _site_mean(d["scores"], "networked", r))
+        for arm in ("isolated", "networked", "oracle"):  # by-round curves for the demo's "many printers" chart
+            for k in range(1, r + 1):
+                curves[c["n"]][arm][k - 1].append(_site_mean(d["scores"], arm, k))
     rows = []
     for n in sorted(acc):
         iso, net = (np.array(v) for v in zip(*acc[n].values()))
         g = gain(net, iso)
         rows.append({"sites": n, "worlds": len(iso), "alone_um": float(iso.mean()), "together_um": float(net.mean()),
-                     "pct": float(100 * (iso - net).mean() / iso.mean()), "wins": g["wins"], "n": g["n"], "p": g["p"], "paired": g})
+                     "pct": float(100 * (iso - net).mean() / iso.mean()), "wins": g["wins"], "n": g["n"], "p": g["p"], "paired": g,
+                     "curve_um": {a: [float(np.mean(v)) for v in curves[n][a]] for a in curves[n]}})
     return {"source": "hpc/sweeps/coldstart/results/" + Path(path).name, "seed_pieces": cell[0], "per_round": cell[1], "round": r, "rows": rows}
 
 
