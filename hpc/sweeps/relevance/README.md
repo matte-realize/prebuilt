@@ -192,3 +192,38 @@ Random piece selection (`Config.selection="random"`, every arm) vs the agent auc
 - Consistency: the normal resin + PLA row reproduces section 8 (+10.0%, 44/60).
 
 So for the pitch: the micro-scale angle stays a direction, not a result. What simulation supports is narrower: on sub-millimetre features the gain holds (7–9%) while the same error is a five times larger fraction of the part.
+
+## 10. Mixed fleets: some printers share physics, some don't (frozen config, data-poor sites, 3 rounds)
+
+    PYTHONPATH=. .venv/bin/python hpc/sweeps/relevance/mixed_fleet.py 40 results/mixed_fleet.jsonl --sites 4
+    PYTHONPATH=. .venv/bin/python hpc/sweeps/relevance/mixed_fleet.py 20 results/mixed_fleet.jsonl --sites 8
+    .venv/bin/python hpc/sweeps/relevance/analyze_mixed_fleet.py hpc/sweeps/relevance/results/mixed_fleet.jsonl.gz --json results/mixed-fleet-summary.json
+
+Section 6 is all-or-nothing. Here half the sites share the common draw of the shared parameters ("matched") and half draw them on their own ("unmatched", `make_world(independent_sites=...)`; same draws otherwise, so worlds stay paired). Sites start data-poor as in section 7 (warm-up 4 pieces, 2 per round). Together vs alone is paired within each run; % is the paired median, round 3, true-size error.
+
+**8 sites (4 matched, 4 unmatched), 20 worlds**
+
+| Together vs alone | Matched sites | Unmatched sites |
+|---|---|---|
+| Fixed spread (frozen) | +16.2%, 17/20, p=0.003 | −14.6%, 8/20, p=0.50 |
+| Consistency check | +16.5%, 17/20 | −4.1%, 9/20 |
+| Adaptive spread | +24.7%, 17/20, p=0.003 | −5.2%, 8/20 |
+| Both | +24.7%, 17/20, p=0.003 | −1.2%, 8/20 |
+
+Against fixed spread, both is better for unmatched sites in 16/20 (p=0.01) and for matched sites in 14/20 (p=0.12).
+
+**4 sites (2 matched, 2 unmatched), 40 worlds:** too few matched partners for a clear gain. Matched sites gain +2.4% fixed and +9.4% with both (25/40, p=0.15); unmatched −3.5% fixed, +0.8% with both. Adaptive beats fixed for both groups in 21/40 worlds (p=0.02), by small amounts.
+
+**Does trust separate them?** Partly. The adaptive multiplier on a sender after round 3 (1 = full weight):
+
+| Receiver ← sender | 4 sites: mean, >2× | 8 sites: mean, >2× |
+|---|---|---|
+| matched ← matched | 1.00, 0% | 1.05, 2% |
+| matched ← unmatched | 1.23, 8% | 1.41, 12% |
+| unmatched ← matched | 1.23, 8% | 1.41, 12% |
+| unmatched ← unmatched | 1.06, 0% | 1.21, 7% |
+
+Matched pairs keep full weight; mismatched pairs are down-weighted on average, but the median is still 1. Data-poor sites have wide fits, so most mismatches stay inside what the model allows after three rounds. The consistency check drops 0 of 720 matched-to-matched notes and 20 of 960 mismatched ones (8 sites).
+
+- **What it shows:** in a mixed fleet, matched sites still gain, and the defences make the gain larger (+16% → +25% at 8 sites) while cutting the harm to unmatched sites (−15% → −1%). The fixed spread lets unmatched sites pull matched ones off; down-weighting them helps both sides.
+- **What it doesn't:** trust doesn't yet cleanly sort senders into "listen" and "ignore" within three rounds; it nudges. Unmatched sites still don't gain (they have no one to learn from) and the 8-site run is 20 worlds. Simulation only; added options, off in the registered config.
