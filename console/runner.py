@@ -507,6 +507,7 @@ class Run:
 
 def summarize_state(state: dict) -> dict:
     from network.protocol import deserialize
+    from viewer.export import messages_of, plates_of
     res, sites = state["res"], state["sites"]
     numbers, msgs = 0, 0
     for c in res.chains.values():
@@ -520,6 +521,12 @@ def summarize_state(state: dict) -> dict:
         "scores": res.scores, "trust": res.trust, "checks": res.checks,
         "crossed": {"messages": msgs, "numbers": numbers, "measurements": 0},
         "kept": {s: len({p.piece_id for v in [*st.data.values(), st.escrow] for p, _ in v}) for s, st in sites.items()},
+        # for the live 3D scene: each printed plate, and each note that crossed (sender, round, the 3 shared numbers)
+        "plates": {s: [{"round": pl["round"], "pieces": [{k: q[k] for k in ("kind", "d", "slot", "arm", "status")}
+                                                        for q in pl["pieces"]]} for pl in plates_of(st)]
+                   for s, st in sites.items()},
+        "messages": [{k: m[k] for k in ("from", "to", "round", "bytes", "shared_params")}
+                     for c in res.chains.values() for m in messages_of(c)],
     }
 
 

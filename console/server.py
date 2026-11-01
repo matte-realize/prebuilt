@@ -23,6 +23,8 @@ from urllib.parse import parse_qs, unquote, urlparse
 from console import runner
 
 HERE = Path(__file__).resolve().parent
+VIEWER = HERE.parent / "viewer"
+VENDOR = {"/vendor/three.min.js": "three.min.js", "/vendor/OrbitControls.js": "OrbitControls.js"}
 
 
 class Console:
@@ -98,6 +100,14 @@ def make_handler(con: Console):
                 return self._deny()
             if path == "/api/state":
                 return self._json(con.state())
+            if path == "/api/evidence":  # the many-world results (hpc/sweeps/relevance/evidence.py), for context next to one run
+                ev = VIEWER / "evidence.json"
+                return self._send(200, ev.read_bytes() if ev.exists() else b"null", "application/json")
+            if path in VENDOR:  # three.js from the repo, so the 3D lab works offline
+                return self._send(200, (VIEWER / "vendor" / VENDOR[path]).read_bytes(), "text/javascript; charset=utf-8",
+                                  {"Cache-Control": "max-age=3600"})
+            if path in ("/classic", "/classic.html"):
+                return self._send(200, (HERE / "classic.html").read_bytes(), "text/html; charset=utf-8")
             if path.startswith("/runs/"):
                 return self._static(unquote(path[len("/runs/"):]))
             self._json({"error": "not found"}, 404)

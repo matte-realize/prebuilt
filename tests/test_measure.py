@@ -89,3 +89,19 @@ def test_testprint_synthetic_roundtrip(tmp_path, capsys):
     assert sum(m.status == "ok" for m in ms) == len(plate.pieces)
     compare(plate, ms, particles=500, seed=0)
     assert "held-out MAE" in capsys.readouterr().out
+
+
+def test_testprint_manual_sheet_um_and_repeats(tmp_path):
+    """Hand sheet: µm values convert, repeated readings average, blanks aren't failures."""
+    from measure.testprint import read_manual
+    from plates.layout import load_plate
+
+    plate = load_plate("plates/out/test/resin-test.json")
+    sheet = tmp_path / "s.csv"
+    sheet.write_text("row,col,kind,measured_d,status\n0,6,pin,1410.88,\n0,6,pin,1475.78,\n0,1,pin,4.95,\n6,5,pin,,\n")
+    ms = {m.piece_id: m for m in read_manual(plate, sheet)}
+    by_slot = {p.slot: p.piece_id for p in plate.pieces}
+    assert abs(ms[by_slot[(0, 6)]].measured_d - 1.44333) < 1e-4
+    assert ms[by_slot[(0, 1)]].measured_d == 4.95
+    assert ms[by_slot[(6, 5)]].status == "skipped"
+    assert not any(m.status == "failed" for m in ms.values())

@@ -7,7 +7,7 @@
 Committed in `prereg/prereg.yaml` before any print (its sha256 is recorded in `eval/figures/README.md`):
 
 - **Network vs. isolated (`network_vs_oracle`).** At equal print budgets, the networked arm beats isolated sites on held-out error, near the pooled-data oracle, with no raw data crossing a site boundary. Primary metric: isolated − networked held-out MAE in µm. **Result, simulation only:** 1.6 µm (12%) at two sites, better in 75 of 100 worlds; the oracle also gains 12%.
-- **Sim-to-real range (`sim_to_real_range`).** The measured value on real printers lands in a range predicted from simulation after seed calibration. **Not tested:** no full real-printer run took place (fallback tier D, Section 14). The only real-printer evidence is three micrometer readings on one Formlabs Form Studio 1 (a 1.5 mm pin measured 1.41–1.48 mm, within the vendor's ±0.08 mm spec and inside the simulator's range).
+- **Sim-to-real range (`sim_to_real_range`).** The measured value on real printers lands in a range predicted from simulation after seed calibration. **Not tested:** no full real-printer run took place (fallback tier D, Section 14). The only real-printer evidence is three micrometer readings on one Formlabs Form Studio 1 (a 1.5 mm pin measured 1.41–1.48 mm, within the vendor's ±0.08 mm spec and at the small edge of the simulator's range, 1.8th percentile for that pin).
 - **Robustness (`robustness_sim`).** In simulation, a site broadcasting corrupted beliefs loses trust and the networked arm stays at least as good as isolated after round 1, while honest senders keep trust. **Result:** the liar's trust falls to ~0.01 after one round, but round 1 is costly; the opt-in consistency check removes that cost (Section 6.4).
 
 ### 4.2 Designed, not registered

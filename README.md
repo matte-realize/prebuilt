@@ -13,9 +13,18 @@ Each site prints a test plate of pins and holes, measures it, and fits a physics
 - **Mixed fleets stay safe.** Eight data-poor printers, half sharing no physics with the rest (20 worlds): with both defences the matching printers gain 25% instead of 16%, and the harm to the others falls from −15% to −1%. A newer opt-in rule, predictive trust (each printer scores incoming notes on its own held-out parts), lifts the matching printers to 33% better than alone by round 6 (20% with fixed sharing) and takes the others from 21% worse to 7% better, scored on parts the trust step never saw (30 worlds). Neither rule cleanly identifies a mismatched printer.
 - **Small features:** on a sub-millimetre plate the gain holds at 7–9%; it doesn't grow.
 - **Parts that fit the first time:** corrected designs from a learned printer cut size error from 132 to 9 µm (median, 60 simulated worlds), with a 90% interval that's calibrated for what the model misses.
-- **Grounded in a real printer:** on a Formlabs Form Studio 1, a 1.5 mm pin measured 1.41–1.48 mm by micrometer, within the vendor's ±0.08 mm spec and inside the simulator's range. At two sites the sharing gain is below what a real part can show, so we claim it only in simulation, as registered before printing.
+- **Grounded in a real printer:** on a Formlabs Form Studio 1, a 1.5 mm pin measured 1.41–1.48 mm by micrometer, within the vendor's ±0.08 mm spec and at the small edge of the simulator's range (1.8th percentile for that pin; [details](docs/validation-and-benchmarks.md)). At two sites the sharing gain is below what a real part can show, so we claim it only in simulation, as registered before printing.
 
 Details: [`hpc/sweeps/relevance/README.md`](hpc/sweeps/relevance/README.md), [`hpc/sweeps/coldstart/README.md`](hpc/sweeps/coldstart/README.md).
+
+## Validation and benchmarks
+
+[docs/validation-and-benchmarks.md](docs/validation-and-benchmarks.md) collects the evidence, with commands to reproduce each table:
+- **Multi-site vs. single site** on a hidden-truth benchmark (paired worlds, registered config): networked vs. isolated, pooled-data oracle, messages cut, random piece selection.
+- **Scaling** to 2, 4 and 8 sites, plus liars, a negative control and mixed fleets.
+- **Calibration:** 90% intervals cover 90–91%; corrected-design intervals cover 81–96% in cross-validation.
+- **Speed:** the GPU posterior runs up to 84× NumPy on an H100. **Measurement:** the scanner pipeline is 2–5 µm RMS on clean synthetic scans.
+- **Real printer:** one Formlabs Form Studio 1 pin, two micrometer readings: inside the vendor spec, at the small edge of the simulator's range (1.8th percentile), below the prior's 90% interval. A sanity check, not a fit.
 
 **Who it's for:** fleets where fit decides, such as dental labs, print farms and service bureaus: many printers, little data each, data that can't leave. The direction is smaller features (microfluidics, bioprinting), where printer error matters more and data is scarcer ([future work](docs/future-work.md)).
 

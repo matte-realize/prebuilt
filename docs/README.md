@@ -6,6 +6,7 @@ Start with the [project README](../README.md) for what we found and how to run i
 
 ## Results and design
 
+- [Validation and benchmarks](validation-and-benchmarks.md): all the evidence in one place — multi-site vs. single site, scaling, robustness and controls, calibration, speed, measurement, the real printer, and how to reproduce each table
 - [Design notes](design-notes.md): why the experiment is set up the way it is (seed plate size, same agents in every arm, the oracle's MH steps, the primary metric, LPD clipping, held-out count), prereg choices, challenge and spawn, the hypothesis agent, real-path hardening, the scanner stress test, known limits
 - Sweep results: [`hpc/sweeps/relevance/`](../hpc/sweeps/relevance/README.md) (does sharing matter, where, and how to make it safe), [`hpc/sweeps/coldstart/`](../hpc/sweeps/coldstart/README.md) (how many sites it takes), [`hpc/sweeps/phase_c/`](../hpc/sweeps/phase_c/README.md) (config tuning), [`hpc/sweeps/phase_d/`](../hpc/sweeps/phase_d/README.md) (robustness and ablation)
 - [Warp GPU posterior](gpu-posterior.md): design, tests and benchmarks (laptop GPU and H100)
