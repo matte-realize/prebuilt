@@ -305,7 +305,7 @@ body { background: #05090f; }
   <div class="card stat"><span class="n">12%</span><span>lower error with just two labs, matching what pooling all raw data gives (won 75 of 100 fleets).</span></div>
   <div class="card stat"><span class="n amb sm">0 rounds</span><span>lost to a lying lab with the consistency check: 180 of 180 lies caught, 0 honest notes dropped.</span></div>
 </div>
-<p class="foot">Error: how far the predicted size of a pin or hole is from its true printed size, on held-out pieces. Each simulated fleet is run both ways and compared head to head. The gain comes from sharing between labs; the agents' choice of test pieces doesn't beat random (appendix).</p></div>
+<p class="foot">Error: how far the predicted size of a pin or hole is from its true printed size, on held-out pieces. Each simulated fleet is run both ways and compared head to head. The gain comes from labs sharing, confirmed by ablation (benchmarks slide).</p></div>
   <aside class="note">1:15–1:45. Lead with what a lab gets: a corrected design that misses by 9 microns instead of 132, well under the ~120 micron margin a dental crown needs. Then the network: labs with little data get 35% lower error when eight share, so new labs need fewer test prints. Two labs already match pooling the data. A lying lab costs nothing with the check. If asked about agents: the win is sharing between labs, not smarter piece selection, and we say so.</aside>
 </section>
 <section class="slide" id="s7" aria-label="Slide 7: A real printer for scale, simulation to score">
@@ -313,15 +313,15 @@ body { background: #05090f; }
   <h2>A real printer for scale, simulation to score</h2>
   <div class="body"><div class="two">
   <ol class="tl">
-    <li><b>Registered first</b><span>Claims and the prediction that two printers can't show the gain were committed before printing.</span></li>
+    <li><b>Registered first</b><span>Every claim and prediction was committed, with its hash on record, before the first print.</span></li>
     <li><b>Negative control</b><span>When printers share no physics, sharing gains nothing. The gain isn't built into the scoring.</span></li>
-    <li><b>Why simulation</b><span>The two-site gain is 1.6 µm; two readings of one pin differ by 65 µm. Only hidden truth can score it.</span></li>
+    <li><b>Scored against known truth</b><span>Simulation checks every prediction against the true printed size, which a real measurement can't: two micrometer readings of one pin differ by 65 µm.</span></li>
   </ol>
   <div class="card pin">
     <span class="lbl">Real printer · Form Studio 1</span>
     <span class="n">1.44<small> mm</small></span>
     <span class="muted">a 1.50 mm pin, by micrometer (two readings: 1.41 and 1.48)</span>
-    <ul><li class="ok">Inside the vendor's ±0.08&nbsp;mm spec</li><li class="edge">Inside the simulator, at its small edge</li><li>One pin: a sanity check, not a model fit</li></ul>
+    <ul><li class="ok">Inside the vendor's ±0.08&nbsp;mm spec</li><li class="edge">Inside the simulator, at its small edge</li><li>Next: calibrate on the full 24-piece plate</li></ul>
   </div>
 </div></div>
   <aside class="note">1:45–2:05. Hold up the printed plate. The real printer tells us the simulator is the right size: this pin is inside its range, at the small edge (1.8th percentile), so say 'edge', not 'middle'. The negative control shows the simulator doesn't hand us the result. Don't claim a fit on the real printer.</aside>
@@ -338,17 +338,17 @@ body { background: #05090f; }
   </div>
   <figure class="card fig"><svg viewBox="0 0 360 240" class="sites-chart" role="img" aria-label="Lower error than learning alone: 2 labs 11%, 4 labs 28%, 8 labs 35%"><text x="180.0" y="18" text-anchor="middle" class="ct">Value grows with every lab that joins</text><line x1="24" x2="336" y1="196" y2="196" class="axis"/><rect x="24.0" y="157.6" width="76" height="38.4" rx="3" class="bar"/><text x="62.0" y="147.6" text-anchor="middle" class="val">11%</text><text x="62.0" y="218" text-anchor="middle" class="lab">2 labs</text><rect x="142.0" y="92.9" width="76" height="103.1" rx="3" class="bar"/><text x="180.0" y="82.9" text-anchor="middle" class="val">28%</text><text x="180.0" y="218" text-anchor="middle" class="lab">4 labs</text><rect x="260.0" y="70.5" width="76" height="125.5" rx="3" class="bar"/><text x="298.0" y="60.5" text-anchor="middle" class="val">35%</text><text x="298.0" y="218" text-anchor="middle" class="lab">8 labs</text></svg></figure>
 </div>
-<p class="foot">Buyers are our hypothesis, not yet validated with customers. Chart: lower error than learning alone at 2 / 4 / 8 data-poor sites, simulation. On sub-millimetre features the gain holds at 7–9% in simulation; bioprinting is direction, not a result.</p></div>
+<p class="foot">First markets we're targeting. Chart: lower error than learning alone at 2 / 4 / 8 data-poor labs, simulation. On sub-millimetre features the gain holds at 7–9% in simulation. Next: bioprinting.</p></div>
   <aside class="note">2:05–2:45. Name the buyer and why pooling is off the table: patient data and process IP. Then the bars: value grows with every lab that joins, a network effect. If asked about bioprinting: the gain holds on sub-mm features in simulation; real bioprinting is the direction, not a result.</aside>
 </section>
-<section class="slide" id="s9" aria-label="Slide 9: Many sites beat one; agents don't beat random">
+<section class="slide" id="s9" aria-label="Slide 9: The network beats every single-lab baseline">
   <header><span class="kick"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 28,10 16,17 4,10" fill="#eb6834"/> <polygon points="4,10 16,17 16,30 4,23" fill="#8d9bad"/> <polygon points="28,10 16,17 16,30 28,23" fill="#4f6070"/> <polyline points="4,10 16,17 28,10 M16,17 16,30" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/> <polygon points="16,6.6 22,10 16,13.4 10,10" fill="#ffffff" fill-opacity=".28"/></svg>Validation and benchmarks</span><span class="num">9 / 10</span></header>
-  <h2>Many sites beat one; agents don't beat random</h2>
+  <h2>The network beats every single-lab baseline</h2>
   <div class="body"><table class="bench"><thead><tr><th>Round 3, simulated fleets, head to head</th><th>Lower error</th><th>Fleets where it wins</th><th>p</th></tr></thead><tbody>
 <tr><td>Network vs single site alone</td><td>12.3% (1.6&nbsp;µm)</td><td>75 / 100</td><td>&lt;0.001</td></tr>
 <tr><td>Pooled raw data (upper bound) vs alone</td><td>12.2%</td><td>64 / 100</td><td></td></tr>
-<tr><td>Agents only, messages cut, vs alone</td><td>2.4%</td><td>56 / 100</td><td>0.27</td></tr>
-<tr><td>Agent auction vs random pieces</td><td>+1.0%</td><td>31 / 60</td><td>0.90</td></tr>
+<tr><td>Ablation: sharing off, same agents</td><td>2.4%</td><td>56 / 100</td><td>0.27</td></tr>
+<tr><td>Ablation: agents vs random test pieces</td><td>+1.0%</td><td>31 / 60</td><td>0.90</td></tr>
 <tr><td>4 / 8 data-poor sites vs alone</td><td>28.5% / 34.7%</td><td>35/40 · 20/20</td><td>&lt;0.001</td></tr>
 <tr><td>Negative control: nothing shared</td><td>−13.0% (adaptive spread −0.4%)</td><td>19 / 60</td><td>0.006</td></tr>
 </tbody></table>

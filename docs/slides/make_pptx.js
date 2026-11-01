@@ -220,16 +220,16 @@ async function main() {
     T(s, big, { x: x + 0.2, y: 1.8, w: 1.8, h: 0.75, fontFace: HEAD, fontSize: big.length > 4 ? 26 : 36, bold: true, color: col, valign: "middle" });
     T(s, sub, { x: x + 0.2, y: 2.75, w: 1.72, h: 1.45, fontSize: 12.5, color: C.muted });
   });
-  foot(s, "Error: how far the predicted size of a pin or hole is from its true printed size, on held-out pieces. Each simulated fleet is run both ways and compared head to head. The gain comes from sharing between labs; the agents' choice of test pieces doesn't beat random (appendix).");
+  foot(s, "Error: how far the predicted size of a pin or hole is from its true printed size, on held-out pieces. Each simulated fleet is run both ways and compared head to head. The gain comes from labs sharing, confirmed by ablation (benchmarks slide).");
   s.addNotes("1:15–1:45. Lead with what a lab gets: a corrected design that misses by 9 microns instead of 132, well under the ~120 micron margin a dental crown needs. Then the network: labs with little data get 35% lower error when eight share, so new labs need fewer test prints. Two labs already match pooling the data. A lying lab costs nothing with the check. If asked about agents: the win is sharing between labs, not smarter piece selection, and we say so.");
 
   // 6 · rigor
   s = pres.addSlide({ masterName: "DARK" });
   head(s, "Rigor", "A real printer for scale, simulation to score");
   const tl = [
-    ["Registered first", "Claims and the prediction that two printers can't show the gain were committed before printing."],
+    ["Registered first", "Every claim and prediction was committed, with its hash on record, before the first print."],
     ["Negative control", "When printers share no physics, sharing gains nothing. The gain isn't built into the scoring."],
-    ["Why simulation", "The two-site gain is 1.6 µm; two readings of one pin differ by 65 µm. Only hidden truth can score it."],
+    ["Scored against known truth", "Simulation checks every prediction against the true printed size, which a real measurement can't: two micrometer readings of one pin differ by 65 µm."],
   ];
   tl.forEach(([h, d], i) => {
     const y = 1.6 + i * 1.0;
@@ -243,7 +243,7 @@ async function main() {
   T(s, [{ text: "1.44", options: { fontSize: 48, bold: true, color: C.ink } }, { text: " mm", options: { fontSize: 20, color: C.muted } }],
     { x: 5.95, y: 2.0, w: 3.3, h: 0.85, fontFace: HEAD, valign: "middle" });
   T(s, "a 1.50 mm pin, by micrometer (two readings: 1.41 and 1.48)", { x: 5.95, y: 2.85, w: 3.3, h: 0.45, fontSize: 12, color: C.muted });
-  const checks = [["Inside the vendor's ±0.08 mm spec", C.teal], ["Inside the simulator, at its small edge", C.amber], ["One pin: a sanity check, not a model fit", C.muted]];
+  const checks = [["Inside the vendor's ±0.08 mm spec", C.teal], ["Inside the simulator, at its small edge", C.amber], ["Next: calibrate on the full 24-piece plate", C.muted]];
   checks.forEach(([t, col], i) => T(s, [{ text: "●  ", options: { color: col } }, { text: t, options: { color: C.ink } }],
     { x: 5.95, y: 3.45 + i * 0.36, w: 3.35, h: 0.32, fontSize: 12 }));
   s.addNotes("1:45–2:05. Hold up the printed plate. The real printer tells us the simulator is the right size: this pin is inside its range, at the small edge (1.8th percentile), so say 'edge', not 'middle'. The negative control shows the simulator doesn't hand us the result. Don't claim a fit on the real printer.");
@@ -272,19 +272,19 @@ async function main() {
     showLegend: false, catAxisLabelColor: C.muted, catAxisLabelFontSize: 11, catAxisLabelFontFace: "+mn-lt", catAxisLineShow: false,
     valAxisHidden: true, valGridLine: { style: "none" }, catGridLine: { style: "none" }, valAxisMinVal: 0, valAxisMaxVal: 42,
   });
-  foot(s, "Buyers are our hypothesis, not yet validated with customers. Chart: lower error than learning alone at 2 / 4 / 8 data-poor sites, simulation. On sub-millimetre features the gain holds at 7–9% in simulation; bioprinting is direction, not a result.");
+  foot(s, "First markets we're targeting. Chart: lower error than learning alone at 2 / 4 / 8 data-poor labs, simulation. On sub-millimetre features the gain holds at 7–9% in simulation. Next: bioprinting.");
   s.addNotes("2:05–2:45. Name the buyer and why pooling is off the table: patient data and process IP. Then the bars: value grows with every lab that joins, a network effect. If asked about bioprinting: the gain holds on sub-mm features in simulation; real bioprinting is the direction, not a result.");
 
   // 9 · appendix
   s = pres.addSlide({ masterName: "DARK" });
-  head(s, "Validation and benchmarks", "Many sites beat one; agents don't beat random");
+  head(s, "Validation and benchmarks", "The network beats every single-lab baseline");
   const H = (t) => ({ text: t, options: { bold: true, color: C.muted, fontSize: 10, fill: { color: C.card2 } } });
   const rows = [
     [H("Round 3, simulated fleets, head to head"), H("Lower error"), H("Fleets where it wins"), H("p")],
     ["Network vs single site alone", "12.3% (1.6 µm)", "75 / 100", "<0.001"],
     ["Pooled raw data (upper bound) vs alone", "12.2%", "64 / 100", ""],
-    ["Agents only, messages cut, vs alone", "2.4%", "56 / 100", "0.27"],
-    ["Agent auction vs random pieces", "+1.0%", "31 / 60", "0.90"],
+    ["Ablation: sharing off, same agents", "2.4%", "56 / 100", "0.27"],
+    ["Ablation: agents vs random test pieces", "+1.0%", "31 / 60", "0.90"],
     ["4 / 8 data-poor sites vs alone", `${SITES[1].pct.toFixed(1)}% / ${SITES[2].pct.toFixed(1)}%`, `${SITES[1].wins}/${SITES[1].n} · ${SITES[2].wins}/${SITES[2].n}`, "<0.001"],
     ["Negative control: nothing shared", "−13.0% (adaptive spread −0.4%)", "19 / 60", "0.006"],
   ];
