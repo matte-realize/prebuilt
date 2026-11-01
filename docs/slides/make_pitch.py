@@ -130,26 +130,30 @@ SLIDES = [
 <p class="foot">Simulation with hidden truth, frozen config, paired per world. The consistency check is an added protocol option, off in the registered config, tested in {CHECK["worlds"]} worlds. The agent layer adds nothing measurable: with messages cut, learned credibility ties equal votes. At two sites the gain is 1.6 µm, below what you can measure on a real part, so we don't claim it there.</p>""",
      "Say it plainly: these are simulation numbers, the gain comes from sharing between sites, not from the agents, and at two sites it is a couple of microns. It grows with the number of data-poor sites."),
 
-    ("2:00–2:30 · Why simulation", "Grounded in a real printer, scored in simulation",
+    ("2:00–2:25 · Science, not a demo", "Grounded in a real printer, scored in simulation",
      """<div class="timeline">
   <div><span class="t">Real printer</span><p>Formlabs Form Studio 1: a 1.5 mm pin measured 1.41–1.48 mm by micrometer, 24–89 µm small.</p></div>
   <div><span class="t">Vendor spec</span><p>±0.08 mm on 1–30 mm features. Real error is tens of µm, as the spec says.</p></div>
   <div><span class="t">Simulator</span><p>Simulated resin pins miss by −0.1 to +0.27 mm and holes by up to −0.35 mm: the real printer sits inside.</p></div>
   <div><span class="t">Why not real</span><p>The sharing gain is 1.6 µm. Two readings of one pin differed by 65 µm. Only hidden truth can score it.</p></div>
 </div>
-<p class="foot">Registered before printing: two printers can't show the sharing gain on real parts. The test plate, a hand-measurement sheet and the scanner pipeline are built for real sites; the simulator says when the gain becomes measurable: many sites, each with little data.</p>""",
-     "Hold up the printed plate. Say it once: the real printer tells us the simulator is the right size; the simulator is the only place a 1.6 µm gain can be scored. Don't claim the model was fit on the real printer: three pieces aren't enough."),
+<p class="foot">Registered before printing: two printers can't show the sharing gain on real parts. Negative control: when printers share no physics, sharing gains nothing, so the gain isn't built into the scoring. The simulator says when the gain becomes measurable: many sites, each with little data.</p>""",
+     "Judge beat: this is the rigor slide. Hold up the printed plate. The real printer tells us the simulator is the right size; the simulator is the only place a 1.6 µm gain can be scored; the negative control shows the simulator doesn't hand us the result. Don't claim the model was fit on the real printer: three pieces aren't enough."),
 
-    ("2:30–3:00 · Next", "Print anywhere, trust the part",
+    ("2:25–3:00 · Who it's for", "Fleets where fit decides and data can't leave",
      f"""<div class="split">
-  <div class="stack"><p class="lede">For fleets where fit decides: dental labs, print farms, service bureaus.</p>
-  <p><b>Parts that fit the first time.</b> Corrected designs: size error 118 → 6 µm.</p>
-  <p><b>Safe when printers differ.</b> Half the fleet sharing no physics: trust lifts the matching printers to 25% better, harm to the others falls from −15% to −1%.</p>
-  <p><b>Bolder: smaller features.</b> Same error, bigger share of the part; the gain holds at 7–9% below 1 mm. Microfluidics, bioprinting.</p>
-  <p class="meta mono">All numbers simulation · github.com/matte-realize/prebuilt</p></div>
-  <figure class="fig">{sites_svg()}<figcaption>Lower error than learning alone, by number of sites. Each starts with 4 test pieces and prints 2 a round; round 3, simulation.</figcaption></figure>
-</div>""",
-     "Point at the bars once: 2, 4, 8 sites, the fleet regime. Mixed fleets is the answer to 'what if printers differ': trust makes sharing safe, it doesn't fully identify mismatched printers. The micro-scale line is direction: the gain holds there, it doesn't grow. End on the line. Stop talking."),
+  <div class="who">
+    <div class="who-h"><span>Who</span><span>Why they can't pool data</span></div>
+    <div><b>Dental labs</b><span>Patient scans. Crowns, models and guides must seat on the first print.</span></div>
+    <div><b>Print farms, service bureaus</b><span>Customer geometry is the customer's IP. Many machines, every job must fit.</span></div>
+    <div><b>Distributed manufacturing</b><span>One part, many vendors. Each vendor's process is its edge.</span></div>
+    <div class="next"><b>Next: microfluidics, bioprinting</b><span>Smaller features, costlier tests, stricter data rules. Direction, not a result.</span></div>
+    <p class="get"><b>What they get:</b> parts that fit the first time (corrected designs: size error 132 → 9 µm), and sharing that stays safe when printers differ.</p>
+  </div>
+  <figure class="fig">{sites_svg()}<figcaption>Where it pays: lower error than learning alone, by number of data-poor sites. Round 3, simulation.</figcaption></figure>
+</div>
+<p class="close">Print anywhere, trust the part. <span class="meta mono">github.com/matte-realize/prebuilt · all numbers simulation</span></p>""",
+     "Investor beat: name the buyer and why pooling is off the table for them, then the bars: value grows with the number of sites, which is a network effect. Mixed fleets answers 'what if printers differ': trust makes sharing safe, it doesn't yet identify bad partners. Bioprinting is direction. End on the line. Stop talking."),
 ]
 
 EXTRA_CSS = """
@@ -207,9 +211,21 @@ EXTRA_CSS = """
 .demo .tick { font: 13px var(--mono); fill: var(--muted); }
 .demo .end { font: 600 15px var(--body); }
 .demo .spike { font: 700 15px var(--body); fill: var(--net); }
+.who { display: grid; gap: 0; align-content: start; }
+.who > div { display: grid; grid-template-columns: 1fr 1.5fr; gap: 1.6cqw; padding: 1cqw 0; border-top: 1px solid var(--line); }
+.who > div b { font: 700 2cqw/1.2 var(--display); }
+.who > div span { font-size: 1.7cqw; color: var(--muted); }
+.who .who-h { border-top: 0; padding-top: 0; }
+.who .who-h span { font: 600 1.2cqw var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.who .next b { color: var(--amber); }
+.who .get { font-size: 1.8cqw; margin: 1.2cqw 0 0; border-top: 3px solid var(--net); padding-top: 1cqw; max-width: none; }
+.close { font: 700 3cqw var(--display); margin: 0; display: flex; flex-wrap: wrap; gap: 2cqw; align-items: baseline; max-width: none; }
+.close .meta { font-size: 1.3cqw; font-weight: 400; }
 @media (max-width: 720px) {
   .slide h2 { font-size: 28px; } .slide .body { font-size: 15px; } .lede { font-size: 19px; } .foot { font-size: 13px; }
   .sites-chart { max-width: 100%; }
+  .who > div { grid-template-columns: 1fr; gap: 4px; } .who > div b { font-size: 16px; } .who > div span, .who .get { font-size: 14px; }
+  .who .who-h span { font-size: 11px; } .close { font-size: 20px; } .close .meta { font-size: 11px; }
   .arch, .demo { grid-template-columns: 1fr; } .node h3 { font-size: 20px; } .node p, .stays, .timeline > div { font-size: 14px; }
   .msg { font-size: 13px; padding: 6px 12px; } .arrow { font-size: 28px; } .wall-tag, .proc, .t { font-size: 11px; }
   .link { border-left: 0; border-right: 0; border-top: 3px dashed var(--amber); border-bottom: 3px dashed var(--amber); }
