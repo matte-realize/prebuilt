@@ -1,0 +1,27 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "functions": {
+    "api/simulate.py": {
+      "maxDuration": 300,
+      "includeFiles": "{agents/**,arms/**,console/**,eval/**,measure/**,model/**,network/**,plates/**,prereg/**,receipts/**,sim/**,contracts.py}"
+    },
+    "api/realprint.py": {
+      "includeFiles": "{agents/**,arms/**,console/**,eval/**,measure/**,model/**,network/**,plates/**,prereg/**,receipts/**,sim/**,contracts.py}"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/console/index.html"
+    },
+    {
+      "source": "/vendor/:file",
+      "destination": "/viewer/vendor/:file"
+    },
+    {
+      "source": "/api/evidence",
+      "destination": "/viewer/evidence.json"
+    }
+  ]
+}

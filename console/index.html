@@ -2,68 +2,93 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Prebuilt console</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prebuilt live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="/vendor/three.min.js"></script>
+<script src="/vendor/OrbitControls.js"></script>
 <style>
+/* A short, live click-through for judges:
+   1 our real test plate -> 2 why a test plate -> 3 why the simulator -> run the real pipeline live
+   -> warm-up, round 1 (print, share, score), rounds 2-3 sped up -> result -> "your turn": a corrected design.
+   One short card per step on the left, the 3D scene in the middle, one button at the bottom.
+   The right panel (results, privacy, designs, details) is there for anyone who wants to dig in. */
 :root {
-  --night: #0b1016; --panel: #111a24; --panel2: #16212d; --line: rgba(160, 185, 210, .18); --ink: #e7eef5; --muted: #9aabbd; --faint: #66778b;
-  --alone: #8d9bad; --net: #5b8cff; --pool: #e3a443; --exam: #2fc2c4; --good: #3cc48d; --bad: #f06a6a; --warn: #e3a443; --wall: #7fd6ff;
-  --body: -apple-system, BlinkMacSystemFont, "IBM Plex Sans", "Segoe UI", Roboto, sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --night: #0b1016; --glass: rgba(14, 21, 30, .88); --glass2: rgba(255, 255, 255, .04); --line: rgba(160, 185, 210, .16); --ink: #e7eef5; --muted: #93a3b5; --faint: #5f6f82;
+  --alone: #8d9bad; --net: #5b8cff; --pool: #e3a443; --exam: #2fc2c4; --good: #3cc48d; --bad: #f06a6a; --wall: #7fd6ff; --you: #ffe3a8;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "IBM Plex Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--night); color: var(--ink); font: 15px/1.5 var(--body); -webkit-font-smoothing: antialiased; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--night); color: var(--ink); font: 15px/1.5 var(--body); overflow: hidden; -webkit-font-smoothing: antialiased; }
+#stage { position: fixed; inset: 0; }
+#stage canvas { display: block; outline: none; }
 button, input, select { font: inherit; color: inherit; }
-button { cursor: pointer; border: 1px solid var(--line); background: var(--panel2); border-radius: 8px; padding: 8px 14px; }
-button:hover:not(:disabled) { border-color: var(--muted); }
-button:disabled { opacity: .45; cursor: default; }
-button.primary { background: var(--net); border-color: var(--net); color: #fff; font-weight: 600; }
-button.good { background: var(--good); border-color: var(--good); color: #06150f; font-weight: 600; }
-button.danger { color: var(--bad); border-color: rgba(240, 106, 106, .5); }
-button.sim { color: var(--wall); border-style: dashed; border-color: var(--wall); }
+button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--net); outline-offset: 2px; }
-input[type=number], input[type=text], select { background: #0d151e; border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; }
 a { color: var(--wall); }
-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: rgba(11, 16, 22, .95); z-index: 5; }
-header h1 { font-size: 18px; margin: 0; letter-spacing: .01em; }
-.chip { font: 600 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; border-radius: 6px; padding: 5px 7px; border: 1px solid var(--line); color: var(--muted); }
-.chip.practice { color: var(--pool); border-color: rgba(227, 164, 67, .5); }
-.chip.running { color: #fff; background: var(--net); border-color: var(--net); }
-.chip.waiting { color: #1a1204; background: var(--pool); border-color: var(--pool); }
-.chip.done { color: #06150f; background: var(--good); border-color: var(--good); }
-.chip.error, .chip.stopped { color: #fff; background: var(--bad); border-color: var(--bad); }
-header .sp { flex: 1; }
-main { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; padding: 16px; max-width: 1400px; margin: 0 auto; }
-@media (max-width: 900px) { main { grid-template-columns: minmax(0, 1fr); padding: 12px 16px; } }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
-.card + .card { margin-top: 16px; }
+code { font: 12.5px var(--mono); }
+.glass { background: var(--glass); border: 1px solid var(--line); border-radius: 14px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.hud { position: fixed; z-index: 5; }
 .eyebrow { font: 500 11px/1.2 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
-h2 { margin: 0 0 8px; font-size: 22px; line-height: 1.25; }
-h3 { margin: 0 0 8px; font-size: 15px; }
-.next { border-width: 2px; }
-.next.waiting { border-color: var(--pool); }
-.next.done { border-color: var(--good); }
-.next.error, .next.stopped { border-color: var(--bad); }
-.muted { color: var(--muted); } .faint { color: var(--faint); }
-.small { font-size: 13px; }
+.muted { color: var(--muted); } .faint { color: var(--faint); } .small { font-size: 13px; }
+.pass { color: var(--good); font-weight: 700; } .fail { color: var(--bad); font-weight: 700; }
+.tag { font: 600 10px/1 var(--mono); letter-spacing: .05em; text-transform: uppercase; padding: 3px 5px; border-radius: 4px; border: 1px solid; white-space: nowrap; vertical-align: 1px; }
+.tag.real { color: var(--pool); } .tag.sim { color: var(--wall); }
+.btn { border: 1px solid var(--line); background: rgba(255, 255, 255, .05); border-radius: 10px; padding: 8px 13px; font-size: 14px; }
+.btn:hover:not(:disabled) { border-color: var(--muted); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.primary { background: var(--net); border-color: var(--net); color: #fff; font-weight: 600; }
+.btn.good { background: var(--good); border-color: var(--good); color: #06150f; font-weight: 600; }
+.btn.danger { color: var(--bad); border-color: rgba(240, 106, 106, .5); }
+.btn.sim { color: var(--wall); border-style: dashed; border-color: var(--wall); }
+input[type=number], input[type=text], select { background: #0d151e; border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .row + .row { margin-top: 10px; }
 .note { font-size: 13px; color: var(--muted); border-left: 3px solid var(--line); padding: 4px 10px; margin: 10px 0; }
 .note.warn { border-color: var(--pool); color: var(--ink); }
-.note.err { border-color: var(--bad); color: var(--ink); }
-.err-msg { color: var(--bad); font-size: 13px; min-height: 1em; margin-top: 8px; white-space: pre-wrap; }
-form.setup { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
-@media (max-width: 560px) { form.setup { grid-template-columns: minmax(0, 1fr); } }
-form.setup label, form.setup fieldset { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
-form.setup fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; }
-form.setup legend { padding: 0 4px; }
-.seg { display: flex; gap: 0; }
-.seg label { flex-direction: row !important; align-items: center; gap: 6px !important; color: var(--ink) !important; font-size: 14px !important; padding: 4px 10px 4px 0; }
-.check { flex-direction: row !important; align-items: center; gap: 8px !important; color: var(--ink) !important; font-size: 14px !important; }
-.full { grid-column: 1 / -1; }
-.plate-wrap { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 16px; align-items: start; }
-@media (max-width: 560px) { .plate-wrap { grid-template-columns: minmax(0, 1fr); } }
+.err-msg { color: var(--bad); font-size: 13px; min-height: 1em; margin-top: 6px; white-space: pre-wrap; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font: 500 10.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+td.num, th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.scroll { overflow-x: auto; }
+
+/* left column: brand + chapters, the story card, the operator task (real printer only) */
+#left { top: calc(14px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); bottom: 92px; width: min(400px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+#left > * { pointer-events: auto; }
+#left.wide { width: min(600px, calc(100vw - 32px)); }
+#cap { padding: 11px 14px; flex: none; }
+#cap .brand { display: flex; align-items: center; gap: 8px; font: 700 19px/1 var(--display); letter-spacing: .02em; }
+#cap .brand .kind { font: 500 10.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-left: 2px; }
+#rail { margin-top: 8px; }
+#rail .t { font: 500 11px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+#rail .t b { color: var(--ink); font-weight: 500; }
+#rail .bar { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .1); margin-top: 6px; overflow: hidden; }
+#rail .bar i { display: block; height: 100%; background: var(--net); border-radius: 2px; transition: width .4s; }
+#mine { margin-top: 8px; font-size: 12px; color: var(--muted); display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+#mine span { border: 1px solid var(--you); color: var(--you); border-radius: 999px; padding: 1px 8px; }
+#story { padding: 14px 16px 16px; flex: 0 1 auto; overflow: auto; min-height: 0; border-color: rgba(91, 140, 255, .45); }
+#story h2 { font: 600 26px/1.08 var(--display); margin: 2px 0 8px; letter-spacing: .01em; text-wrap: balance; }
+#story p { margin: 0 0 8px; font-size: 15px; line-height: 1.45; }
+#story ul { margin: 4px 0 6px; padding-left: 18px; font-size: 15px; line-height: 1.45; } #story li { margin: 4px 0; }
+#story .big { font: 600 30px/1.05 var(--display); color: var(--pool); font-variant-numeric: tabular-nums; }
+#story .look { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 8px; margin-top: 8px; }
+#story .look b { color: var(--exam); font-weight: 500; }
+#story .try { background: rgba(255, 227, 168, .06); border: 1px dashed rgba(255, 227, 168, .5); border-radius: 10px; padding: 9px 11px; margin-top: 10px; font-size: 14px; }
+#story .try .lbl { font: 500 10.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--you); display: block; margin-bottom: 5px; }
+#story .try input[type=text], #story .try input[type=number] { font-family: var(--mono); width: 7.5em; }
+#story .out { margin-top: 6px; font-size: 14px; }
+#story .out b { color: var(--you); }
+#story .note-row { font: 13px/1.5 var(--mono); }
+#task { padding: 14px 16px; overflow: auto; flex: 0 1 auto; min-height: 0; border-color: rgba(227, 164, 67, .55); border-width: 2px; }
+#task h2 { font: 600 24px/1.1 var(--display); margin: 0 0 6px; }
+.plate-wrap { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 14px; align-items: start; }
 svg.plate { width: 100%; height: auto; display: block; }
 svg.plate .pl { fill: #1b2733; stroke: #3a4b5d; stroke-width: .5; }
 svg.plate .cut { fill: var(--night); stroke: #3a4b5d; stroke-width: .3; }
@@ -72,438 +97,1037 @@ svg.plate .hole { fill: var(--night); stroke: var(--alone); stroke-width: .5; }
 svg.plate .ho { stroke: var(--exam); stroke-width: .6; fill: none; stroke-dasharray: 1 .8; }
 svg.plate .lab { fill: var(--faint); font: 3px var(--mono); }
 svg.plate .hi { stroke: var(--pool) !important; stroke-width: 1.2 !important; }
-.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11.5px; color: var(--muted); margin-top: 6px; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
-table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
-th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
-th { font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
-td.num, th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
-.scroll { overflow-x: auto; }
-.meas td { padding: 3px 6px; }
-.meas input[type=text] { width: 7.5em; font-family: var(--mono); }
+.meas td { padding: 3px 5px; }
+.meas input[type=text] { width: 7em; font-family: var(--mono); }
 .meas tr.focus td { background: rgba(227, 164, 67, .1); }
 .meas tr.off input[type=text] { opacity: .35; }
 .meas .conv { font: 12px var(--mono); color: var(--pool); }
 .meas .bad { border-color: var(--bad); }
 .nom { display: none; } .shownom .nom { display: table-cell; }
-.steps { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 10px; }
-.steps span { font: 12px var(--mono); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); color: var(--faint); }
-.steps span.done { color: var(--good); border-color: rgba(60, 196, 141, .5); }
-.steps span.now { color: #fff; background: var(--net); border-color: var(--net); }
-.big { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.stat { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.stat > div { background: var(--panel2); border-radius: 8px; padding: 10px; }
-.pass { color: var(--good); font-weight: 700; } .fail { color: var(--bad); font-weight: 700; }
-.tag { font: 600 10px/1 var(--mono); letter-spacing: .05em; text-transform: uppercase; padding: 3px 5px; border-radius: 4px; border: 1px solid; white-space: nowrap; }
-.tag.real { color: var(--pool); } .tag.sim { color: var(--wall); }
-pre.log { background: #070b10; border: 1px solid var(--line); border-radius: 8px; padding: 10px; font: 12px/1.45 var(--mono); color: var(--muted); max-height: 320px; overflow: auto; white-space: pre-wrap; word-break: break-word; margin: 0; }
-.best { color: var(--good); }
-.hidden { display: none !important; }
+
+/* right panel: for digging in; minimized until the first score */
+#side { top: calc(14px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: 92px; width: min(380px, calc(100vw - 32px)); display: flex; flex-direction: column; }
+#side.min { bottom: auto; }
+#side.min .body { display: none; }
+#tabs { display: flex; gap: 2px; padding: 8px 8px 0; border-bottom: 1px solid var(--line); flex: none; align-items: flex-end; }
+#side.min #tabs { border-bottom: 0; padding-bottom: 6px; }
+#tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 6px 9px 8px; font: 600 15px var(--display); letter-spacing: .03em; color: var(--muted); }
+#tabs button[aria-selected="true"] { color: var(--ink); border-color: var(--net); }
+#side.min #tabs button[aria-selected="true"] { border-color: transparent; color: var(--muted); }
+#tabs .sp { flex: 1; }
+#side .body { padding: 12px 14px 14px; overflow: auto; flex: 1; min-height: 0; }
+#side h3 { font: 600 17px/1.15 var(--display); letter-spacing: .02em; margin: 0 0 4px; }
+#side .sub { font-size: 12.5px; color: var(--muted); margin: 0 0 8px; line-height: 1.4; }
+#side section + section { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+#chSvg { display: block; width: 100%; height: auto; overflow: visible; }
+#chSvg .pt-new { animation: pop .5s ease-out both; transform-box: fill-box; transform-origin: center; }
+#chSvg .seg-new { animation: draw .7s ease-out both; }
+@keyframes pop { from { opacity: 0; transform: scale(.2); } }
+@keyframes draw { from { stroke-dashoffset: var(--len); } to { stroke-dashoffset: 0; } }
+.foot { margin: 8px 0 0; font-size: 12px; line-height: 1.45; color: var(--muted); }
+.foot b { color: var(--ink); font-weight: 600; }
+.sw { display: inline-block; width: 18px; height: 4px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.stat { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.stat > div { background: var(--glass2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.stat .n { font: 600 30px/1.05 var(--display); font-variant-numeric: tabular-nums; }
+.msg { background: var(--glass2); border: 1px solid var(--line); border-radius: 9px; padding: 7px 9px; font-size: 12.5px; margin-top: 6px; }
+.msg .hd { display: flex; justify-content: space-between; gap: 8px; font: 500 11px var(--mono); color: var(--muted); }
+.msg .kv { display: grid; grid-template-columns: auto 1fr; gap: 1px 10px; margin-top: 4px; font-family: var(--mono); font-size: 12px; }
+.msg .kv span:nth-child(odd) { color: var(--muted); font-family: var(--body); }
+.msg.liar { border-color: rgba(240, 106, 106, .5); }
 .cd-site + .cd-site { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 .cd-site td .draw { font-weight: 600; font-family: var(--mono); }
-.cd-site td .tr { display: block; font-size: 11.5px; color: var(--wall); }
-.cd-q input[type=number] { width: 6em; font-family: var(--mono); }
-.cd-out { font-size: 14px; margin-top: 8px; }
+.cd-site td .tr { display: block; font-size: 11px; color: var(--wall); }
+pre.log { background: #070b10; border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: 11.5px/1.45 var(--mono); color: var(--muted); max-height: 260px; overflow: auto; white-space: pre-wrap; word-break: break-word; margin: 0; }
+.best { color: var(--good); }
+dl.kv2 { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: 13px; margin: 0; }
+dl.kv2 dt { color: var(--muted); } dl.kv2 dd { margin: 0; }
+
+/* bottom deck */
+#deck { bottom: calc(14px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); padding: 10px; display: flex; gap: 8px; align-items: center; max-width: calc(100vw - 32px); justify-content: center; z-index: 6; }
+#go { background: var(--net); border: 0; color: #fff; font: 600 18px var(--display); letter-spacing: .03em; border-radius: 12px; padding: 12px 24px; min-width: 240px; }
+#go.you { background: var(--pool); color: #1a1204; }
+#go.pulse { animation: pulse 1.8s infinite; }
+#go:disabled { background: rgba(91, 140, 255, .35); cursor: default; animation: none; color: rgba(255, 255, 255, .85); }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(91, 140, 255, .55); } 70% { box-shadow: 0 0 0 14px rgba(91, 140, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(91, 140, 255, 0); } }
+
+/* labels in the 3D scene */
+.lab { position: fixed; left: 0; top: 0; z-index: 3; pointer-events: none; white-space: nowrap; font: 500 11.5px var(--mono); color: var(--ink); text-shadow: 0 1px 6px rgba(0, 0, 0, .9); will-change: transform; }
+.lab.title { font: 700 21px var(--display); letter-spacing: .04em; text-align: center; }
+.lab.title small { display: block; font: 500 10.5px var(--mono); letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+.lab.title small.real { color: var(--pool); } .lab.title small.sim { color: var(--wall); }
+.lab.wall { font: 500 11px/1.4 var(--mono); letter-spacing: .14em; color: var(--wall); text-transform: uppercase; text-align: center; padding: 4px 9px; border-radius: 7px; background: rgba(5, 9, 14, .72); text-shadow: none; }
+.lab.pill { font: 600 12px var(--mono); padding: 3px 8px; border-radius: 6px; background: rgba(5, 9, 14, .86); border: 1px solid currentColor; text-shadow: none; }
+.lab.badge { font: 500 12px var(--body); padding: 7px 11px; border-radius: 10px; background: rgba(5, 9, 14, .84); border: 1px solid var(--line); text-shadow: none; text-align: left; line-height: 1.35; color: var(--muted); }
+.lab.badge b { font: 600 19px/1.2 var(--display); display: block; color: var(--ink); }
+.lab.badge b small { font: 500 13px var(--body); color: var(--muted); }
+.lab.ask { font: 600 15px var(--display); letter-spacing: .03em; color: #1a1204; background: var(--pool); padding: 5px 11px; border-radius: 8px; text-shadow: none; }
+
+#toasts { left: 50%; transform: translateX(-50%); bottom: 96px; display: flex; flex-direction: column; gap: 8px; width: min(420px, calc(100vw - 32px)); pointer-events: none; z-index: 4; }
+.toast { padding: 9px 13px; font-size: 13.5px; animation: tin .3s ease-out both; }
+.toast .who { font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+@keyframes tin { from { opacity: 0; transform: translateY(8px); } }
+
+/* settings (for us, not the judges) */
+.overlay { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(6, 10, 15, .66); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); overflow-y: auto; padding: 24px 16px; }
+.overlay .box { max-width: 680px; width: 100%; padding: 22px; position: relative; }
+.overlay h1 { font: 600 28px/1.1 var(--display); margin: 4px 0 10px; }
+.overlay p { color: var(--muted); margin: 0 0 8px; }
+.overlay .x { position: absolute; top: 12px; right: 12px; }
+.presets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.presets label { display: block; cursor: pointer; background: var(--glass2); border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 11px; font-size: 13px; color: var(--muted); }
+.presets label:has(input:checked) { border-color: var(--net); background: rgba(91, 140, 255, .1); }
+.presets input { position: absolute; opacity: 0; pointer-events: none; }
+.presets b { display: block; color: var(--ink); font: 600 17px var(--display); letter-spacing: .02em; }
+form.setup { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; margin-top: 12px; }
+form.setup label, form.setup fieldset { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+form.setup fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; margin: 0; }
+form.setup .seg { display: flex; gap: 12px; }
+form.setup .seg label, form.setup .check { flex-direction: row; align-items: center; gap: 6px; color: var(--ink); font-size: 14px; }
+form.setup .full { grid-column: 1 / -1; }
+
+#fail { position: fixed; inset: 0; display: grid; place-items: center; z-index: 50; background: var(--night); text-align: center; padding: 24px; }
+@media (max-width: 1500px), (max-height: 860px) { /* laptops: keep the panels small so the printers stay in view */
+  #left { width: min(350px, calc(100vw - 32px)); }
+  #cap { padding: 9px 12px; }
+  #story { padding: 12px 14px 13px; }
+  #story h2 { font-size: 22px; margin-bottom: 6px; }
+  #story p, #story ul { font-size: 14px; line-height: 1.4; }
+  #story .big { font-size: 26px; }
+  #story .look { font-size: 12.5px; }
+  #side { width: min(330px, calc(100vw - 32px)); }
+  #go { font-size: 17px; padding: 10px 20px; min-width: 210px; }
+  .lab.title { font-size: 18px; }
+}
+@media (max-width: 900px) {
+  #left { bottom: auto; max-height: 56vh; }
+  #side { top: auto; bottom: 86px; max-height: 40vh; left: max(16px, env(safe-area-inset-left, 0px)); right: auto; }
+  #side.min { top: auto; bottom: 86px; }
+  .lab.badge { display: none !important; }
+  #go { min-width: 0; padding: 10px 14px; font-size: 16px; flex: 1; }
+  #deck { gap: 6px; padding: 8px; width: calc(100vw - 32px); }
+  #deck .btn { padding: 8px 9px; }
+  .presets, form.setup { grid-template-columns: minmax(0, 1fr); }
+  .plate-wrap { grid-template-columns: minmax(0, 1fr); }
+  #toasts { bottom: auto; top: 40vh; }
+}
+@media (prefers-reduced-motion: reduce) { #go.pulse { animation: none; } }
 </style>
 </head>
 <body>
-<header>
-  <h1>Prebuilt console</h1>
-  <span class="chip practice" title="Not a registered run: no prereg hash, files under console/runs/">Practice run · off the books</span>
-  <span class="sp"></span>
-  <span class="chip" id="statusChip">idle</span>
-  <button id="stopBtn" class="danger hidden">Stop run</button>
-</header>
-<main>
-  <section>
-    <div class="card next" id="next"></div>
-    <div class="card" id="setupCard">
-      <p class="eyebrow">New practice run</p>
-      <form class="setup" id="setup">
-        <fieldset><legend>Resin site (Form Studio 1)</legend>
-          <div class="seg"><label><input type="radio" name="resin" value="real" checked> real printer</label><label><input type="radio" name="resin" value="sim"> simulated</label></div></fieldset>
-        <fieldset><legend>PLA site</legend>
-          <div class="seg"><label><input type="radio" name="pla" value="real"> real printer</label><label><input type="radio" name="pla" value="sim" checked> simulated</label></div></fieldset>
-        <label>Rounds (1–5)<input type="number" name="rounds" min="1" max="5" id="fRounds"></label>
-        <label>World seed<input type="number" name="seed" value="0" min="0"></label>
-        <label>Particles<span class="row"><input type="number" name="particles" id="fParticles" min="100" max="20000" step="100" style="flex:1">
-          <button type="button" id="fastBtn" title="Quick test">fast</button><button type="button" id="preregBtn">prereg</button></span></label>
-        <label>Lying site (simulated sites only)<select name="liar" id="fLiar"><option value="">none</option><option value="resin">resin</option><option value="pla">pla</option></select></label>
-        <label class="check"><input type="checkbox" name="share_messages" checked> Share messages between sites</label>
-        <label class="check"><input type="checkbox" name="consistency_check"> Consistency check (drop contradicting notes)</label>
-        <label class="check full"><input type="checkbox" name="negative_control"> Negative-control world (sites share no physics; sharing should gain nothing)</label>
-        <div class="full row"><button class="primary" type="submit">Start practice run</button><span class="small muted">Both simulated = a full dry run.</span></div>
-      </form>
-      <p class="note">Practice runs are off the books: no prereg hash, and plates, scans, receipts and the checkpoint go under <code>console/runs/&lt;time&gt;/</code>. A registered real run stays on the CLI: <code>python run.py --source real</code> (see docs/guides/real-site-run.md).</p>
-      <div class="err-msg" id="setupErr"></div>
+<div id="stage"></div>
+<div id="labels"></div>
+
+<div class="hud" id="left">
+  <div class="glass" id="cap">
+    <div class="brand"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="8" cy="12" r="5" fill="#5b8cff"/><circle cx="16" cy="12" r="5" fill="none" stroke="#e7eef5" stroke-width="2.5"/></svg>Prebuilt<span class="kind">live demo</span></div>
+    <div id="rail" aria-label="Steps"></div>
+    <div id="mine" hidden></div>
+  </div>
+  <div class="glass" id="story" aria-live="polite"></div>
+  <div class="glass" id="task" hidden></div>
+</div>
+
+<div class="hud glass min" id="side">
+  <div id="tabs" role="tablist">
+    <button role="tab" data-tab="results" aria-selected="true">Results</button>
+    <button role="tab" data-tab="privacy" aria-selected="false">Privacy</button>
+    <button role="tab" data-tab="designs" aria-selected="false">Designs</button>
+    <button role="tab" data-tab="details" aria-selected="false">Details</button>
+    <span class="sp"></span><button class="btn" id="minBtn" style="padding:2px 8px" title="Show or hide the panel" aria-label="Show or hide the panel">+</button>
+  </div>
+  <div class="body">
+    <div data-pane="results">
+      <section>
+        <h3>How far off the guesses are</h3>
+        <p class="sub" id="chSub">Average miss on the quiz pieces, in microns (thousandths of a millimeter). Lower is better.</p>
+        <svg id="chSvg" viewBox="0 0 300 160" role="img" aria-label="Model error by round"></svg>
+        <div class="legend"><span><i class="sw" style="background:var(--alone)"></i>learning alone</span><span><i class="sw" style="background:var(--net)"></i>sharing tips</span><span><i class="sw" style="background:repeating-linear-gradient(90deg,var(--pool) 0 4px,transparent 4px 7px)"></i>all data in one pile (not private)</span></div>
+        <p class="foot" id="chFoot"></p>
+      </section>
+      <section id="perSite"></section>
     </div>
-  </section>
-  <section id="live">
-    <div class="card">
-      <p class="eyebrow">Progress</p>
-      <div id="progress" class="muted small">No run yet.</div>
+    <div data-pane="privacy" hidden>
+      <section><h3>What crossed the private line</h3><div id="crossed" class="small muted">Nothing yet.</div></section>
+      <section><h3>Every tip, exactly as sent</h3><div id="msgs" class="small muted">Tips start crossing in round 1.</div></section>
     </div>
-    <div class="card">
-      <p class="eyebrow">Held-out error per round (<span style="text-transform:none">µm</span>, lower is better)</p>
-      <div class="scroll" id="scores"><span class="muted small">Scores appear after each round.</span></div>
-      <p class="small faint" style="margin:8px 0 0">"measured" = error against the held-out pieces as measured (includes measurement noise). "truth" = error against the simulator's hidden noise-free diameters, simulated sites only. Green = the better of isolated and networked.</p>
+    <div data-pane="designs" hidden>
+      <section><h3>What size to draw</h3><p class="sub">To get a part of the size you want, draw it at this size. "truth" is what the pretend printer really makes.</p><div id="cd"><span class="muted small">After the warm-up.</span></div></section>
     </div>
-    <div class="card" id="cdCard">
-      <p class="eyebrow">Corrected designs</p>
-      <p class="small muted" style="margin:0 0 8px">"I want a D mm pin or hole: draw it at D′ on this printer." From each site's latest networked posterior, at the plate center. The interval is where one printed piece should measure (90%), including the scatter the model learned.</p>
-      <div id="cd"><span class="muted small">After the seed plates.</span></div>
+    <div data-pane="details" hidden>
+      <section><h3>This run</h3><div id="runInfo" class="small muted">No run yet.</div></section>
+      <section><h3>Trust</h3><div class="scroll" id="trust"><span class="muted small">After round 1.</span></div></section>
+      <section><h3>Consistency check</h3><div class="scroll" id="checks"><span class="muted small">—</span></div></section>
+      <section><h3>Every score (µm)</h3><div class="scroll" id="scores"><span class="muted small">After round 1.</span></div></section>
+      <section><h3>Run log</h3><pre class="log" id="log"></pre></section>
+      <section class="small"><a href="/classic">Classic console</a> · <a href="#" id="replayLink">Standalone 3D replay</a><div class="err-msg" id="replayErr"></div></section>
     </div>
-    <div class="card">
-      <p class="eyebrow">What crossed the boundary</p>
-      <div id="crossed" class="muted small">Nothing yet.</div>
-    </div>
-    <div class="card">
-      <p class="eyebrow">Trust (receiver ← sender)</p>
-      <div class="scroll" id="trust"><span class="muted small">After round 1.</span></div>
-      <p class="eyebrow" style="margin-top:14px">Consistency check</p>
-      <div class="scroll" id="checks"><span class="muted small">—</span></div>
-    </div>
-    <div class="card">
-      <p class="eyebrow">Run log</p>
-      <pre class="log" id="log"></pre>
-    </div>
-  </section>
-</main>
+  </div>
+</div>
+
+<div class="hud" id="toasts"></div>
+
+<div class="hud glass" id="deck">
+  <button class="btn" id="backBtn" title="Previous step (←)" aria-label="Previous step">‹</button>
+  <button id="go">Start ▸</button>
+  <button class="btn" id="optBtn" hidden></button>
+  <button class="btn" id="restart" title="Start over from the test plate" aria-label="Start over">↺</button>
+  <button class="btn" id="setBtn" title="Settings (for the presenter)" aria-label="Settings">⚙</button>
+</div>
+
+<div class="overlay" id="settings" hidden><div class="box glass">
+  <button class="btn x" id="setClose" aria-label="Close">✕</button>
+  <div class="eyebrow">Presenter settings</div>
+  <h1>What "Run it live" runs</h1>
+  <p>The judges' path uses the first one. The others are for questions.</p>
+  <div class="presets" id="presets">
+    <label><input type="radio" name="preset" value="present" checked><b>Presentation</b>Both printers simulated, world 4 (the 3D demo's), registered settings.</label>
+    <label><input type="radio" name="preset" value="real"><b>Real resin printer</b>You approve and measure the resin plates (or fill in simulated readings).</label>
+    <label><input type="radio" name="preset" value="control"><b>Nothing to share</b>Printers with no physics in common: sharing should gain nothing.</label>
+    <label><input type="radio" name="preset" value="dry"><b>Quick</b>Fast settings (800 particles).</label>
+  </div>
+  <form class="setup" id="setup">
+    <fieldset><legend>Resin printer</legend><div class="seg"><label><input type="radio" name="resin" value="real"> real</label><label><input type="radio" name="resin" value="sim" checked> simulated</label></div></fieldset>
+    <fieldset><legend>PLA printer</legend><div class="seg"><label><input type="radio" name="pla" value="real"> real</label><label><input type="radio" name="pla" value="sim" checked> simulated</label></div></fieldset>
+    <label>Particles<input type="number" name="particles" id="fParticles" min="100" max="20000" step="100"></label>
+    <label>World (which pair of pretend printers; 4 = the one in our slides)<input type="number" name="seed" id="fSeed" value="4" min="0"></label>
+    <label class="check"><input type="checkbox" name="share_messages" checked> Printers share notes</label>
+    <label class="check"><input type="checkbox" name="negative_control"> No shared physics</label>
+  </form>
+  <p class="small" style="margin-top:12px">Practice runs only: nothing here touches the registered results.</p>
+  <div class="row" style="margin-top:8px"><button class="btn primary" id="setDone">Done</button><button class="btn danger" id="stopBtn" hidden>Stop the current run</button></div>
+</div></div>
+
 <script>
 "use strict";
-const $ = (s, el = document) => el.querySelector(s);
-const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-let S = null, defaults = null, promptShown = null, logStick = true, setupOpen = false;
+if (!window.THREE) {
+  document.body.insertAdjacentHTML("beforeend", `<div id="fail"><div><h2 style="font-family:var(--display)">The 3D view couldn't load three.js</h2><p class="muted">Use the <a href="/classic">classic console</a> instead.</p></div></div>`);
+  throw new Error("three.js did not load");
+}
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const f1 = v => (Math.round(v * 10) / 10).toFixed(1);
+const f3 = v => v.toFixed(3);
+const um = x => x == null ? "—" : (x * 1000).toFixed(1);
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const toMM = raw => { const x = parseFloat(String(raw).trim().replace(",", ".")); return isFinite(x) ? (x > 100 ? x / 1000 : x) : NaN; };
+
+const SITES = ["resin", "pla"];
+const NAME = { resin: "Resin printer", pla: "PLA printer" };
+const SHORT = { resin: "Resin", pla: "PLA" };
+const PARAM = { size_coef: "small pieces shrink by", pos_gx: "size drifts left to right", pos_gy: "size drifts front to back" };
+
+let S = null, E = null, REAL = null, defaults = null;
+let RUN = null;      // name of the run the scene shows
+let shown = -1;      // last round whose plates are on the tables
+let busy = false;    // an animation is playing
+let B = 0;           // the current step
+let promptKey = null, taskOpen = false;
+// One-shot mode: no long-lived server (the Vercel deploy). Each run is one request to /api/simulate that returns
+// the whole finished run; simulated printers only. ?oneshot=1 forces it, to test locally.
+let ONESHOT = new URLSearchParams(location.search).has("oneshot");
 
 async function api(path, body) {
-  const r = await fetch(path, body === undefined ? {} : {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  const r = await fetch(path, body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   const j = await r.json();
-  if (!r.ok) throw new Error(j.error || r.statusText);
+  if (!r.ok) throw new Error((j && j.error) || r.statusText);
   return j;
 }
+let SIMRUN = null, LIARRUN = null, LIARP = null;  // the walkthrough's runs (one request each), and the lying-printer twin
+const run = () => SIMRUN || (S && S.run);
+const real = s => run() && run().modes[s] === "real";
+const allSim = () => run() && SITES.every(s => run().modes[s] === "sim");
+const avail = () => run() ? (run().rounds_done ?? -1) : -1;
+const active = () => run() && ["starting", "running", "waiting"].includes(run().status);
 
-// ---- plate drawing ---------------------------------------------------------
-function plateSVG(plate, opts = {}) {
-  const p = ['<svg viewBox="-9 -9 117 117" class="plate" role="img" aria-label="Plate ' + esc(plate.plate_id) + ', top view, notch at the bottom">',
-    '<rect x="0" y="0" width="100" height="100" rx="1.2" class="pl"/>',
-    '<rect x="47" y="97.5" width="6" height="2.6" class="cut"/>'];
-  for (const [fx, fy] of [[5, 5], [95, 5], [5, 95]]) p.push(`<rect x="${fx - 2}" y="${fy - 2}" width="4" height="4" class="cut"/>`);
-  for (let i = 0; i < 8; i++) {
-    p.push(`<text class="lab" x="${15 + 10 * i}" y="-3" text-anchor="middle">${i}</text>`);
-    p.push(`<text class="lab" x="-3" y="${16 + 10 * i}" text-anchor="end">${i}</text>`);
+// =====================================================================================
+// scene: two printer stations either side of a privacy wall
+// =====================================================================================
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
+$("#stage").appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x070b10);
+scene.fog = new THREE.Fog(0x070b10, 30, 70);
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, .1, 200);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = .08; controls.maxPolarAngle = Math.PI * .47; controls.minDistance = 4; controls.maxDistance = 42;
+const SX = { resin: -5.8, pla: 5.8 };
+const VIEWS = {
+  home: [new THREE.Vector3(0, 11, 16.5), new THREE.Vector3(0, 1.8, 0)],
+  plates: [new THREE.Vector3(0, 13.5, 13), new THREE.Vector3(0, 1.4, .4)],
+  wall: [new THREE.Vector3(0, 9.6, 15.6), new THREE.Vector3(0, 2.9, 0)],
+  resin: [new THREE.Vector3(SX.resin * .75, 8.2, 8.6), new THREE.Vector3(SX.resin, 1.2, .3)],
+  fleet: [new THREE.Vector3(0, 13, 15), new THREE.Vector3(0, .6, 0)],
+};
+function fitView(v) {
+  const [p, t] = VIEWS[v];
+  const a = innerWidth / innerHeight;
+  let k = a < .7 ? 3.1 : a < .9 ? 2.1 : innerWidth < 1100 ? 1.55 : 1.3;
+  if (innerWidth > 900 && v !== "resin") { // pull back so both printers fit the space the panels leave
+    const side = $("#side"), r = side.classList.contains("min") ? innerWidth : side.getBoundingClientRect().left;
+    const free = Math.max(300, r - $("#left").getBoundingClientRect().right);
+    k *= Math.min(2.1, Math.max(1, innerWidth * .78 / free));
   }
-  p.push('<text class="lab" x="-3" y="-3" text-anchor="end">r\\c</text>');
+  return [t.clone().add(p.clone().sub(t).multiplyScalar(v === "resin" ? Math.max(1.1, k * .95) : k)), t.clone()];
+}
+function offsetView() { // centre the scene in the space the panels leave free
+  let sx = 0;
+  if (innerWidth > 900) {
+    const side = $("#side").getBoundingClientRect(), left = $("#left").getBoundingClientRect();
+    const r = $("#side").classList.contains("min") ? innerWidth : side.left;
+    sx = (innerWidth - r - left.right) / 2;
+  }
+  if (sx) camera.setViewOffset(innerWidth, innerHeight, Math.round(sx), 0, innerWidth, innerHeight); else camera.clearViewOffset();
+  camera.updateProjectionMatrix();
+  $("#toasts").style.left = innerWidth > 900 ? `${Math.round(innerWidth / 2 - sx)}px` : "";
+}
+let follow = true, camGoal = null;
+controls.addEventListener("start", () => { follow = false; });
+function view(v) { camGoal = fitView(v); follow = true; }
+{ const [p, t] = fitView("resin"); camera.position.copy(p); controls.target.copy(t); camGoal = [p, t]; }
+
+scene.add(new THREE.HemisphereLight(0x9fb8e8, 0x0a0806, .45));
+const key = new THREE.DirectionalLight(0xfff1e0, 1.5);
+key.position.set(6, 16, 10); key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -14, right: 14, top: 10, bottom: -10, near: 1, far: 50 }); scene.add(key);
+const rim = new THREE.DirectionalLight(0x7fd6ff, .35); rim.position.set(-8, 6, -10); scene.add(rim);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshStandardMaterial({ color: 0x0a1016, roughness: .85, metalness: .1 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+const grid = new THREE.GridHelper(60, 60, 0x16212c, 0x101821); grid.position.y = .002; scene.add(grid);
+const poolTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 256; const g = c.getContext("2d");
+  const gr = g.createRadialGradient(128, 128, 10, 128, 128, 128); gr.addColorStop(0, "rgba(120,160,220,0.18)"); gr.addColorStop(1, "rgba(120,160,220,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, 256, 256); return new THREE.CanvasTexture(c); })();
+const wallTex = (() => {
+  const c = document.createElement("canvas"); c.width = 64; c.height = 256; const g = c.getContext("2d");
+  g.fillStyle = "rgba(127,214,255,0.05)"; g.fillRect(0, 0, 64, 256);
+  g.fillStyle = "rgba(127,214,255,0.22)"; for (let y = 0; y < 256; y += 8) g.fillRect(0, y, 64, 1);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 2); return t;
+})();
+const wallGroup = new THREE.Group(); scene.add(wallGroup);
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(10, 5), new THREE.MeshBasicMaterial({ map: wallTex, transparent: true, opacity: .9, side: THREE.DoubleSide, depthWrite: false, color: 0x7fd6ff }));
+wall.rotation.y = Math.PI / 2; wall.position.set(0, 2.5, 0); wallGroup.add(wall);
+const wallEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(.01, 5, 10)), new THREE.LineBasicMaterial({ color: 0x7fd6ff, transparent: true, opacity: .5 }));
+wallEdge.position.copy(wall.position); wallGroup.add(wallEdge);
+
+const LABELS = [];
+function label(html, posFn, cls = "", prio = 1) {
+  const el = document.createElement("div"); el.className = "lab " + cls; el.innerHTML = html; $("#labels").appendChild(el);
+  const L = { el, posFn, prio, on: true, w: 0, h: 0 }; LABELS.push(L); return L;
+}
+function setLabel(L, html) { if (L.html !== html) { L.html = html; L.el.innerHTML = html; L.w = 0; } }
+function dropLabel(L) { const i = LABELS.indexOf(L); if (i >= 0) { L.el.remove(); LABELS.splice(i, 1); } }
+const tv = new THREE.Vector3();
+function placeLabels() {
+  const placed = [];
+  for (const L of LABELS.slice().sort((a, b) => b.prio - a.prio)) {
+    if (!L.on) { L.el.style.display = "none"; continue; }
+    tv.copy(L.posFn()).project(camera);
+    if (tv.z > 1 || Math.abs(tv.x) > 1.15 || Math.abs(tv.y) > 1.15) { L.el.style.display = "none"; continue; }
+    L.el.style.display = "";
+    if (!L.w) { L.w = L.el.offsetWidth; L.h = L.el.offsetHeight; }
+    const x = Math.min(Math.max((tv.x * .5 + .5) * innerWidth - L.w / 2, 8), innerWidth - L.w - 8), y = Math.min(Math.max((-tv.y * .5 + .5) * innerHeight - L.h, 8), innerHeight - L.h - 8);
+    const box = [x - 3, y - 2, x + L.w + 3, y + L.h + 2];
+    if (placed.some(b => box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1])) { L.el.style.display = "none"; continue; }
+    placed.push(box);
+    L.el.style.transform = `translate(${x}px, ${y}px)`;
+  }
+}
+const wallLabel = label("Private line<br><span style=\"letter-spacing:.06em;text-transform:none;color:var(--muted)\">only tips cross</span>", () => new THREE.Vector3(0, 5.55, 0), "wall", 5);
+
+const HELD = 0x2fc2c4, PART_HEX = 0xc9d1da;
+const PLATE = 4, CELL = PLATE / 8, TABLE_Y = 1.0, PIECE_H = .34;
+const slotX = c => -PLATE / 2 + CELL * (c + .5), slotZ = r => -PLATE / 2 + CELL * (r + .5);
+const ST = {};
+const std = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: .55, metalness: .25, ...o });
+function buildStation(site) {
+  const x0 = SX[site], g = new THREE.Group(); g.position.set(x0, 0, 0); scene.add(g);
+  const resin = site === "resin";
+  const glow = new THREE.Mesh(new THREE.PlaneGeometry(11, 11), new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, depthWrite: false }));
+  glow.rotation.x = -Math.PI / 2; glow.position.y = .01; g.add(glow);
+  const spot = new THREE.SpotLight(0xdfe9ff, 1.1, 18, Math.PI / 6, .6, 1.2); spot.position.set(0, 9, 3); spot.target.position.set(0, TABLE_Y, 0); g.add(spot, spot.target);
+  const table = new THREE.Mesh(new THREE.BoxGeometry(5.4, TABLE_Y, 5.4), std(0x18212c, { metalness: .5, roughness: .4 }));
+  table.position.y = TABLE_Y / 2; table.castShadow = table.receiveShadow = true; g.add(table);
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(PLATE + .3, .08, PLATE + .3), std(resin ? 0xa9b3bf : 0x2a2f36, { metalness: resin ? .85 : .2, roughness: resin ? .25 : .7 }));
+  plate.position.y = TABLE_Y + .04; plate.receiveShadow = true; g.add(plate);
+  const dotGeo = new THREE.CircleGeometry(.025, 12), dotMat = new THREE.MeshBasicMaterial({ color: 0x4a5866 });
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const d = new THREE.Mesh(dotGeo, dotMat); d.rotation.x = -Math.PI / 2; d.position.set(slotX(c), TABLE_Y + .085, slotZ(r)); g.add(d); }
+  if (resin) { const vat = new THREE.Mesh(new THREE.BoxGeometry(PLATE + .5, .5, PLATE + .5), new THREE.MeshPhysicalMaterial({ color: 0xffb347, transparent: true, opacity: .12, roughness: .1, depthWrite: false })); vat.position.y = TABLE_Y + .25; g.add(vat); }
+  const frameMat = std(0x2c3947, { metalness: .6, roughness: .35 });
+  for (const [px, pz] of [[-2.5, -2.5], [2.5, -2.5], [-2.5, 2.5], [2.5, 2.5]]) { const post = new THREE.Mesh(new THREE.BoxGeometry(.14, 3.4, .14), frameMat); post.position.set(px, TABLE_Y + 1.7, pz); post.castShadow = true; g.add(post); }
+  for (const pz of [-2.5, 2.5]) { const b = new THREE.Mesh(new THREE.BoxGeometry(5.14, .14, .14), frameMat); b.position.set(0, TABLE_Y + 3.4, pz); g.add(b); }
+  const head = new THREE.Group();
+  if (resin) {
+    head.add(new THREE.Mesh(new THREE.BoxGeometry(.5, .25, .5), std(0x39414c)));
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(.06, .24, 2.1, 20, 1, true), new THREE.MeshBasicMaterial({ color: 0xa974ff, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }));
+    beam.position.y = -1.15; head.add(beam); head.userData.beam = beam;
+  } else {
+    head.add(new THREE.Mesh(new THREE.BoxGeometry(.5, .4, .5), std(0x39414c)));
+    const noz = new THREE.Mesh(new THREE.ConeGeometry(.12, .3, 20), std(0xd9a441, { metalness: .8, roughness: .3 })); noz.rotation.x = Math.PI; noz.position.y = -.35; head.add(noz);
+    const tip = new THREE.PointLight(0xff8a3d, 0, 1.6); tip.position.y = -.55; head.add(tip); head.userData.tip = tip;
+  }
+  head.position.set(0, TABLE_Y + 3.0, 0); head.traverse(o => o.castShadow = true); g.add(head);
+  const scan = new THREE.Mesh(new THREE.BoxGeometry(PLATE + .6, .05, .08), new THREE.MeshBasicMaterial({ color: 0x7fd6ff, transparent: true, opacity: 0 }));
+  scan.position.set(0, TABLE_Y + .5, -2.4); g.add(scan);
+  const scanLight = new THREE.PointLight(0x7fd6ff, 0, 3); scan.add(scanLight);
+  const title = label("", () => new THREE.Vector3(x0, .05, 3.55), "title", 6);
+  const badge = label("", () => new THREE.Vector3(x0, TABLE_Y + 3.55, 2.5), "badge", 7); badge.on = false;
+  const ask = label("", () => new THREE.Vector3(x0, TABLE_Y + 4.3, 0), "ask", 9); ask.on = false;
+  ST[site] = { g, head, scan, scanLight, pieces: [], bySlot: {}, x0, title, badge, ask, pending: null };
+}
+SITES.forEach(buildStation);
+let SCENE_MODE = "real";  // "real": only our printed plate | "sim": the two simulated printers
+const FLEET = new THREE.Group(); FLEET.visible = false; scene.add(FLEET);
+const FLEET_POS = Array.from({ length: 8 }, (_, i) => { const a = i / 8 * Math.PI * 2 + Math.PI / 8; return new THREE.Vector3(Math.cos(a) * 7, 0, Math.sin(a) * 4.6); });
+const FLEET_LABELS = [];
+FLEET_POS.forEach((pos, i) => {
+  const g = new THREE.Group(); g.position.copy(pos); FLEET.add(g);
+  const t = new THREE.Mesh(new THREE.BoxGeometry(2, .6, 2), std(0x18212c, { metalness: .5, roughness: .4 })); t.position.y = .3; t.castShadow = t.receiveShadow = true; g.add(t);
+  const pl = new THREE.Mesh(new THREE.BoxGeometry(1.6, .05, 1.6), std(i % 2 ? 0x2a2f36 : 0xa9b3bf, { metalness: i % 2 ? .2 : .85, roughness: i % 2 ? .7 : .25 })); pl.position.y = .63; g.add(pl);
+  for (let j = 0; j < 7; j++) { const q = new THREE.Mesh(new THREE.CylinderGeometry(.05 + (j % 3) * .03, .05 + (j % 3) * .03, .22, 16), std(j === 3 ? HELD : PART_HEX)); q.position.set(((j * 37) % 7 - 3) * .2, .76, ((j * 53) % 5 - 2) * .25); q.castShadow = true; g.add(q); }
+  const L = label(`Printer ${i + 1}`, () => pos.clone().add(new THREE.Vector3(0, -.1, 1.25)), "pill", 3); L.el.style.color = "var(--muted)"; L.on = false; FLEET_LABELS.push(L);
+});
+async function fleetTips(my, rounds = 2) {
+  for (let r = 0; r < rounds && alive(my); r++) {
+    const sends = [];
+    FLEET_POS.forEach((from, i) => { for (const d of [1, 3, 5]) { const to = FLEET_POS[(i + d) % 8]; sends.push([from, to]); } });
+    await Promise.all(sends.map(([a, b], j) => (async () => {
+      await wait(j * 35); if (!alive(my)) return;
+      const bm = beam(a.clone().add(new THREE.Vector3(0, 1.2, 0)), b.clone().add(new THREE.Vector3(0, 1.2, 0)), 0x5b8cff, 1100);
+      await bm.grow; await wait(250); bm.kill();
+    })()));
+    await wait(400);
+  }
+}
+function setSceneMode(m) {
+  SCENE_MODE = m;
+  const fleet = m === "fleet";
+  FLEET.visible = fleet; FLEET_LABELS.forEach(L => L.on = fleet);
+  ST.resin.g.visible = !fleet; ST.resin.title.on = !fleet;
+  ST.pla.g.visible = m === "sim"; wallGroup.visible = m === "sim"; wallLabel.on = m === "sim";
+  ST.pla.title.on = m === "sim";
+  if (fleet) for (const s of SITES) { ST[s].badge.on = false; ST[s].ask.on = false; }
+  stationTitles();
+}
+function stationTitles() {
+  if (SCENE_MODE === "fleet") return;
+  if (SCENE_MODE === "real") { setLabel(ST.resin.title, `Our real printer<small class="real">Formlabs Form Studio 1</small>`); return; }
+  for (const s of SITES) {
+    const m = run() ? run().modes[s] : "sim";
+    setLabel(ST[s].title, `${s === "resin" ? "Printer A" : "Printer B"}<small class="${m}">${m === "real" ? "real · measured by hand" : "pretend"}</small>`);
+  }
+}
+
+function pieceMesh(q, ghost = false) {
+  const rad = .045 + (q.d - 1) / 7 * .14, test = q.arm === "heldout", col = test ? HELD : PART_HEX;
+  const mat = std(col, { emissive: col, emissiveIntensity: .12, roughness: .5, metalness: .05, transparent: ghost, opacity: ghost ? .3 : 1 });
+  let mesh;
+  if (q.kind === "pin") { mesh = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, PIECE_H, 28), mat); mesh.geometry.translate(0, PIECE_H / 2, 0); }
+  else {
+    const s = new THREE.Shape(), h = .21; s.moveTo(-h, -h); s.lineTo(h, -h); s.lineTo(h, h); s.lineTo(-h, h); s.lineTo(-h, -h);
+    const hole = new THREE.Path(); hole.absarc(0, 0, rad, 0, Math.PI * 2, true); s.holes.push(hole);
+    const geo = new THREE.ExtrudeGeometry(s, { depth: PIECE_H * .55, bevelEnabled: false, curveSegments: 28 }); geo.rotateX(-Math.PI / 2); mesh = new THREE.Mesh(geo, mat);
+  }
+  mesh.castShadow = !ghost; mesh.receiveShadow = true;
+  const [r, c] = q.slot; mesh.position.set(slotX(c), TABLE_Y + .08, slotZ(r)); mesh.userData.q = q;
+  if (test) { const ring = new THREE.Mesh(new THREE.RingGeometry(.23, .26, 32), new THREE.MeshBasicMaterial({ color: HELD, side: THREE.DoubleSide, transparent: ghost, opacity: ghost ? .5 : 1 })); ring.rotation.x = -Math.PI / 2; ring.position.y = .006; mesh.add(ring); }
+  return mesh;
+}
+function markFailed(m) { const st = m.userData.q.status; if (!st || st === "ok") return; if (st === "skipped") { m.material.transparent = true; m.material.opacity = .45; return; } m.material.color.setHex(0x4a3a3c); m.material.emissive.setHex(0x000000); m.material.emissiveIntensity = 0; m.scale.y = .35; }
+function clearPlate(site) { const st = ST[site]; st.pieces.forEach(m => st.g.remove(m)); st.pieces = []; st.bySlot = {}; st.pending = null; }
+function layPieces(site, pieces, mode) { // grow (hidden until printed) | done | ghost
+  clearPlate(site);
+  const st = ST[site];
+  st.pieces = pieces.map(q => { const m = pieceMesh(q, mode === "ghost"); if (mode === "grow") { m.scale.y = .001; m.visible = false; } else if (mode === "done") markFailed(m); st.g.add(m); st.bySlot[q.slot.join("-")] = m; return m; });
+  return st.pieces;
+}
+const plateOf = (s, r) => (((run() || {}).plates || {})[s] || []).find(p => p.round === r);
+function highlight(site, slot) {
+  for (const s of SITES) for (const m of ST[s].pieces) { m.material.emissiveIntensity = .12; m.scale.x = m.scale.z = 1; }
+  const m = site && ST[site].bySlot[slot]; if (m) { m.material.emissiveIntensity = .9; m.scale.x = m.scale.z = 1.5; }
+}
+
+// animation core
+let epoch = 0;
+const ANIMS = new Set();
+function tween(ms, fn, ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2) {
+  const my = epoch;
+  return new Promise(res => { if (reduce) { fn(1); return res(); } ANIMS.add({ t0: performance.now(), ms, fn, ease, res, my }); });
+}
+function stepAnims(now) {
+  for (const a of [...ANIMS]) {
+    if (a.my !== epoch) { ANIMS.delete(a); a.res(); continue; }
+    const t = Math.min((now - a.t0) / a.ms, 1); a.fn(a.ease(t)); if (t >= 1) { ANIMS.delete(a); a.res(); }
+  }
+}
+const wait = ms => tween(ms, () => { });
+const alive = my => my === epoch;
+function beam(from, to, color, ms = 900) {
+  const mid = from.clone().lerp(to, .5); mid.y += 1.4;
+  const curve = new THREE.QuadraticBezierCurve3(from, mid, to);
+  const geo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(40));
+  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color, transparent: true, opacity: .9 })); geo.setDrawRange(0, 0); scene.add(line);
+  return { curve, kill: () => { scene.remove(line); geo.dispose(); }, grow: tween(ms, t => geo.setDrawRange(0, Math.ceil(t * 41))) };
+}
+function pill(text, posFn, color, ms = 1800, prio = 2) { const L = label(text, posFn, "pill", prio); L.el.style.color = color; setTimeout(() => dropLabel(L), ms); return L; }
+function toast(who, html, ms = 5000) {
+  const el = document.createElement("div"); el.className = "toast glass";
+  el.innerHTML = `<div class="who">${who}</div><div>${html}</div>`;
+  $("#toasts").prepend(el); while ($("#toasts").children.length > 2) $("#toasts").lastChild.remove();
+  setTimeout(() => el.remove(), ms);
+}
+
+async function printPlate(s, ms, my, total = 2000) {
+  const st = ST[s], n = ms.length, per = Math.max(30, total / Math.max(n, 1));
+  const tip = st.head.userData.tip, bm = st.head.userData.beam;
+  for (let i = 0; i < n; i++) {
+    if (!alive(my)) return;
+    const m = ms[i]; m.visible = true;
+    st.head.position.x = m.position.x; st.head.position.z = m.position.z;
+    if (tip) tip.intensity = 2; if (bm) bm.material.opacity = .35;
+    await tween(per, t => m.scale.y = Math.max(.001, t));
+    markFailed(m);
+  }
+  if (tip) tip.intensity = 0; if (bm) bm.material.opacity = 0;
+  await tween(300, t => { st.head.position.x *= 1 - t; st.head.position.z *= 1 - t; });
+}
+async function scanPlate(s, ms = 1000) {
+  const st = ST[s];
+  st.scan.material.opacity = .9; st.scanLight.intensity = 1.6;
+  await tween(ms, t => st.scan.position.z = -2.4 + 4.8 * t);
+  st.scan.material.opacity = 0; st.scanLight.intensity = 0; st.scan.position.z = -2.4;
+}
+const checkOf = (m, R = run()) => (R.checks || []).find(c => c.round === m.round && c.receiver === m.to && c.sender === m.from);
+async function sendNote(m, my, ms = 1000, R = run()) {
+  const liar = R.settings.liar === m.from, col = liar ? 0xf06a6a : 0x5b8cff, css = liar ? "var(--bad)" : "#9ab8ff";
+  const from = new THREE.Vector3(SX[m.from] * .55, TABLE_Y + 3.6, 0), to = new THREE.Vector3(SX[m.to] * .55, TABLE_Y + 3.6, 0);
+  const b = beam(from, to, col, ms);
+  const pos = new THREE.Vector3();
+  pill(liar ? "a lie" : "tip: 3 numbers", () => pos, css, ms + 600, 4);
+  await tween(ms, t => b.curve.getPoint(t, pos));
+  if (!alive(my)) { b.kill(); return; }
+  const chk = checkOf(m, R);
+  pill(chk && chk.dropped ? "✕ ignored: doesn't add up" : chk ? "✓ checked, fine" : "got it", () => to.clone().add(new THREE.Vector3(0, .6, 0)), chk && chk.dropped ? "var(--bad)" : chk ? "var(--good)" : css, 2000, 6);
+  await wait(400); b.kill();
+}
+
+// =====================================================================================
+// scores, chart, side panels
+// =====================================================================================
+const errKeyFor = s => real(s) ? "mae" : "mae_truth";
+const chartKey = () => allSim() ? "mae_truth" : "mae";
+const score = (s, r, a) => ((run() || {}).scores || []).find(x => x.site === s && x.round === r && x.arm === a);
+const SERIES = [["isolated", "alone", "#8d9bad", ""], ["networked", "sharing", "#5b8cff", ""], ["oracle", "one pile", "#e3a443", "4 3"]];
+function meanErr(r, a) { const k = chartKey(), v = ((run() || {}).scores || []).filter(x => x.round === r && x.arm === a && x[k] != null); return v.length ? v.reduce((t, x) => t + x[k], 0) / v.length * 1000 : null; }
+function gapPct(r) { const i = meanErr(r, "isolated"), n = meanErr(r, "networked"); return i && n != null ? (i - n) / i * 100 : null; }
+let CHART_AT = -1;
+function chart(r) {
+  const R = run() ? run().rounds : 3;
+  const W = 300, H = 160, L = 26, Rr = 86, T = 22, B0 = 20, pw = W - L - Rr, ph = H - T - B0;
+  const all = []; for (let i = 1; i <= Math.max(avail(), 0); i++) for (const [a] of SERIES) { const v = meanErr(i, a); if (v != null) all.push(v); }
+  const YMAX = Math.max(10, Math.ceil(((all.length ? Math.max(...all) : 10) + 1) / 5) * 5);
+  const x = i => L + (R > 1 ? pw * (i - 1) / (R - 1) : pw / 2), y = v => T + ph * (1 - v / YMAX);
+  const fresh = r === CHART_AT + 1; CHART_AT = r;
+  const mono = `font-family="IBM Plex Mono, monospace"`, ticks = [0, YMAX / 3, YMAX * 2 / 3, YMAX].map(v => Math.round(v));
+  let s = ticks.map(v => `<line x1="${L}" x2="${L + pw}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(160,185,210,${v ? .13 : .35})" ${v ? 'stroke-dasharray="2 4"' : ""}/><text x="${L - 6}" y="${y(v) + 3.5}" text-anchor="end" ${mono} font-size="11" fill="#7f8fa1">${v}</text>`).join("");
+  s += Array.from({ length: R }, (_, i) => `<text x="${x(i + 1)}" y="${H - 4}" text-anchor="middle" ${mono} font-size="10.5" fill="${i + 1 <= r ? "#93a3b5" : "#4d5b6b"}">round ${i + 1}</text>`).join("");
+  const ends = [];
+  for (const [a, name, col, dash] of SERIES) {
+    const pts = []; for (let i = 1; i <= r; i++) { const v = meanErr(i, a); if (v != null) pts.push([i, v]); }
+    if (!pts.length) continue;
+    for (let j = 1; j < pts.length; j++) {
+      const [i0, v0] = pts[j - 1], [i1, v1] = pts[j], len = Math.hypot(x(i1) - x(i0), y(v1) - y(v0)), nw = fresh && j === pts.length - 1;
+      s += `<line x1="${x(i0)}" y1="${y(v0)}" x2="${x(i1)}" y2="${y(v1)}" stroke="${col}" stroke-width="${a === "networked" ? 3 : 2.2}" stroke-linecap="round" ${dash ? `stroke-dasharray="${dash}"` : nw ? `class="seg-new" style="--len:${len};stroke-dasharray:${len}"` : ""}/>`;
+    }
+    for (const [i, v] of pts) s += `<circle${fresh && i === r ? ' class="pt-new"' : ""} cx="${x(i)}" cy="${y(v)}" r="${a === "networked" ? 4 : 3.4}" fill="${col}" stroke="#0b1016" stroke-width="1.5"/>`;
+    const [li, lv] = pts[pts.length - 1]; ends.push({ name, col, v: lv, x: x(li), y: y(lv) });
+  }
+  if (r >= 2) {
+    const vi = meanErr(r, "isolated"), vn = meanErr(r, "networked"), pct = gapPct(r);
+    if (vi != null && vn != null && pct > .5 && y(vn) - y(vi) >= 6) {
+      const xm = x(r) - 12, ya = y(vi), yb = y(vn), tight = yb - ya < 16;
+      s += `<path d="M${xm + 4},${ya} H${xm} V${yb} H${xm + 4}" fill="none" stroke="#cfe0ff" stroke-width="1.2"/><text x="${tight ? xm + 2 : xm - 4}" y="${tight ? ya - 14 : (ya + yb) / 2 + 4}" text-anchor="${tight ? "middle" : "end"}" font-family="Barlow Condensed, sans-serif" font-weight="600" font-size="14" fill="#cfe0ff" stroke="#0b1016" stroke-width="3.5" paint-order="stroke">−${Math.round(pct)}%</text>`;
+    }
+  }
+  ends.sort((a, b) => a.y - b.y);
+  for (let j = 1; j < ends.length; j++) ends[j].ly = Math.max(ends[j].y, (ends[j - 1].ly ?? ends[j - 1].y) + 15);
+  if (ends.length) { ends[0].ly = ends[0].y; const over = ends[ends.length - 1].ly - (T + ph); if (over > 0) ends.forEach(e => e.ly = (e.ly ?? e.y) - over); }
+  for (const e of ends) s += `<text x="${e.x + 9}" y="${(e.ly ?? e.y) + 4}" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="${e.col}"><tspan font-weight="600" font-family="Barlow Condensed, sans-serif" font-size="16">${f1(e.v)}</tspan> ${esc(e.name)}</text>`;
+  if (!r) s += `<text x="${L + pw / 2}" y="${T + ph / 2}" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="#93a3b5">The first point lands after round 1</text>`;
+  $("#chSvg").innerHTML = s;
+  $("#chSvg").setAttribute("aria-label", "Model error by round: " + SERIES.map(([a, n]) => `${n} ${Array.from({ length: r }, (_, i) => f1(meanErr(i + 1, a) ?? 0)).join(", ")}`).join("; "));
+  $("#chFoot").innerHTML = E && E.error_um ? `This is one pair of printers, and one pair can be lucky or unlucky. Over ${E.worlds} pairs: alone <b>${f1(E.error_um.isolated)}</b>, sharing <b>${f1(E.error_um.networked)}</b>, one pile <b>${f1(E.error_um.oracle)}</b>. Sharing won in ${E.together_vs_alone.wins} of ${E.together_vs_alone.n}.` : "";
+}
+function perSite(r) {
+  if (!r || !run()) { $("#perSite").innerHTML = ""; return; }
+  const rows = SITES.map(s => {
+    const k = errKeyFor(s), v = a => { const x = score(s, r, a); return x && x[k] != null ? x[k] * 1000 : null; };
+    const i = v("isolated"), n = v("networked"), o = v("oracle");
+    return `<tr><td>${s === "resin" ? "Printer A" : "Printer B"}</td><td class="num${i != null && n != null && i <= n ? " best" : ""}">${i == null ? "—" : f1(i)}</td><td class="num${i != null && n != null && n < i ? " best" : ""}">${n == null ? "—" : f1(n)}</td><td class="num">${o == null ? "—" : f1(o)}</td></tr>`;
+  }).join("");
+  $("#perSite").innerHTML = `<h3>Each printer, round ${r} (microns)</h3><table><thead><tr><th></th><th class="num">alone</th><th class="num">sharing</th><th class="num">one pile</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function badges(r) {
+  for (const s of SITES) {
+    const st = ST[s], k = errKeyFor(s), i = score(s, r, "isolated"), n = score(s, r, "networked");
+    st.badge.on = !!(r && i && n && i[k] != null && n[k] != null);
+    if (st.badge.on) setLabel(st.badge, `Round ${r}: average miss, in microns<b><span style="color:var(--alone)">${f1(i[k] * 1000)}</span> <small>alone</small> · <span style="color:var(--net)">${f1(n[k] * 1000)}</span> <small>sharing</small></b>`);
+  }
+}
+function renderPrivacy() {
+  const r = run(); if (!r) return;
+  const msgs = (r.messages || []).filter(m => m.round <= Math.max(shown, 0)).sort((a, b) => a.round - b.round || a.from.localeCompare(b.from));
+  const nums = msgs.reduce((t, m) => t + 2 * Object.keys(m.shared_params).length, 0), kept = r.kept || {};
+  const done = r.status === "done" && shown >= r.rounds;
+  $("#crossed").innerHTML = `<div class="stat"><div><div class="n">${msgs.length}</div><div class="small muted">tips crossed (${nums} numbers)</div></div><div><div class="n pass">0</div><div class="small muted">measurements crossed</div></div></div>
+    <p class="small muted" style="margin:8px 0 0">Kept private: ${SITES.map(s => `${s === "resin" ? "Printer A" : "Printer B"} ${kept[s] ?? 0} measurements`).join(", ")}.</p>
+    ${done && r.audit ? `<p style="margin:6px 0 0">Privacy check: <span class="${r.audit.passed ? "pass" : "fail"}">${r.audit.passed ? "passed" : "failed"}</span> <span class="small muted">(every crossing is written to a record that can't be secretly edited, and replayed at the end)</span></p>` : ""}`;
+  $("#msgs").innerHTML = !r.settings.share_messages ? "Notes are off for this run." : msgs.length ? msgs.map(m => `<div class="msg${r.settings.liar === m.from ? " liar" : ""}"><div class="hd"><span>Round ${m.round} · ${m.from === "resin" ? "A → B" : "B → A"}${r.settings.liar === m.from ? ' · <span style="color:var(--bad)">a lie</span>' : ""}</span><span>${m.bytes} bytes</span></div><div class="kv">${Object.entries(m.shared_params).map(([k, [mu, sd]]) => `<span>${esc(PARAM[k] || k)}</span><span>${(mu * 1000).toFixed(1)} ± ${(sd * 1000).toFixed(1)}</span>`).join("")}</div></div>`).join("") + `<p class="small faint" style="margin:6px 0 0">Each number: a best guess ± how sure it is (×1000).</p>` : "Tips start crossing in round 1.";
+}
+function renderDetails() {
+  const r = run(); if (!r) return;
+  const st = r.settings;
+  $("#runInfo").innerHTML = `<dl class="kv2"><dt>Run</dt><dd>${esc(r.name)} <span class="faint">(practice)</span></dd><dt>Printers</dt><dd>${SITES.map(s => `${SHORT[s]} <span class="tag ${r.modes[s]}">${r.modes[s] === "real" ? "real" : "sim"}</span>`).join(" ")}</dd><dt>Setup</dt><dd>world ${st.seed} · ${r.rounds} rounds · ${r.particles} particles${st.share_messages ? "" : " · notes off"}${st.liar ? ` · ${SHORT[st.liar]} lies` : ""}${st.consistency_check ? " · check on" : ""}${st.negative_control ? " · no shared physics" : ""}</dd><dt>Files</dt><dd><code>${esc(r.dir)}</code></dd></dl>${r.error ? `<p class="note warn">${esc(r.error)}</p>` : ""}`;
+  const tr = r.trust || [];
+  $("#trust").innerHTML = tr.length ? `<table><thead><tr><th>round</th><th>who trusts whom</th><th class="num">trust</th></tr></thead><tbody>${tr.map(t => `<tr><td>${t.round}</td><td>${SHORT[t.receiver]} trusts ${SHORT[t.sender]}</td><td class="num">${Math.round(t.trust * 100)}%</td></tr>`).join("")}</tbody></table>` : `<span class="muted small">After round 1.</span>`;
+  const ch = r.checks || [];
+  $("#checks").innerHTML = !st.consistency_check ? `<span class="muted small">Off for this run.</span>` : ch.length ? `<table><thead><tr><th>round</th><th>note</th><th class="num">χ²</th><th></th></tr></thead><tbody>${ch.map(t => `<tr><td>${t.round}</td><td>${SHORT[t.sender]} → ${SHORT[t.receiver]}</td><td class="num">${t.chi2.toFixed(1)}</td><td>${t.dropped ? '<span class="fail">set aside</span>' : "kept"}</td></tr>`).join("")}</tbody></table>` : `<span class="muted small">After round 1.</span>`;
+  const sc = r.scores || [];
+  if (sc.length) {
+    const key = (rr, s, a) => sc.find(x => x.round === rr && x.site === s && x.arm === a) || {};
+    let h = `<table><thead><tr><th>rd</th><th></th><th>vs</th><th class="num">alone</th><th class="num">tog.</th><th class="num">pooled</th></tr></thead><tbody>`;
+    for (const rr of [...new Set(sc.map(x => x.round))]) for (const s of SITES) for (const [m, lbl] of [["mae", "measured"], ["mae_truth", "truth"]]) {
+      const vals = ["isolated", "networked", "oracle"].map(a => key(rr, s, a)[m]);
+      if (vals.every(v => v == null)) continue;
+      h += `<tr><td>${rr}</td><td>${SHORT[s]}</td><td class="small muted">${lbl}</td>${vals.map(v => `<td class="num">${um(v)}</td>`).join("")}</tr>`;
+    }
+    $("#scores").innerHTML = h + "</tbody></table>";
+  }
+  const lg = $("#log"); if (lg.textContent !== r.log) { lg.textContent = r.log; lg.scrollTop = lg.scrollHeight; }
+}
+let cdKey = null;
+const ivl = a => `${f3(a[0])}–${f3(a[1])}`;
+async function renderDesigns() {
+  const r = run(); if (!r || shown < 0) return;
+  const key = r.name + ":" + (r.rounds_done ?? -1);
+  if (key === cdKey) return;
+  cdKey = key;
+  const el = $("#cd"); el.innerHTML = "";
+  for (const s of SITES) {
+    try {
+      const d = r.designs ? r.designs[s] : await api("/api/designs", { site: s });
+      if (cdKey !== key) return;
+      const by = {}; for (const row of d.rows) (by[row.target_d] ||= {})[row.kind] = row;
+      const cell = x => `<span class="draw">${f3(x.draw_d)}</span> → ${f3(x.predicted_d)}${x.sim_truth ? `<span class="tr">truth ${f3(x.sim_truth.at_draw)}</span>` : ""}`;
+      el.insertAdjacentHTML("beforeend", `<div class="cd-site"><h3>${NAME[s]}</h3><table><thead><tr><th class="num">want</th><th>pin: draw → prints</th><th>hole: draw → prints</th></tr></thead><tbody>${Object.keys(by).map(t => `<tr><td class="num">${t}</td><td>${cell(by[t].pin)}</td><td>${cell(by[t].hole)}</td></tr>`).join("")}</tbody></table></div>`);
+    } catch (e) { el.insertAdjacentHTML("beforeend", `<span class="err-msg">${esc(e.message)}</span>`); }
+  }
+}
+function tab(name) {
+  document.querySelectorAll("#tabs [role=tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === name));
+  document.querySelectorAll("[data-pane]").forEach(p => p.hidden = p.dataset.pane !== name);
+  $("#side").classList.remove("min"); $("#minBtn").textContent = "–"; offsetView();
+}
+document.querySelectorAll("#tabs [role=tab]").forEach(b => b.onclick = () => tab(b.dataset.tab));
+$("#minBtn").onclick = () => { const m = $("#side").classList.toggle("min"); $("#minBtn").textContent = m ? "+" : "–"; offsetView(); };
+
+// =====================================================================================
+// the operator task, when a real printer needs someone (presenter mode only)
+// =====================================================================================
+function plateSVG(plate, hiSlots = []) {
+  const p = ['<svg viewBox="-9 -9 117 117" class="plate" role="img" aria-label="Plate ' + esc(plate.plate_id) + ', top view">',
+    '<rect x="0" y="0" width="100" height="100" rx="1.2" class="pl"/>', '<rect x="47" y="97.5" width="6" height="2.6" class="cut"/>'];
+  for (const [fx, fy] of [[5, 5], [95, 5], [5, 95]]) p.push(`<rect x="${fx - 2}" y="${fy - 2}" width="4" height="4" class="cut"/>`);
+  for (let i = 0; i < 8; i++) { p.push(`<text class="lab" x="${15 + 10 * i}" y="-3" text-anchor="middle">${i}</text>`); p.push(`<text class="lab" x="-3" y="${16 + 10 * i}" text-anchor="end">${i}</text>`); }
   for (const q of plate.pieces) {
-    const cx = 15 + 10 * q.col, cy = 15 + 10 * q.row, r = q.nominal_d / 2;
-    p.push(`<circle id="pc-${q.row}-${q.col}" cx="${cx}" cy="${cy}" r="${r}" class="${q.kind === "pin" ? "pin" : "hole"}"/>`);
+    const cx = 15 + 10 * q.col, cy = 15 + 10 * q.row, r = q.nominal_d / 2, hi = hiSlots.includes(`${q.row}-${q.col}`);
+    p.push(`<circle id="pc-${q.row}-${q.col}" cx="${cx}" cy="${cy}" r="${r}" class="${q.kind === "pin" ? "pin" : "hole"}${hi ? " hi" : ""}"/>`);
     if (q.arm === "heldout") p.push(`<circle cx="${cx}" cy="${cy}" r="${Math.min(r + 1.1, 4.8)}" class="ho"/>`);
   }
   p.push("</svg>");
-  return p.join("") + `<div class="legend"><span><i style="background:var(--alone)"></i>pin</span><span><i style="border:1.5px solid var(--alone)"></i>hole</span><span><i style="border:1.5px dashed var(--exam)"></i>held-out (scoring)</span><span>■ fiducials · notch at bottom</span></div>`;
+  return p.join("");
 }
-
-// ---- the one thing to do next ---------------------------------------------
-function renderNext() {
-  const el = $("#next"), run = S && S.run;
-  const st = run ? run.status : "idle";
-  el.className = "card next " + st;
-  const key = run && run.prompt ? run.name + ":" + run.prompt.id : st + ":" + (run ? run.name : "");
-  if (key === promptShown) { // keep forms (and what's typed) intact; just refresh the stage line
-    const ns = $("#nextStage"); if (ns && run) ns.textContent = stageText(run);
-    return;
-  }
-  promptShown = key;
-  if (!run) {
-    el.innerHTML = `<p class="eyebrow">Next</p><h2>Set up a practice run</h2><p class="muted">Pick which sites are real and press Start. A real site will ask you here to approve each plate and enter its measurements.</p>`;
-  } else if (run.prompt && run.prompt.kind === "approve") {
-    renderApprove(el, run);
-  } else if (run.prompt && run.prompt.kind === "measure") {
-    renderMeasure(el, run);
-  } else if (st === "running" || st === "starting") {
-    el.innerHTML = `<p class="eyebrow">Next</p><h2>Nothing to do: computing</h2><p class="muted" id="nextStage">${esc(stageText(run))}</p><p class="small faint">Real sites will ask here when a plate needs you.</p>`;
-  } else if (st === "done") {
-    const a = run.audit || {};
-    el.innerHTML = `<p class="eyebrow">Next</p><h2>Run finished</h2>
-      <p>Privacy audit: <span class="${a.passed ? "pass" : "fail"}">${a.passed ? "PASS" : "FAIL"}</span> <span class="muted small">(${a.crossings ?? 0} boundary crossings checked${a.problems && a.problems.length ? "; " + esc(a.problems.join("; ")) : ""})</span></p>
-      ${run.filled.length ? `<p class="note warn">Simulated readings were used for: ${esc(run.filled.join(", "))}. Those are not measurements.</p>` : ""}
-      <div class="row"><button class="primary" id="viewerBtn">Build and open the 3D viewer</button><button id="newBtn">New run</button></div>
-      <p class="small muted">Files: <code>${esc(run.dir)}</code></p><div class="err-msg" id="nextErr"></div>`;
-    $("#viewerBtn").onclick = buildViewer; $("#newBtn").onclick = () => { setupOpen = true; render(); };
+function renderTask() {
+  const r = run(), p = r && r.prompt, el = $("#task");
+  const k = p ? r.name + ":" + p.id : null;
+  if (k === promptKey) return;
+  promptKey = k;
+  if (!p) { el.hidden = true; taskOpen = false; $("#left").classList.remove("wide"); $("#story").hidden = false; offsetView(); return; }
+  el.hidden = false; taskOpen = true; $("#story").hidden = true; $("#left").classList.toggle("wide", p.kind === "measure"); offsetView();
+  const head = `<p class="eyebrow">Your turn · ${NAME[p.site]} <span class="tag real">real printer</span></p>`;
+  const err = msg => { const e = $("#taskErr"); if (e) e.textContent = msg; };
+  const answer = async (id, text) => { try { S = await api("/api/answer", { id, answer: text }); renderAll(); } catch (e) { err(e.message); } };
+  const pcs = p.plate.pieces;
+  if (p.kind === "approve") {
+    el.innerHTML = `${head}<h2>Approve plate ${esc(p.plate_id)}</h2>
+      <div class="plate-wrap"><div>${plateSVG(p.plate)}</div><div>
+        <p class="small muted" style="margin:0 0 10px">${pcs.length} pieces. Check it's printable, then print the STL.</p>
+        <p style="margin:0 0 10px"><a class="btn" href="${esc(p.stl)}" download>Download STL</a></p>
+        <div class="row"><button class="btn good" id="apBtn">Approve</button><button class="btn danger" id="vetoBtn">Veto</button></div>
+        <div class="err-msg" id="taskErr"></div></div></div>`;
+    $("#apBtn").onclick = () => answer(p.id, "y");
+    $("#vetoBtn").onclick = () => answer(p.id, "veto from the console");
   } else {
-    el.innerHTML = `<p class="eyebrow">Next</p><h2>${st === "error" ? "The run stopped with an error" : "Run stopped"}</h2>
-      ${run.error ? `<p class="note err">${esc(run.error)}</p><p class="small muted">Full traceback in the run log.</p>` : ""}
-      <div class="row"><button class="primary" id="newBtn">New run</button>${run.rounds_done >= 0 && run.scores ? '<button id="viewerBtn">3D viewer of what finished</button>' : ""}</div><div class="err-msg" id="nextErr"></div>`;
-    $("#newBtn").onclick = () => { setupOpen = true; render(); };
-    if ($("#viewerBtn")) $("#viewerBtn").onclick = buildViewer;
+    el.innerHTML = `${head}<h2>Measure plate ${esc(p.plate_id)}</h2>
+      ${p.note ? `<p class="note warn">${esc(p.note)}</p>` : ""}
+      <p class="small muted" style="margin:0 0 8px">Diameter in mm, or µm (over 100 is read as µm). <b>failed</b>: didn't print. <b>skip</b>: not measured.</p>
+      <div class="row"><button class="btn sim" id="fillBtn">Fill with simulated readings</button><button class="btn" id="skipHoles">Skip all holes</button><button class="btn danger" id="wholeFail">Whole plate failed</button></div>
+      <div class="small" id="fillNote" style="color:var(--wall);margin-top:6px"></div>
+      <div class="scroll" style="margin-top:8px"><table class="meas" id="measTable"><thead><tr><th>row</th><th>col</th><th>kind</th><th>diameter</th><th>status</th><th></th></tr></thead><tbody>
+      ${pcs.map((q, i) => `<tr data-r="${q.row}" data-c="${q.col}"><td class="num">${q.row}</td><td class="num">${q.col}</td><td>${q.kind}</td><td><input type="text" inputmode="decimal" autocomplete="off" aria-label="row ${q.row} col ${q.col} diameter"></td><td><select aria-label="status"><option value="ok">ok</option><option value="failed">failed</option><option value="skip">skip</option></select></td><td class="conv"></td></tr>`).join("")}
+      </tbody></table></div>
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="submitBtn">Submit measurements</button></div>
+      <div class="err-msg" id="taskErr"></div>`;
+    const rows = [...$("#measTable tbody").rows]; let source = "hand";
+    const update = tr => { const inp = tr.querySelector("input"), sel = tr.querySelector("select"), conv = tr.querySelector(".conv"); tr.classList.toggle("off", sel.value !== "ok"); inp.disabled = sel.value !== "ok"; inp.classList.remove("bad"); conv.textContent = ""; const raw = inp.value.trim(); if (sel.value === "ok" && raw) { const mm = toMM(raw); if (!(mm > 0 && mm < 20)) { inp.classList.add("bad"); conv.textContent = "?"; } else if (parseFloat(raw) > 100) conv.textContent = `= ${mm.toFixed(4)} mm`; } };
+    rows.forEach(tr => { const inp = tr.querySelector("input"), sel = tr.querySelector("select"); inp.oninput = sel.onchange = () => update(tr); inp.onfocus = () => { rows.forEach(t => t.classList.remove("focus")); tr.classList.add("focus"); highlight(p.site, `${tr.dataset.r}-${tr.dataset.c}`); }; });
+    $("#skipHoles").onclick = () => rows.forEach((tr, i) => { if (pcs[i].kind === "hole") { tr.querySelector("select").value = "skip"; update(tr); } });
+    $("#fillBtn").onclick = async () => { try { const { rows: got } = await api("/api/fill", { id: p.id }); const by = Object.fromEntries(got.map(g => [g.row + "," + g.col, g])); rows.forEach(tr => { const g = by[tr.dataset.r + "," + tr.dataset.c]; tr.querySelector("select").value = g.status === "ok" ? "ok" : "failed"; tr.querySelector("input").value = g.value ?? ""; update(tr); }); source = "sim-fill"; $("#fillNote").textContent = "SIMULATED readings, not measurements."; } catch (e) { err(e.message); } };
+    $("#wholeFail").onclick = () => { if (confirm("Mark the whole plate as failed?")) answer(p.id, "fail"); };
+    $("#submitBtn").onclick = async () => {
+      const out = rows.map((tr, i) => ({ row: pcs[i].row, col: pcs[i].col, status: tr.querySelector("select").value, value: tr.querySelector("input").value.trim().replace(",", ".") }));
+      if (out.some(x => x.status === "ok" && !x.value)) return err("Some pieces have no value: enter one, or mark failed / skip.");
+      if ($("#measTable .bad")) return err("Some values are out of range.");
+      try { S = await api("/api/measure", { id: p.id, rows: out, source }); highlight(null); renderAll(); } catch (e) { err(e.message); }
+    };
+  }
+}
+function showPending() { // the plate waiting on the operator, on its printer's table
+  const r = run(); if (!r || busy || SCENE_MODE !== "sim") return;
+  for (const s of SITES) {
+    const p = r.prompt && r.prompt.site === s ? r.prompt : null, st = ST[s];
+    if (p) {
+      const k = p.id + ":" + p.kind;
+      if (st.pending !== k) { layPieces(s, p.plate.pieces.map(q => ({ kind: q.kind, d: q.nominal_d, slot: [q.row, q.col], arm: q.arm, status: "ok" })), p.kind === "approve" ? "ghost" : "done"); st.pending = k; }
+      st.ask.on = true; setLabel(st.ask, p.kind === "approve" ? "Your turn: approve" : "Your turn: measure");
+    } else st.ask.on = false;
   }
 }
 
-function stageText(run) {
-  const s = run.stage || {};
-  if (!s.plate) return s.step || "";
-  if (s.step === "fitting") return `${s.plate} done; fitting models, then the next plate or scoring`;
-  return `${s.site}: ${s.step} ${s.plate}`;
+// =====================================================================================
+// the story: one step at a time
+// =====================================================================================
+function card(o) { // eyebrow, title, body html, look line
+  $("#story").innerHTML = `<p class="eyebrow">${o.eyebrow}</p><h2>${o.title}</h2>${o.body || ""}${o.look ? `<div class="look">${o.look}</div>` : ""}`;
+  $("#story").scrollTop = 0;
+}
+function renderMine() {
+  const bits = [];
+  $("#mine").hidden = !bits.length;
+  $("#mine").innerHTML = `You chose: ${bits.map(b => `<span>${esc(b)}</span>`).join("")}`;
 }
 
-function siteTag(run, site) { const m = run.modes[site]; return `<span class="tag ${m}">${m === "real" ? "real printer" : "simulated"}</span>`; }
-
-function renderApprove(el, run) {
-  const p = run.prompt, n = p.plate.pieces.length;
-  el.innerHTML = `<p class="eyebrow">Next · ${esc(p.site)} ${siteTag(run, p.site)}</p>
-    <h2>Approve plate ${esc(p.plate_id)} for printing</h2>
-    <div class="plate-wrap"><div>${plateSVG(p.plate)}</div><div>
-      <p class="small muted">${n} pieces: ${p.plate.pieces.filter(q => q.kind === "pin").length} pins, ${p.plate.pieces.filter(q => q.kind === "hole").length} holes. Check it is printable and safe on this printer, then print the STL.</p>
-      <p><a href="${esc(p.stl)}" download>Download STL</a> <span class="small faint">(${esc(p.plate_id)}.stl)</span></p>
-      <div class="row"><button class="good" id="apBtn">Approve</button></div>
-      <div class="row"><input type="text" id="noteIn" placeholder="edit note, e.g. rotated 90° in PreForm" style="flex:1;min-width:10em"><button id="noteBtn">Approve with note</button></div>
-      <div class="row"><input type="text" id="vetoIn" placeholder="veto reason" style="flex:1;min-width:10em"><button class="danger" id="vetoBtn">Veto (don't print)</button></div>
-      <p class="small faint">A vetoed plate is not printed; the round is scored without it.</p>
-      <div class="err-msg" id="nextErr"></div></div></div>`;
-  $("#apBtn").onclick = () => answer(p.id, "y");
-  $("#noteBtn").onclick = () => { const v = $("#noteIn").value.trim(); if (!v) return err("Type the edit note first."); answer(p.id, v.toLowerCase().startsWith("veto") ? "note: " + v : v); };
-  $("#vetoBtn").onclick = () => answer(p.id, "veto " + ($("#vetoIn").value.trim() || "no reason given"));
+// --- step 1: our real test plate --------------------------------------------------------
+function layRealPlate() {
+  setSceneMode("real");
+  for (const s of SITES) { clearPlate(s); ST[s].badge.on = false; ST[s].ask.on = false; }
+  if (!REAL) return;
+  const st = ST.resin;
+  layPieces("resin", REAL.plate.pieces.map(q => ({ kind: q.kind, d: q.nominal_d, slot: q.slot, arm: q.arm, status: "ok" })), "done");
+  for (const k of Object.keys(REAL.readings)) { const m = st.bySlot[k]; if (m) { m.material.color.setHex(0xe3a443); m.material.emissive.setHex(0xe3a443); m.material.emissiveIntensity = .6; m.scale.x = m.scale.z = 1.6; } }
+  const rd = REAL.readings[REAL.reference.slot.join("-")] || [];
+  st.badge.on = true;
+  setLabel(st.badge, `Should be 1.500 mm. We measured:<b><span style="color:var(--pool)">${rd.map(f3).join(" · ")}</span> <small>mm</small></b>`);
 }
-
-function renderMeasure(el, run) {
-  const p = run.prompt, pcs = p.plate.pieces;
-  el.innerHTML = `<p class="eyebrow">Next · ${esc(p.site)} ${siteTag(run, p.site)}</p>
-    <h2>Measure plate ${esc(p.plate_id)}</h2>
-    ${p.note ? `<p class="note warn">${esc(p.note)}</p>` : ""}
-    <p class="small muted">Enter each diameter in mm, or the micrometer reading in µm (over 100 is read as µm). Mark <b>failed</b> if the piece didn't print, <b>skip</b> if it printed but you can't measure it (e.g. holes without gauge pins). Skipped pieces are neither data nor failures.</p>
-    <div class="plate-wrap"><div>${plateSVG(p.plate)}</div><div>
-      <div class="row"><button class="sim" id="fillBtn" title="Dry run only: numbers from a simulated printer">Fill with simulated readings (dry run)</button></div>
-      <div class="small" id="fillNote" style="color:var(--wall)"></div>
-      <div class="row"><button id="skipHoles">Skip all holes</button><button id="skipPins">Skip all pins</button><label class="small muted"><input type="checkbox" id="nomTog"> show nominal sizes</label></div>
-      <div class="row"><button class="danger" id="wholeFail">Whole plate failed</button></div>
-    </div></div>
-    <div class="scroll" style="margin-top:12px"><table class="meas" id="measTable"><thead><tr><th>row</th><th>col</th><th>kind</th><th class="nom num">nominal</th><th>diameter</th><th>status</th><th></th></tr></thead><tbody>
-    ${pcs.map((q, i) => `<tr data-i="${i}" data-r="${q.row}" data-c="${q.col}"><td class="num">${q.row}</td><td class="num">${q.col}</td><td>${q.kind}${q.arm === "heldout" ? ' <span class="faint small">held-out</span>' : ""}</td>
-      <td class="nom num">${q.nominal_d.toFixed(1)}</td><td><input type="text" inputmode="decimal" autocomplete="off" aria-label="row ${q.row} col ${q.col} diameter"></td>
-      <td><select aria-label="status"><option value="ok">ok</option><option value="failed">failed</option><option value="skip">skip</option></select></td><td class="conv"></td></tr>`).join("")}
-    </tbody></table></div>
-    <div class="row" style="margin-top:12px"><button class="primary" id="submitBtn">Submit measurements</button><span class="small muted" id="measCount"></span></div>
-    <div class="err-msg" id="nextErr"></div>`;
-  const tb = $("#measTable tbody"); let source = "hand";
-  const rows = [...tb.rows];
-  const update = tr => {
-    const inp = $("input", tr), sel = $("select", tr), conv = $(".conv", tr), raw = inp.value.trim();
-    tr.classList.toggle("off", sel.value !== "ok"); inp.disabled = sel.value !== "ok";
-    inp.classList.remove("bad"); conv.textContent = "";
-    if (sel.value === "ok" && raw) {
-      const x = parseFloat(raw.replace(",", "."));
-      if (!isFinite(x)) { inp.classList.add("bad"); conv.textContent = "not a number"; }
-      else { const mm = x > 100 ? x / 1000 : x; if (x > 100) conv.textContent = `= ${mm.toFixed(4)} mm`; if (!(mm > 0 && mm < 20)) { inp.classList.add("bad"); conv.textContent = "out of range"; } }
-    }
-    const done = rows.filter(t => $("select", t).value !== "ok" || $("input", t).value.trim()).length;
-    $("#measCount").textContent = `${done} / ${rows.length} pieces done`;
-  };
-  rows.forEach((tr, i) => {
-    const inp = $("input", tr), sel = $("select", tr);
-    inp.oninput = () => update(tr);
-    sel.onchange = () => update(tr);
-    inp.onfocus = sel.onfocus = () => { rows.forEach(t => t.classList.remove("focus")); tr.classList.add("focus"); document.querySelectorAll("svg.plate .hi").forEach(c => c.classList.remove("hi")); const c = document.getElementById(`pc-${tr.dataset.r}-${tr.dataset.c}`); if (c) c.classList.add("hi"); };
-    inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); const nx = rows.slice(i + 1).find(t => !$("input", t).disabled); if (nx) $("input", nx).focus(); } };
-    update(tr);
-  });
-  const setKind = (kind, st) => rows.forEach((tr, i) => { if (pcs[i].kind === kind) { $("select", tr).value = st; update(tr); } });
-  $("#skipHoles").onclick = () => setKind("hole", "skip");
-  $("#skipPins").onclick = () => setKind("pin", "skip");
-  $("#nomTog").onchange = e => $("#measTable").classList.toggle("shownom", e.target.checked);
-  $("#fillBtn").onclick = async () => {
-    try {
-      const {rows: got} = await api("/api/fill", {id: p.id});
-      const by = Object.fromEntries(got.map(g => [g.row + "," + g.col, g]));
-      rows.forEach(tr => { const g = by[tr.dataset.r + "," + tr.dataset.c]; $("select", tr).value = g.status === "ok" ? "ok" : "failed"; $("input", tr).value = g.value ?? ""; update(tr); });
-      source = "sim-fill"; $("#fillNote").textContent = "Filled with SIMULATED readings, not measurements. This plate stays labeled simulated even if you edit values.";
-    } catch (e) { err(e.message); }
-  };
-  $("#wholeFail").onclick = () => { if (confirm("Mark the whole plate as failed? Past the prereg's limit it is reprinted once.")) answer(p.id, "fail"); };
-  $("#submitBtn").onclick = async () => {
-    const out = rows.map((tr, i) => ({row: pcs[i].row, col: pcs[i].col, status: $("select", tr).value, value: $("input", tr).value.trim().replace(",", ".")}));
-    const blank = out.filter(r => r.status === "ok" && !r.value);
-    if (blank.length) { err(`${blank.length} pieces have no value: enter one, or mark failed / skip.`); const t = rows[out.indexOf(blank[0])]; $("input", t).focus(); return; }
-    if (tb.querySelector(".bad")) return err("Some values are out of range (0–20 mm, or µm over 100).");
-    $("#submitBtn").disabled = true;
-    try { S = await api("/api/measure", {id: p.id, rows: out, source}); promptShown = null; render(); }
-    catch (e) { err(e.message); $("#submitBtn").disabled = false; }
-  };
+const STEPS = [];
+const mm3 = v => `${f3(v)} mm`;
+const PA = s => s === "resin" ? "Printer A" : "Printer B";
+function barRows(rows, unit = "", max = null) { // rows: [label, value, colour, note]
+  const mx = max ?? Math.max(...rows.map(r => r[1])) * 1.08;
+  return `<div style="margin:8px 0 4px">${rows.map(([lbl, v, col, note]) => `<div style="display:grid;grid-template-columns:118px 1fr 46px;gap:8px;align-items:center;margin:5px 0;font-size:13.5px"><span>${lbl}</span><span style="background:rgba(255,255,255,.06);border-radius:4px;height:14px;overflow:hidden"><span style="display:block;height:100%;width:${Math.max(2, v / mx * 100)}%;background:${col};border-radius:4px;transition:width .8s"></span></span><span style="font:600 16px var(--display);text-align:right">${f1(v)}${unit}</span></div>${note ? `<div class="small muted" style="margin:-4px 0 6px 126px">${note}</div>` : ""}`).join("")}</div>`;
 }
-
-function err(msg) { const e = $("#nextErr"); if (e) e.textContent = msg; }
-
-async function answer(id, text) {
-  try { S = await api("/api/answer", {id, answer: text}); promptShown = null; render(); } catch (e) { err(e.message); }
+function bars(r) {
+  return barRows([["Learning alone", meanErr(r, "isolated"), "var(--alone)"], ["Sharing tips", meanErr(r, "networked"), "var(--net)"], ["All data in one pile", meanErr(r, "oracle"), "var(--pool)", "the best possible, but not private"]])
+    + `<div class="small muted">Average miss on the quiz pieces, in microns (thousandths of a millimeter). Shorter is better. A human hair is about 70.</div>`;
 }
+const REAL_RD = () => REAL ? REAL.readings[REAL.reference.slot.join("-")] || [] : [];
 
-async function buildViewer() {
-  const b = $("#viewerBtn"); b.disabled = true; b.textContent = "Building the viewer…";
-  try { const {url} = await api("/api/viewer", {}); window.open(url, "_blank"); b.textContent = "Open the 3D viewer again"; b.disabled = false; b.onclick = () => window.open(url, "_blank"); }
-  catch (e) { err(e.message); b.disabled = false; b.textContent = "Build and open the 3D viewer"; }
-}
+STEPS.push({ id: "plate", rail: "Problem", next: "The idea ▸", enter() {
+  layRealPlate(); view("resin");
+  const rd = REAL_RD(), worst = rd.length ? 1.5 - Math.min(...rd) : .089;
+  card({ eyebrow: "1 · The problem", title: "Every 3D printer prints things slightly the wrong size.",
+    body: `<p>We printed this plate of pins and holes, every one an exact, known size. The glowing pin should be <b>1.5 mm</b> wide. We measured it twice:</p>
+      <div class="big">${rd.map(f3).join(" · ")} mm</div>
+      <p class="muted" style="margin-top:6px">Up to ${worst.toFixed(2)} mm too small: about the width of a human hair. Tiny, but enough that parts don't fit together.</p>` });
+} });
+STEPS.push({ id: "why", rail: "Idea", next: "How we test it ▸", enter() {
+  layRealPlate(); view("resin");
+  card({ eyebrow: "2 · The idea", title: "A test plate tells a printer how it's wrong.",
+    body: `<ul><li>Print shapes of known size, measure them, and you learn how <b>that</b> printer misprints. Then you can correct for it.</li>
+      <li>Every printer is wrong in its own way, so every shop does this by itself, and it takes a lot of plates.</li>
+      <li><b>Our idea:</b> printers share what they've learned, but never their measurements. Each one learns faster, and nobody's data leaves their shop.</li></ul>` });
+} });
+STEPS.push({ id: "sim", rail: "Test setup", next: "Run it ▸", async enter() {
+  setSceneMode("sim");
+  for (const s of SITES) { clearPlate(s); ST[s].badge.on = false; }
+  view("home");
+  card({ eyebrow: "3 · How we test it", title: "Two pretend printers, side by side.",
+    body: `<p>The improvement is tiny, smaller than the gap between our two measurements of the same pin, so no measuring tool can see it.</p>
+      <p>So we use two computer-made printers that behave like real ones. Because we know exactly how they misprint, we can check how right every guess is.</p>
+      <p><b>Everything you'll see next, every plate, tip and score, comes straight from our code.</b></p>`,
+    look: "Printer A on the left, Printer B on the right, and a private line between them. Only short tips may cross it." });
+}, async leave() { await startRun(); } });
 
-// ---- live panels -----------------------------------------------------------
-const um = x => x == null ? "—" : (x * 1000).toFixed(1);
-
-function renderLive() {
-  const run = S && S.run;
-  if (!run) return;
-  const R = run.rounds, done = run.rounds_done ?? -1;
-  const steps = ["seed", ...Array.from({length: R}, (_, i) => "round " + (i + 1))];
-  const active = ["running", "waiting", "starting"].includes(run.status);
-  $("#progress").innerHTML = `<div class="steps">${steps.map((s, i) => `<span class="${i <= done ? "done" : (active && i === done + 1 ? "now" : "")}">${s}</span>`).join("")}</div>
-    <div class="small">${Object.keys(run.modes).map(s => `${esc(s)} ${siteTag(run, s)}${run.prompt && run.prompt.site === s ? ' <b style="color:var(--pool)">waiting on operator</b>' : ""}`).join(" &nbsp; ")}</div>
-    <div class="small muted" style="margin-top:6px">${esc(run.name)} · ${R} rounds · ${run.particles} particles · seed ${run.settings.seed}${run.settings.share_messages ? "" : " · network cut"}${run.settings.consistency_check ? " · consistency check" : ""}${run.settings.liar ? " · " + esc(run.settings.liar) + " lies" : ""}${run.settings.negative_control ? " · negative-control world" : ""}</div>
-    ${active ? `<div class="small" style="margin-top:4px">Now: ${esc(stageText(run))}</div>` : ""}`;
-
-  const sc = run.scores || [];
-  if (sc.length) {
-    const key = (r, s, a) => sc.find(x => x.round === r && x.site === s && x.arm === a);
-    const rounds = [...new Set(sc.map(x => x.round))], sites = [...new Set(sc.map(x => x.site))];
-    let h = `<table><thead><tr><th>round</th><th>site</th><th>vs</th><th class="num">isolated</th><th class="num">networked</th><th class="num">oracle</th><th class="num">n</th></tr></thead><tbody>`;
-    for (const r of rounds) for (const s of sites) {
-      const row = a => key(r, s, a) || {};
-      for (const [m, lbl] of [["mae", "measured"], ["mae_truth", "truth"]]) {
-        const vals = ["isolated", "networked", "oracle"].map(a => row(a)[m]);
-        if (vals.every(v => v == null)) continue;
-        const best = Math.min(vals[0] ?? Infinity, vals[1] ?? Infinity);
-        h += `<tr><td>${r}</td><td>${esc(s)}</td><td class="small muted">${lbl}${lbl === "truth" ? " (sim)" : ""}</td>${vals.map((v, i) => `<td class="num${i < 2 && v === best ? " best" : ""}">${um(v)}</td>`).join("")}<td class="num faint">${row("isolated").n_heldout ?? ""}</td></tr>`;
-      }
-    }
-    $("#scores").innerHTML = h + "</tbody></table>";
-  } else $("#scores").innerHTML = `<span class="muted small">Scores appear after each round.</span>`;
-
-  const c = run.crossed;
-  if (c) {
-    const kept = run.kept || {};
-    $("#crossed").innerHTML = `<div class="stat"><div><div class="big">${c.numbers}</div><div class="small muted">numbers crossed, in ${c.messages} messages (belief summaries, credibility)</div></div>
-      <div><div class="big pass">${c.measurements}</div><div class="small muted">measurements crossed</div></div></div>
-      <p class="small muted" style="margin:8px 0 0">Stayed home: ${Object.entries(kept).map(([s, n]) => `${esc(s)} ${n} measurements`).join(", ")}.</p>
-      ${run.audit ? `<p style="margin:6px 0 0">Privacy audit: <span class="${run.audit.passed ? "pass" : "fail"}">${run.audit.passed ? "PASS" : "FAIL"}</span> <span class="small muted">(${run.audit.crossings} crossings replayed from the receipt chains)</span></p>` : `<p class="small faint" style="margin:6px 0 0">Privacy audit runs at the end.</p>`}`;
-  }
-  const tr = run.trust || [];
-  $("#trust").innerHTML = tr.length ? `<table><thead><tr><th>round</th><th>receiver ← sender</th><th class="num">trust</th></tr></thead><tbody>${tr.map(t => `<tr><td>${t.round}</td><td>${esc(t.receiver)} ← ${esc(t.sender)}</td><td class="num">${t.trust.toFixed(3)}</td></tr>`).join("")}</tbody></table>` : `<span class="muted small">${run.settings.share_messages ? "After round 1." : "Network cut: no messages."}</span>`;
-  const ch = run.checks || [];
-  $("#checks").innerHTML = !run.settings.consistency_check ? `<span class="muted small">Off for this run.</span>` : ch.length ? `<table><thead><tr><th>round</th><th>receiver ← sender</th><th class="num">χ²</th><th>note</th></tr></thead><tbody>${ch.map(t => `<tr><td>${t.round}</td><td>${esc(t.receiver)} ← ${esc(t.sender)}</td><td class="num">${t.chi2.toFixed(2)}</td><td>${t.dropped ? '<span class="fail">dropped</span>' : "kept"}</td></tr>`).join("")}</tbody></table>` : `<span class="muted small">After round 1.</span>`;
-  const lg = $("#log");
-  logStick = lg.scrollTop + lg.clientHeight >= lg.scrollHeight - 20;
-  if (lg.textContent !== run.log) { lg.textContent = run.log; if (logStick) lg.scrollTop = lg.scrollHeight; }
-}
-
-// ---- corrected designs -------------------------------------------------------
-let cdKey = null;
-const mm3 = x => x.toFixed(3);
-const ivl = a => `${mm3(a[0])}–${mm3(a[1])}`;
-
-function cdBasis(run, d) {
-  const b = d.basis, after = b.rounds_done === 0 ? "the seed plates" : "round " + b.rounds_done;
-  const notes = Object.entries(b.notes_from).map(([s, t]) => `${esc(s)} (trust ${t})`).join(", ");
-  let h = `<p class="small muted" style="margin:4px 0">Networked posterior after ${after}: ${b.n_measurements} measurements here (${b.n_pins} pins, ${b.n_holes} holes)${notes ? "; notes from " + notes : "; no notes from other sites"}.</p>`;
-  if (d.mode === "sim") h += `<p class="note">Simulated printer: this is what the model learned about a simulated machine, not a real one. <span style="color:var(--wall)">truth</span> = the simulator's hidden printed size at that draw (and if drawn as-is).</p>`;
-  else {
-    const few = b.n_measurements < 20 || b.n_pins < 5 || b.n_holes < 5;
-    h += `<p class="note ${few ? "warn" : ""}">Real printer${few ? `: only ${b.n_measurements} measurements (${b.n_pins} pins, ${b.n_holes} holes), so the model leans on its priors${notes ? " and the other sites' notes" : ""}. The intervals are wide on purpose; treat this as a first estimate and check one printed piece.` : "."}</p>`;
-    if (d.filled && d.filled.length) h += `<p class="note warn">Readings for ${esc(d.filled.join(", "))} were simulated fill, not measurements.</p>`;
-  }
-  return h;
-}
-
-function cdCell(r) {
-  const tr = r.sim_truth ? `<span class="tr">truth ${mm3(r.sim_truth.at_draw)} (as-is ${mm3(r.sim_truth.as_drawn)})</span>` : "";
-  const clip = r.clipped ? ` <span class="fail" title="${esc(r.notes.join("; "))}">out of range</span>` : "";
-  return `<span class="draw">${mm3(r.draw_d)}</span> → ${mm3(r.predicted_d)} <span class="faint">(${ivl(r.interval)})</span>${clip}${tr}`;
-}
-
-function cdLine(d) {
-  const r = d.result, a = r.as_drawn;
-  let h = `<b>${r.kind} ${r.target_d} mm:</b> draw it at <b class="draw" style="font-family:var(--mono)">${mm3(r.draw_d)} mm</b> (${r.shift_um >= 0 ? "+" : ""}${r.shift_um.toFixed(0)} µm) → prints <b>${mm3(r.predicted_d)} mm</b> <span class="muted">(90%: ${ivl(r.interval)}; printer mean ${ivl(r.model_interval)})</span>`;
-  h += `<div class="small muted">Drawn as-is at ${r.target_d} mm it would print ${mm3(a.predicted_d)} mm (${((a.predicted_d - r.target_d) * 1000).toFixed(0)} µm off).</div>`;
-  if (r.sim_truth) h += `<div class="small" style="color:var(--wall)">Simulator truth: ${mm3(r.sim_truth.at_draw)} mm at the corrected draw (${((r.sim_truth.at_draw - r.target_d) * 1000).toFixed(0)} µm off), ${mm3(r.sim_truth.as_drawn)} mm as-is (${((r.sim_truth.as_drawn - r.target_d) * 1000).toFixed(0)} µm off).</div>`;
-  for (const n of r.notes) h += `<div class="small" style="color:var(--pool)">${esc(n)}</div>`;
-  return h;
-}
-
-async function cdAsk(site) {
-  const box = document.querySelector(`.cd-site[data-site="${site}"]`); if (!box) return;
-  const kind = $(".cd-kind", box).value, target = $(".cd-t", box).value, out = $(".cd-out", box);
-  if (!(parseFloat(target) > 0)) { out.innerHTML = `<span class="err-msg">Type a target diameter in mm.</span>`; return; }
-  box.dataset.q = JSON.stringify({kind, target});
-  out.innerHTML = `<span class="muted small">Computing…</span>`;
-  try { out.innerHTML = cdLine(await api("/api/corrected", {site, kind, target})); }
-  catch (e) { out.innerHTML = `<span class="err-msg">${esc(e.message)}</span>`; }
-}
-
-async function renderDesigns(run) {
-  const done = run.rounds_done ?? -1;
-  if (done < 0) { if (cdKey !== null && !cdKey.startsWith(run.name)) { $("#cd").innerHTML = `<span class="muted small">After the seed plates.</span>`; } cdKey = run.name; return; }
-  const key = run.name + ":" + done;
-  if (key === cdKey) return;
-  cdKey = key;
-  const el = $("#cd");
-  if (!el.querySelector(".cd-site") || el.dataset.run !== run.name) {
-    el.dataset.run = run.name;
-    el.innerHTML = Object.keys(run.modes).map(s => `<div class="cd-site" data-site="${s}"><h3>${esc(s)} ${siteTag(run, s)}</h3><div class="cd-basis"></div>
-      <div class="scroll cd-table"><span class="muted small">Fitting…</span></div>
-      <div class="row cd-q" style="margin-top:8px"><select class="cd-kind" aria-label="pin or hole"><option value="hole">hole</option><option value="pin">pin</option></select>
-        <input type="number" class="cd-t" step="0.1" min="0.5" max="15" placeholder="mm" aria-label="target diameter, mm"><span class="small muted">mm wanted</span><button class="cd-go">Correct it</button></div>
-      <div class="cd-out"></div></div>`).join("");
-    el.querySelectorAll(".cd-site").forEach(box => {
-      const s = box.dataset.site;
-      $(".cd-go", box).onclick = () => cdAsk(s);
-      $(".cd-t", box).onkeydown = e => { if (e.key === "Enter") cdAsk(s); };
-    });
-  }
-  for (const s of Object.keys(run.modes)) {
-    const box = el.querySelector(`.cd-site[data-site="${s}"]`);
-    try {
-      const d = await api("/api/designs", {site: s});
-      if (cdKey !== key) return;
-      $(".cd-basis", box).innerHTML = cdBasis(run, d);
-      const by = {}; for (const r of d.rows) (by[r.target_d] ||= {})[r.kind] = r;
-      $(".cd-table", box).innerHTML = `<table><thead><tr><th class="num">want (mm)</th><th>pin: draw → prints (90%)</th><th>hole: draw → prints (90%)</th></tr></thead><tbody>${Object.keys(by).map(t => `<tr><td class="num">${t}</td><td>${cdCell(by[t].pin)}</td><td>${cdCell(by[t].hole)}</td></tr>`).join("")}</tbody></table>`;
-      if (box.dataset.q) cdAsk(s); // refit after a round: redo the operator's last question
-    } catch (e) { $(".cd-table", box).innerHTML = `<span class="err-msg">${esc(e.message)}</span>`; }
+async function untilRound(k) { // wait until the run has finished round k (0 = first plate)
+  const my = epoch;
+  while (alive(my) && avail() < k) {
+    if (run() && ["error", "stopped"].includes(run().status)) throw new Error(run().error || "the run stopped");
+    await new Promise(r => setTimeout(r, 250));
   }
 }
-
-function render() {
-  const run = S && S.run, st = run ? run.status : "idle";
-  const chip = $("#statusChip");
-  chip.className = "chip " + st;
-  chip.textContent = st === "waiting" ? "waiting on operator" : st;
-  const active = ["running", "waiting", "starting"].includes(st);
-  $("#stopBtn").classList.toggle("hidden", !active);
-  $("#setupCard").classList.toggle("hidden", active || (run && !setupOpen));
-  renderNext();
-  renderLive();
-  if (run) renderDesigns(run);
-  document.title = (st === "waiting" ? "● " : "") + "Prebuilt console";
+async function playPrint(k, total = 3000, scan = 1500) {
+  const my = epoch;
+  const meshes = Object.fromEntries(SITES.map(s => [s, layPieces(s, (plateOf(s, k) || { pieces: [] }).pieces, "grow")]));
+  await Promise.all(SITES.map(s => printPlate(s, meshes[s], my, total)));
+  if (!alive(my)) return;
+  await Promise.all(SITES.map(s => scanPlate(s, scan)));
 }
+async function playShare(k, ms = 1800, R = run()) {
+  const my = epoch, msgs = (R.messages || []).filter(m => m.round === k);
+  await Promise.all(msgs.map(m => sendNote(m, my, ms, R)));
+}
+function showScore(k) { shown = Math.max(shown, k); chart(k); perSite(k); renderPrivacy(); }
+const trustLine = k => { const t = (run().trust || []).filter(x => x.round === k); return t.length ? t.map(x => `${PA(x.receiver)} trusts ${PA(x.sender).replace("Printer ", "")}'s tips ${Math.round(x.trust * 100)}%`).join(", ") : ""; };
+
+STEPS.push({ id: "warm", rail: "First plate", next: "Round 1 ▸", async enter() {
+  card({ eyebrow: "4 · First plate", title: "Each printer prints the test plate and measures it.",
+    body: `<p>Now each one has a first guess of how it misprints. They haven't talked to each other yet.</p>`,
+    look: run() && SITES.some(real) ? "The real printer waits here for you to approve and measure its plate." : "Watch each plate print, then get measured (the light sweeping across)." });
+  view("plates");
+  await untilRound(0); await playPrint(0, 3200, 1600); shown = 0;
+} });
+STEPS.push({ id: "r1", rail: "R1 print", next: "Swap tips ▸", async enter() {
+  card({ eyebrow: "5 · Round 1 · print", title: "Each printer prints more pieces to learn from.",
+    body: `<p>It picks the sizes it's least sure about.</p><p>The <b style="color:var(--exam)">blue-green, ringed</b> pieces are <b>quiz pieces</b>: no printer learns from them. We keep them aside to check the guesses fairly.</p>` });
+  for (const s of SITES) ST[s].badge.on = false;
+  view("plates");
+  await untilRound(1); await playPrint(1);
+} });
+STEPS.push({ id: "share", rail: "R1 tips", next: "Check the guesses ▸", async enter() {
+  const on = run().settings.share_messages;
+  card({ eyebrow: "6 · Round 1 · swap tips", title: on ? "The printers swap a short tip." : "Tips are switched off.",
+    body: on ? `<p>Each tip is just <b>3 numbers</b> about mistakes all printers make, like how much small pieces shrink.</p><p><b>No measurements and no designs cross the line.</b></p>` : "<p>Nothing crosses the line, so each printer learns alone.</p>",
+    look: on ? "The tips flying over the line. The exact numbers are under <b>Privacy</b>, top right." : "" });
+  view("wall");
+  await playShare(1);
+} });
+STEPS.push({ id: "score", rail: "R1 check", next: "Round 2 ▸", async enter() {
+  showScore(1);
+  const pct = gapPct(1);
+  card({ eyebrow: "7 · Round 1 · check", title: pct > 2 ? `Sharing tips: ${Math.round(pct)}% closer already.` : pct < -2 ? "After one round, sharing hasn't helped yet." : "After one round, about even.",
+    body: `<p>Each printer guesses the size of every quiz piece, and we compare with the true size.</p>${bars(1)}`,
+    look: "Each printer's own numbers are under <b>Results</b>, top right." });
+  view("home");
+} });
+function roundStep(k, no) {
+  return { id: "r" + k, rail: "Round " + k, next: k === 3 ? "The result ▸" : `Round ${k + 1} ▸`, async enter() {
+    const my = epoch, head = `${no} · Round ${k}`;
+    for (const s of SITES) ST[s].badge.on = false;
+    card({ eyebrow: head, title: "Print and measure.", body: `<p>Each printer prints new pieces, picked from what it's still unsure about, and measures them.</p>` });
+    view("plates");
+    await untilRound(k); if (!alive(my)) return;
+    await playPrint(k, 2600, 1300); if (!alive(my)) return;
+    await wait(500);
+    card({ eyebrow: head, title: "Swap tips.", body: `<p>Each printer sends its updated tip across the line. Still no measurements.</p>${trustLine(k) ? `<p class="small muted">The printers have also learned how far to trust each other: ${trustLine(k)}.</p>` : ""}` });
+    view("wall"); await playShare(k, 1600); if (!alive(my)) return;
+    await wait(500);
+    showScore(k); view("home");
+    const before = gapPct(k - 1), now = gapPct(k);
+    card({ eyebrow: head, title: now > 2 ? `Sharing tips: ${Math.round(now)}% closer.` : "About even this round.",
+      body: `${bars(k)}<p class="small muted" style="margin-top:6px">${now > before + 1 ? "The gap grew since last round: the tips keep paying off." : now < before - 1 ? "The gap shrank this round. One pair of printers swings round to round." : "About the same gap as last round."}</p>` });
+  } };
+}
+STEPS.push(roundStep(2, 8), roundStep(3, 9));
+STEPS.push({ id: "result", rail: "Result", next: "What if a printer lies? ▸", async enter() {
+  const R = run().rounds, my = epoch;
+  await untilRound(R); while (alive(my) && run().status !== "done") await new Promise(r => setTimeout(r, 250));
+  showScore(R);
+  const pct = gapPct(R), au = run().audit || {}, st = run().settings;
+  card({ eyebrow: "10 · Result", title: st.negative_control ? "These printers had nothing in common, so sharing didn't help, as it shouldn't." : pct > 2 ? `Printers that shared tips ended up ${Math.round(pct)}% more accurate.` : "This time, sharing and learning alone ended about even.",
+    body: `${bars(R)}
+      <p style="margin-top:10px">${au.passed ? `<span class="pass">✓ Privacy held:</span> no measurement ever left either printer. This is checked automatically.` : `<span class="fail">Privacy check failed.</span>`}</p>
+      ${E ? `<p class="small muted">This was one pair of printers. Across 100 pairs, sharing helps by about ${Math.round(E.together_vs_alone.pct)}% on average, as much as putting everyone's data in one pile.</p>` : ""}`,
+    look: "Open <b>Results</b>, top right, for the round-by-round chart." });
+  view("home");
+} });
+STEPS.push({ id: "liar", rail: "A liar", next: "What you get ▸", async enter() {
+  const my = epoch;
+  setSceneMode("sim"); $("#side").classList.add("min"); $("#minBtn").textContent = "+"; offsetView();
+  for (const s of SITES) ST[s].badge.on = false;
+  card({ eyebrow: "11 · What if a printer lies?", title: "Printer B sends a false tip on purpose.",
+    body: `<p>Same two printers, run again, but this time B lies.</p>` });
+  view("wall");
+  if (!LIARRUN && LIARP) { card({ eyebrow: "11 · What if a printer lies?", title: "Printer B sends a false tip on purpose.", body: `<p>Same two printers, run again, but this time B lies.</p><p class="muted small">Finishing the run…</p>` }); try { LIARRUN = await LIARP; } catch (e) { } }
+  if (!alive(my)) return;
+  if (!LIARRUN) { card({ eyebrow: "11 · What if a printer lies?", title: "A lie gets caught.", body: liarFacts() }); return; }
+  await wait(600);
+  await playShare(1, 2200, LIARRUN); if (!alive(my)) return;
+  await wait(400);
+  card({ eyebrow: "11 · What if a printer lies?", title: "The lie is caught on arrival.",
+    body: `<p>Printer A compares B's tip with its own measurements. It doesn't add up, so A ignores it and keeps learning from its own plates.</p>${liarFacts()}` });
+} });
+function liarFacts() {
+  const c = E && E.consistency_check;
+  return c ? `<p class="small muted">We tried this ${c.worlds} times: <b style="color:var(--ink)">all ${c.liar_caught} lies were caught</b>, and not one of ${c.honest_notes} honest tips was thrown out.</p>` : "";
+}
+STEPS.push({ id: "fleet", rail: "More printers", optional: true, next: "What you get ▸", async enter() {
+  const my = epoch;
+  setSceneMode("fleet"); $("#side").classList.add("min"); $("#minBtn").textContent = "+"; offsetView(); view("fleet");
+  const rows = E && E.sites_needed ? E.sites_needed.rows.filter(r => [2, 4, 8].includes(r.sites)) : [];
+  card({ eyebrow: "12 · More printers", title: "The more printers share, the more each one gains.",
+    body: `<p>Here each printer starts with very little data, like a shop with a new machine. How much better than learning alone, after 3 rounds:</p>
+      ${rows.length ? barRows(rows.map(r => [`${r.sites} printers`, r.pct, "var(--net)"]), "%", 40) : ""}
+      <p class="small muted">${rows.length ? `From runs we did before the demo (${rows.map(r => `${r.n} for ${r.sites}`).join(", ")}). Eight printers take a few minutes to compute, so this one isn't live.` : ""}</p>`,
+    look: "Every printer sends its tip to the others. Still no measurements." });
+  (async () => { await wait(700); while (alive(my)) await fleetTips(my, 1); })();  // keep the tips flying while the presenter talks, without holding the step
+} });
+STEPS.push({ id: "payoff", rail: "What you get", next: "Start over ↺", async enter() {
+  setSceneMode("sim"); view("home");
+  const g = run() && run().corrected && run().corrected.resin, r = g && g["hole:5.0"];
+  let ex = "";
+  if (r) { const off = r.as_drawn.predicted_d - 5; ex = `<p>Say you need a <b>5 mm hole</b> on Printer A:</p>
+      ${barRows([["Drawn as 5 mm", r.as_drawn.predicted_d, "var(--alone)", `comes out ${Math.abs(off).toFixed(2)} mm too ${off < 0 ? "small" : "big"}`], [`Drawn as ${f3(r.draw_d)}`, r.predicted_d, "var(--net)", "comes out right"]], " mm", 5.6)}`; }
+  card({ eyebrow: "13 · What you get", title: "Parts that fit the first time.",
+    body: `<p>A printer that knows how it misprints can tell you what size to draw, so the part comes out the size you need.</p>${ex}
+      <p class="small muted" style="margin-top:8px">Made for places with many printers and little data each: dental labs, print farms, service bureaus.</p>` });
+} });
+
+// --- starting the live run from the judges' choices -----------------------------------------------
+const PRESETS = {
+  present: { resin: "sim", pla: "sim", fast: false, share_messages: true, negative_control: false },
+  real: { resin: "real", pla: "sim", fast: false, share_messages: true, negative_control: false },
+  control: { resin: "sim", pla: "sim", fast: false, share_messages: true, negative_control: true },
+  dry: { resin: "sim", pla: "sim", fast: true, share_messages: true, negative_control: false },
+};
+function applyPreset(name) {
+  const p = PRESETS[name], f = $("#setup");
+  f.resin.value = p.resin; f.pla.value = p.pla; f.share_messages.checked = p.share_messages; f.negative_control.checked = p.negative_control;
+  if (defaults) { f.particles.value = p.fast ? defaults.fast_particles : defaults.particles; }
+  if (ONESHOT) $("#setup").querySelectorAll('input[name=resin],input[name=pla]').forEach(i => { i.disabled = i.value === "real"; });
+}
+$("#presets").onchange = e => applyPreset(e.target.value);
+function wanted() {
+  const f = new FormData($("#setup"));
+  return { resin: f.get("resin"), pla: f.get("pla"), rounds: "3", particles: f.get("particles"), seed: String(f.get("seed") || 4),
+    share_messages: f.has("share_messages"), negative_control: f.has("negative_control"), liar: "", consistency_check: false };
+}
+const simKey = w => JSON.stringify([w.seed, w.rounds, w.particles, w.share_messages, w.negative_control]);
+let SIMKEY = null;
+async function startRun() {
+  const w = wanted(), allSimW = w.resin === "sim" && w.pla === "sim";
+  if (allSimW) { // one request per run, here and on Vercel
+    if (SIMRUN && SIMKEY === simKey(w)) return;
+    if (w.seed !== "4" || w.particles !== String(defaults.particles) || !w.share_messages || w.negative_control) toast("Running live", ONESHOT ? "Running now on the web server: this takes about 40 seconds." : "Running now: about 10 seconds.", 12000);
+    SIMRUN = await api("/api/simulate", w); SIMKEY = simKey(w);
+    if (SIMRUN.cached) toast("Ready", "This world's run was computed ahead with the same code and settings, so it loads instantly. Other worlds (⚙) run fresh.", 6000);
+    LIARRUN = null; LIARP = w.share_messages ? api("/api/simulate", { ...w, liar: "pla", consistency_check: true }) : null;  // for the "liar" step
+    if (LIARP) LIARP.then(r => LIARRUN = r).catch(() => { });
+  } else { // a real printer: the local console's live run, which waits for the operator
+    if (ONESHOT) throw new Error("real printers need the local console (python -m console)");
+    SIMRUN = null; SIMKEY = null;
+    if (active()) { await api("/api/stop", {}).catch(() => { }); await new Promise(r => setTimeout(r, 600)); }
+    S = await api("/api/run", w);
+  }
+  RUN = run().name; cdKey = null; promptKey = null; shown = -1; CHART_AT = -1; chart(0); perSite(0);
+}
+
+// --- stepping --------------------------------------------------------------------------------
+let stepToken = 0;
+async function goTo(i) {
+  if (i < 0 || i >= STEPS.length) return;
+  const my = ++stepToken;
+  epoch++;  // cancel any animation in flight
+  busy = true; B = i; deck(); renderRail();
+  try { await STEPS[i].enter(); }
+  catch (e) { if (my === stepToken) card({ eyebrow: "Something went wrong", title: "The run stopped.", body: `<p class="err-msg">${esc(e.message)}</p><p class="small muted">The log is under Details. ↺ starts over.</p>` }); }
+  if (my !== stepToken) return;
+  busy = false; deck(); renderRail(); renderAll();
+}
+async function next() {
+  if (busy) return;
+  const cur = STEPS[B];
+  if (cur.leave) { busy = true; deck(); try { await cur.leave(); } catch (e) { busy = false; toast("Couldn't start", esc(e.message)); deck(); return; } busy = false; }
+  if (B === STEPS.length - 1) return restart();
+  let n = B + 1; while (n < STEPS.length - 1 && STEPS[n].optional) n++;  // optional steps only when asked for
+  goTo(n);
+}
+function back() { if (B > 0) { let n = B - 1; while (n > 0 && STEPS[n].optional) n--; goTo(n >= 3 && !run() ? 2 : n); } }
+function optional() { if (!busy && STEPS[B + 1] && STEPS[B + 1].optional) goTo(B + 1); }
+function restart() {
+  epoch++; stepToken++; setSceneMode("real"); shown = -1; CHART_AT = -1; chart(0); perSite(0);
+  $("#side").classList.add("min"); $("#minBtn").textContent = "+";
+  offsetView(); goTo(0);
+}
+function deck() {
+  const go = $("#go"), r = run();
+  go.className = ""; go.disabled = false;
+  if (r && r.prompt && B >= 3) { go.textContent = r.prompt.kind === "approve" ? "Approve the plate (left) ▸" : "Enter measurements (left) ▸"; go.className = "you"; go.disabled = true; }
+  else if (busy) { go.textContent = B === 2 ? "Loading the run…" : (avail() < ({ warm: 0, r1: 1 }[STEPS[B].id] ?? -1) ? "Running live…" : "Playing…"); go.disabled = true; }
+  else { go.textContent = STEPS[B].next; go.classList.toggle("pulse", !reduce); }
+  $("#backBtn").disabled = B === 0 || busy;
+  const opt = STEPS[B + 1] && STEPS[B + 1].optional ? STEPS[B + 1] : null;
+  $("#optBtn").hidden = !opt || busy; if (opt) $("#optBtn").textContent = `+ ${opt.rail} (optional)`;
+  $("#stopBtn").hidden = !active();
+}
+function renderRail() { // "Step 9 of 12 · Round 3" and a thin bar; optional steps don't count unless you're on one
+  const main = STEPS.filter(s => !s.optional), at = STEPS[B].optional ? main.indexOf(STEPS[B - 1]) : main.indexOf(STEPS[B]);
+  $("#rail").innerHTML = `<div class="t">Step ${at + 1} of ${main.length} · <b>${STEPS[B].rail}</b>${STEPS[B].optional ? " (optional)" : ""}</div><div class="bar"><i style="width:${(at + 1) / main.length * 100}%"></i></div>`;
+}
+function renderAll() {
+  stationTitles(); renderMine(); renderTask(); showPending(); deck();
+  if (run()) { renderPrivacy(); renderDetails(); renderDesigns(); }
+}
+
+$("#go").onclick = next;
+$("#optBtn").onclick = optional;
+$("#backBtn").onclick = back;
+$("#restart").onclick = restart;
+$("#setBtn").onclick = () => $("#settings").hidden = false;
+$("#setClose").onclick = $("#setDone").onclick = () => $("#settings").hidden = true;
+$("#settings").addEventListener("click", e => { if (e.target.id === "settings") $("#settings").hidden = true; });
+$("#stopBtn").onclick = async () => { try { S = await api("/api/stop", {}); renderAll(); } catch (e) { toast("Stop", esc(e.message)); } };
+$("#replayLink").onclick = async e => { e.preventDefault(); $("#replayErr").textContent = "Building…"; try { const { url } = await api("/api/viewer", {}); $("#replayErr").textContent = ""; window.open(url, "_blank"); } catch (x) { $("#replayErr").textContent = x.message; } };
+addEventListener("keydown", e => {
+  if (e.target.closest("input,select,textarea") || !$("#settings").hidden) { if (e.key === "Escape") $("#settings").hidden = true; return; }
+  if ((e.key === "ArrowRight" || e.key === " ") && !e.target.closest("button,a")) { e.preventDefault(); if (!$("#go").disabled) next(); }
+  if (e.key === "ArrowLeft") back();
+});
 
 async function poll() {
-  try { S = await api("/api/state"); if (!defaults) initDefaults(S.defaults); render(); } catch (e) { $("#statusChip").textContent = "server offline"; }
+  if (ONESHOT) { oneshotSetup(); return; }
+  try {
+    S = await api("/api/state");
+    if (!defaults) { defaults = S.defaults; applyPreset("present"); }
+    if (!SIMRUN && S.run && S.run.name !== RUN) { RUN = S.run.name; cdKey = null; promptKey = null; }
+    renderAll();
+  } catch (e) { if (!defaults) { ONESHOT = true; oneshotSetup(); return; } /* else: server offline, keep the last state */ }
   setTimeout(poll, 1000);
 }
-
-function initDefaults(d) {
-  defaults = d;
-  $("#fRounds").value = d.rounds; $("#fParticles").value = d.particles;
-  $("#fastBtn").onclick = () => $("#fParticles").value = d.fast_particles;
-  $("#preregBtn").onclick = () => $("#fParticles").value = d.particles;
+function oneshotSetup() { // no live server: presentation settings only, no real printers
+  if (!defaults) { defaults = { rounds: 3, particles: 4000, fast_particles: 800 }; applyPreset("present"); }
+  document.querySelector('#presets input[value="real"]').closest("label").hidden = true;
+  $("#stopBtn").hidden = true;
+  $("#replayLink").parentElement.hidden = true;
 }
 
-$("#setup").onsubmit = async e => {
-  e.preventDefault();
-  const f = new FormData(e.target);
-  const body = {resin: f.get("resin"), pla: f.get("pla"), rounds: f.get("rounds"), seed: f.get("seed"), particles: f.get("particles"),
-    liar: f.get("liar"), share_messages: f.has("share_messages"), consistency_check: f.has("consistency_check"), negative_control: f.has("negative_control")};
-  if (body.liar && body[body.liar] !== "sim") { $("#setupErr").textContent = "The lying site must be a simulated site."; return; }
-  $("#setupErr").textContent = "";
-  try { S = await api("/api/run", body); setupOpen = false; promptShown = null; render(); } catch (e2) { $("#setupErr").textContent = e2.message; }
-};
-$("#stopBtn").onclick = async () => {
-  if (!confirm("Stop this run? It stops at the next plate; finished rounds stay in the checkpoint.")) return;
-  try { S = await api("/api/stop", {}); render(); } catch (e) { alert(e.message); }
-};
+function frame(now) {
+  stepAnims(now);
+  if (follow && camGoal) { camera.position.lerp(camGoal[0], .05); controls.target.lerp(camGoal[1], .05); }
+  wallTex.offset.y = (now / 9000) % 1;
+  controls.update(); renderer.render(scene, camera); placeLabels();
+  requestAnimationFrame(frame);
+}
+addEventListener("resize", () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; offsetView(); });
+setSceneMode("real"); offsetView(); chart(0); renderRail();
+requestAnimationFrame(frame);
+Promise.all([api("/api/realprint").then(j => REAL = j), api("/api/evidence").then(j => E = j).catch(() => { })])
+  .catch(() => { }).finally(() => goTo(0));
 poll();
 </script>
 </body>

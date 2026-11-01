@@ -507,6 +507,7 @@ class Run:
 
 def summarize_state(state: dict) -> dict:
     from network.protocol import deserialize
+    from viewer.export import messages_of, plates_of
     res, sites = state["res"], state["sites"]
     numbers, msgs = 0, 0
     for c in res.chains.values():
@@ -520,7 +521,39 @@ def summarize_state(state: dict) -> dict:
         "scores": res.scores, "trust": res.trust, "checks": res.checks,
         "crossed": {"messages": msgs, "numbers": numbers, "measurements": 0},
         "kept": {s: len({p.piece_id for v in [*st.data.values(), st.escrow] for p, _ in v}) for s, st in sites.items()},
+        # for the live 3D scene: each printed plate, and each note that crossed (sender, round, the 3 shared numbers)
+        "plates": {s: [{"round": pl["round"], "pieces": [{k: q[k] for k in ("kind", "d", "slot", "arm", "status")}
+                                                        for q in pl["pieces"]]} for pl in plates_of(st)]
+                   for s, st in sites.items()},
+        "messages": [{k: m[k] for k in ("from", "to", "round", "bytes", "shared_params")}
+                     for c in res.chains.values() for m in messages_of(c)],
     }
+
+
+# The one real print: Formlabs Form Studio 1, Alpha Fast resin, micrometer only (docs/guides/test-print.md).
+# The comparison numbers are computed in docs/validation-and-benchmarks.md section 7 for the 1.5 mm pin at (0, 6).
+REAL_PRINT = {
+    "printer": "Formlabs Form Studio 1", "material": "Alpha Fast resin", "tool": "micrometer",
+    "plate": "plates/out/test/resin-test.json", "sheet": "scans/test/resin-test-pins.csv",
+    "reference": {"slot": [0, 6], "vendor_tol_mm": 0.08, "sim_range_mm": [1.384, 1.79], "sim_percentile_of_mean": 1.8,
+                  "prior90_mm": [1.460, 1.730], "prior99_mm": [1.394, 1.836],
+                  "source": "docs/validation-and-benchmarks.md, section 7"},
+}
+
+
+def real_print() -> dict:
+    """The real test plate and every micrometer reading on its hand sheet (mm), keyed "row-col"."""
+    plate = json.loads((ROOT / REAL_PRINT["plate"]).read_text())
+    readings: dict[str, list[float]] = {}
+    sheet = ROOT / REAL_PRINT["sheet"]
+    if not sheet.exists():  # scans/ is git-ignored; console/data keeps a tracked copy for deploys
+        sheet = ROOT / "console" / "data" / Path(REAL_PRINT["sheet"]).name
+    with open(sheet, newline="") as f:
+        for r in csv.DictReader(f):
+            v = (r.get("measured_d") or "").strip()
+            if v:
+                readings.setdefault(f"{int(r['row'])}-{int(r['col'])}", []).append(round(to_mm(v), 4))
+    return {**REAL_PRINT, "plate": plate, "readings": readings}
 
 
 def _plausible(v) -> bool:

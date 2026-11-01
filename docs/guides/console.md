@@ -11,6 +11,23 @@ A local web page that drives the whole pipeline (plates, approval, measurement, 
 
 Stdlib only (`ThreadingHTTPServer`), bound to 127.0.0.1. One run at a time. To use it from a phone at the printer, run it on a laptop and tunnel or change the host in `console/server.py`; there is no login, so keep it local.
 
+## The page
+
+The console opens as a **presenter-led walkthrough** in plain words (no jargon: "tips", "quiz pieces", "private line", "pretend printers"), one step per click:
+
+1. **Problem**: our real test plate from the Formlabs Form Studio 1, with the 1.5 mm pin's micrometer readings.
+2. **Idea**: why every printer starts with a test plate, and what Prebuilt adds.
+3. **Test setup**: why the improvement needs pretend printers with known behavior. **Run it live** runs the simulation now (and, in the background, the same printers with one lying).
+4. **First plate**, 5–7. **Round 1** in three steps (print, swap tips, check the guesses), 8–9. **Round 2** and **Round 3**, each playing print, tips and check at talking pace.
+10. **Result**: learning alone vs sharing tips vs all data in one pile, and the privacy check.
+11. **A liar**: the lying run's false tip, caught on arrival, plus the 60-run tally (180 of 180 lies caught, 0 of 540 honest tips dropped).
+12. **More printers**: eight printers in a ring trading tips; 2 / 4 / 8 printers gain 11% / 28% / 35% (stored results from `viewer/evidence.json`; eight printers take minutes, so this step isn't live).
+13. **What you get**: the corrected size for a 5 mm hole on Printer A, and who it's for.
+
+Next with the big button, → or space; ← goes back; ↺ starts over. The right panel (results, privacy, sizes to draw, details) is there for questions.
+
+**⚙ Presenter settings** choose what "Run it live" runs: the presentation default (simulated, registered settings), a real resin printer (the approve / measure task then appears on the left when the printer needs you), the negative-control world, or quick settings. The old form-based page is at `/classic`. three.js loads from `viewer/vendor`, so the page works offline.
+
 ## What a practice run is
 
 A practice run is off the books:
@@ -103,3 +120,21 @@ brew install cloudflared                # once
 ```
 
 `--share` opens a Cloudflare quick tunnel (no account) to the console on this laptop and prints a share link. Whoever opens the link gets a cookie for a day; without the key every page and API call returns 403. Anyone with the link can start and stop runs, so share it only with people you trust. The link changes each time you start, and works only while this laptop is on and the console is running. Runs, plates and measurements stay on this laptop in `console/runs/`.
+
+## On Vercel
+
+The same page deploys to Vercel for judges to open from a link (`vercel.json`, `api/`, `requirements.txt`, `.vercelignore`). There is no long-lived server there, so the page runs in **one-shot mode**: "Run it live" sends one request to `api/simulate.py`, which runs the whole simulation (about 7–10 s; `console/serverless.py`) and returns everything the click-through plays, including a 0.1 mm grid of corrected sizes for "Your turn". The real print comes from `api/realprint.py`, reading a tracked copy of the micrometer sheet (`console/data/resin-test-pins.csv`, since `scans/` is git-ignored). Simulated printers only: the real-printer preset is hidden, because a printer that waits for an operator needs the local console.
+
+Test one-shot mode locally with `python -m console` and http://127.0.0.1:8765/?oneshot=1.
+
+Deploy from the repo root:
+
+```
+npm i -g vercel        # once
+vercel login           # once
+vercel                 # preview link
+vercel --prod          # production link
+```
+
+Or push the branch and import the repo in the Vercel dashboard (framework preset: Other, root directory: the repo root).
+

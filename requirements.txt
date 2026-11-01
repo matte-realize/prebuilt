@@ -1,0 +1,8 @@
+# What the Vercel functions need (api/): the simulated run imports plates (trimesh, manifold3d)
+# and measure (opencv). The full dev setup is in pyproject.toml.
+numpy>=1.26
+pyyaml>=6
+manifold3d>=3.0
+trimesh>=4.0
+opencv-python-headless>=4.9
+pillow>=10
