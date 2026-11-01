@@ -142,12 +142,13 @@ SLIDES = [
 
     ("2:40–3:00 · Next", "Print anywhere, trust the part",
      f"""<div class="split">
-  <div class="stack"><p class="lede">Any shop that can print a flat plate can join, learn faster, and keep its data.</p>
-  <p>Released today: the process-agnostic test plate, its measurement tools, and the hidden-truth multi-site printer simulator, which tells you how many sites it takes before sharing pays.</p>
-  <p class="meta mono">github.com/matte-realize/prebuilt</p></div>
+  <div class="stack"><p class="lede">For fleets where fit decides: dental labs, print farms, service bureaus. Many printers, little data each, data that can't leave.</p>
+  <p><b>Parts that fit the first time.</b> Corrected designs from a learned printer cut size error from 118 to 6 µm (simulation).</p>
+  <p><b>Bolder: smaller features.</b> The smaller the part, the more the printer's error matters and the scarcer the data. Microfluidics and bioprinting are where this should pay most. Next: learn which printers to trust.</p>
+  <p class="meta mono">github.com/matte-realize/prebuilt · plate, tools and simulator open</p></div>
   <figure class="fig">{sites_svg()}<figcaption>Lower error than learning alone, by number of sites. Each starts with 4 test pieces and prints 2 a round; round 3, simulation.</figcaption></figure>
 </div>""",
-     "Point at the bars once: 2, 4, 8 sites. That's what the simulator is for. End on the line. Stop talking."),
+     "Point at the bars once: 2, 4, 8 sites, the fleet regime. The micro-scale line is direction, not a result: say 'should'. End on the line. Stop talking."),
 ]
 
 EXTRA_CSS = """

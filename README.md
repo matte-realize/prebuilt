@@ -1,8 +1,30 @@
 # Prebuilt
 
-A decentralized collective of scientist agents that characterizes 3D printers (resin SLA and PLA FDM) across sites that never share raw data, only beliefs. Built for the ScienceClaw Hackathon, MIT Media Lab, Oct 30 – Nov 1, 2026.
+**Every 3D printer prints parts slightly the wrong size, in its own way. Prebuilt lets printers learn their errors from each other without sharing a single measurement.** Built for the ScienceClaw Hackathon, MIT Media Lab, Oct 30 – Nov 1, 2026.
 
-Each site prints test plates of pins and holes, scans them, and fits a physics model of its printer. Agents at each site bid for plate slots in a credibility-weighted auction. Sites exchange only posterior summaries of process-agnostic parameters, through a typed, schema-checked boundary that is recorded on hash-chained receipts. Three arms run side by side on every plate: **isolated** (own data only), **networked** (own data plus other sites' messages) and **oracle** (all raw data pooled). The question is how much of the isolated-to-oracle gap the network closes without pooling data.
+Each site prints a test plate of pins and holes, measures it, and fits a physics model of its own printer. Sites swap only the mean and uncertainty of three parameters every printer shares, through a schema-checked boundary recorded on hash-chained receipts. Measurements, part geometry and machine settings never leave the site.
+
+## What we found (simulation, against printers whose true behavior we know)
+
+- **Sharing matches pooling the raw data.** Two sites: 12% lower model error than learning alone (1.6 µm), in 75 of 100 worlds; pooling all raw data also gives 12%.
+- **It pays with many data-poor sites:** 11% / 28% / 35% at 2 / 4 / 8 sites.
+- **The win is sharing, not agents.** The agent layer adds nothing measurable, and its piece choices don't beat random.
+- **Liars and mismatched printers are handled.** A consistency check catches a lying site's notes on arrival (180/180, 0/540 honest dropped). Adaptive spread, where each site learns how far to trust another from how much they agree, removes the harm when printers share no physics (−13% → −0.4%) and keeps the gain when they do. Both are added options, off in the registered config.
+- **Parts that fit the first time:** corrected designs from a learned printer cut size error from 118 to 6 µm.
+- **Grounded in a real printer:** on a Formlabs Form Studio 1, a 1.5 mm pin measured 1.41–1.48 mm by micrometer, within the vendor's ±0.08 mm spec and inside the simulator's range. At two sites the sharing gain is below what a real part can show, so we claim it only in simulation, as registered before printing.
+
+Details: [`hpc/sweeps/relevance/README.md`](hpc/sweeps/relevance/README.md), [`hpc/sweeps/coldstart/README.md`](hpc/sweeps/coldstart/README.md).
+
+**Who it's for:** fleets where fit decides, such as dental labs, print farms and service bureaus: many printers, little data each, data that can't leave. The direction is smaller features (microfluidics, bioprinting), where printer error matters more and data is scarcer ([10-beyond-the-weekend.md](docs/build/10-beyond-the-weekend.md)).
+
+## Try it
+
+```
+python -m console                                    # full pipeline in the browser: real or simulated sites, hand measurements
+python -m viewer.export --open                       # 3D demo (works offline)
+open docs/slides/prebuilt-pitch.html                 # 3-minute pitch; demo on slide 3 (P, L, C)
+python -m model.compensate --checkpoint <state.pkl> --site resin --kind hole --target 5.0   # corrected design size
+```
 
 ## Setup
 
@@ -19,7 +41,7 @@ Run commands from the repo root.
 ```
 python run.py --source sim --seeds 10 --out sim.json           # all three arms on simulated printers
 python -m eval.figures.headline sim.json --truth                # headline chart
-python -m viewer.export --source sim --rounds 3 --open          # demo page for one run
+python -m viewer.export --source sim --rounds 3 --open          # 3D demo for one run (world 4 by default)
 python -m measure.rehearsal --rounds 2 --out /tmp/reh           # the real-printer loop, simulated scans
 python -m prereg.check                                          # what the pre-registration still needs
 python run.py --source real                                     # real printers (see the run sheet)
@@ -32,7 +54,7 @@ python run.py --source real                                     # real printers 
 | `contracts.py` | Shared types: `Piece`, `Plate`, `Measurement`, `Printer`, `Model`, `Message` |
 | `plates/` | Test-plate spec, piece library, plate generator, STL export, held-out set |
 | `measure/` | Flatbed scanner pipeline, paper target, caliper entry, real-printer loop, rehearsal |
-| `model/` | Physics models and the particle posterior (NumPy reference; `posterior_warp.py` on GPU) |
+| `model/` | Physics models, the particle posterior (NumPy reference; `posterior_warp.py` on GPU), corrected designs (`compensate.py`) |
 | `agents/` | Agents, auction, credibility, challenge round, hypothesis agent |
 | `network/` | Message schema and boundary enforcement |
 | `arms/` | The three-arm experiment (`run_experiment`) |

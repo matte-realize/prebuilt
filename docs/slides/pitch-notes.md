@@ -14,7 +14,7 @@ Deck: `docs/slides/prebuilt-pitch.html` (6 slides, rebuild with `python docs/sli
 
 **5 · Why simulation (2:15–2:40).** Hold up the plate. "We printed this on a Formlabs Form Studio 1. Its smallest pin should be 1.5 millimeters; with a micrometer it's 24 to 89 microns small, inside Formlabs' own spec and inside the range our simulated printers cover. So the simulator is the right size. But the sharing gain at two sites is under two microns, and two readings of that one pin differed by 65. No part measurement can score that. Only a simulation with known truth can, and we wrote that down before printing."
 
-**6 · Close (2:40–3:00).** "Any shop that can print a flat plate can join, learn its machine faster, and keep its data. The plate, the tools and the simulator are open, and the simulator tells you how many sites it takes before sharing pays. Print anywhere, trust the part."
+**6 · Close (2:40–3:00).** "Who is it for? Fleets where fit decides: dental labs, print farms, service bureaus. Many printers, little data each, data that can't leave. That's where sharing pays: thirty-five percent at eight sites. What a shop gets is parts that fit the first time. And the smaller the feature, the more this matters: microfluidics, bioprinting. Print anywhere, trust the part."
 
 ## The five points to land
 

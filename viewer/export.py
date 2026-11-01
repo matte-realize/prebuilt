@@ -178,7 +178,7 @@ def main() -> None:
     keep = argparse.SUPPRESS
     ap.add_argument("--prereg", default="prereg/prereg.yaml", help="sim: pre-registration the config comes from")
     ap.add_argument("--rounds", type=int, default=keep)
-    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--seed", type=int, default=4, help="world seed; 4 is the demo world (typical gain, together level with pooled data, clean liar and check runs)")
     ap.add_argument("--particles", type=int, default=keep)
     ap.add_argument("--mh-steps", type=int, default=keep)
     ap.add_argument("--bad-site", action="append", default=[])
