@@ -79,7 +79,7 @@ def apply_offsets(scanner: list[Measurement], offsets: dict[str, float], plate: 
 
 
 def sample_for_caliper(plate: Plate, k: int = 10, seed: int = 0) -> list[tuple[int, int]]:
-    """Random slots to caliper-check (walkthrough: about 10 per plate), split evenly
+    """Random slots to caliper-check (about 10 per plate), split evenly
     between pins and holes so each kind gets enough checks for scanner_offsets. Held-out
     pieces are left out: their measurements must not shape the training data."""
     rng = np.random.default_rng(seed)

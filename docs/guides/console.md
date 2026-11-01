@@ -1,6 +1,6 @@
-# Build: The Console
+# The Console
 
-A local web page that drives the whole pipeline (plates, approval, measurement, fitting, messages, scoring, privacy audit, 3D viewer) from a browser instead of terminal prompts. It's for practicing and testing the loop end to end, and for typing in real hand measurements when we have them. Every claim we make is still simulation.
+A local web page that drives the whole pipeline (plates, approval, measurement, fitting, messages, scoring, privacy audit, 3D viewer) from a browser instead of terminal prompts. It's for practicing and testing the loop end to end, and for typing in real hand measurements. All reported sharing results are simulation.
 
 ## Run it
 
@@ -19,13 +19,13 @@ A practice run is off the books:
 - no prereg hash goes on the chains;
 - plates, STLs, the hand sheets, measurements, receipts and the checkpoint go under `console/runs/<time>/` (git-ignored), never `receipts/real/` or `scans/`.
 
-**A registered real run stays on the CLI:** `python run.py --source real` (see [09-run-sheet.md](09-run-sheet.md)).
+**A registered real run stays on the CLI:** `python run.py --source real` (see [real-site-run.md](real-site-run.md)).
 
 ### Setup options
 
 | Option | Meaning |
 |---|---|
-| resin / pla: real or simulated | A real site asks you to approve and measure each plate (`measure.real.RealPrinter`). A simulated site prints on `sim.reference.make_world`. Both simulated = a full dry run. Defaults: resin real (the Form Studio 1), PLA simulated. |
+| resin / pla: real or simulated | A real site asks you to approve and measure each plate (`measure.real.RealPrinter`). A simulated site prints on `sim.reference.make_world`. Both simulated = a full dry run. Defaults: resin real (a Formlabs Form Studio 1 in our tests), PLA simulated. |
 | rounds | 1–5, default from the prereg. |
 | world seed | Seeds the simulated world and the run. |
 | particles | Default from the prereg (4000); **fast** = 800 for quick tests. |
@@ -42,7 +42,7 @@ The top card always shows the one thing to do next.
 2. **Measure plate.** One row per piece by row, col and kind. Nominal sizes are hidden by default so they don't anchor the reading; a checkbox shows them. For each piece enter the diameter and a status:
    - **ok** with a value in mm. A value over 100 is read as µm (a micrometer reading like `1475.782` becomes 1.4758 mm) and the conversion is shown next to it.
    - **failed**: the piece didn't print.
-   - **skip**: it printed but wasn't measured (e.g. every hole, when all we have is a micrometer). **Skip all holes** does that in one click.
+   - **skip**: it printed but wasn't measured (e.g. every hole, when all you have is a micrometer). **Skip all holes** does that in one click.
 
    **Submit** writes `{plate_id}-manual.csv` in the run's `scans/<site>/`, the same sheet `RealPrinter` reads with no scanner, and the run continues. **Whole plate failed** answers `fail`; past the prereg's failed-plate fraction the plate is reprinted once and you'll be asked again (with a note saying so).
 
@@ -102,4 +102,4 @@ brew install cloudflared                # once
 .venv/bin/python -m console --host 0.0.0.0   # same Wi-Fi only; also prints a key
 ```
 
-`--share` opens a Cloudflare quick tunnel (no account) to the console on this laptop and prints a share link. Whoever opens the link gets a cookie for a day; without the key every page and API call returns 403. Anyone with the link can start and stop runs, so share it only with your team. The link changes each time you start, and works only while this laptop is on and the console is running. Runs, plates and measurements stay on this laptop in `console/runs/`.
+`--share` opens a Cloudflare quick tunnel (no account) to the console on this laptop and prints a share link. Whoever opens the link gets a cookie for a day; without the key every page and API call returns 403. Anyone with the link can start and stop runs, so share it only with people you trust. The link changes each time you start, and works only while this laptop is on and the console is running. Runs, plates and measurements stay on this laptop in `console/runs/`.

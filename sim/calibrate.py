@@ -380,7 +380,7 @@ def run_seed(seed: int, calib: Calibration, cfg: Config) -> dict:
             by.setdefault(row["round"], {}).setdefault(row["arm"], []).append(row[metric])
         return {r: 1000 * (np.nanmean(a["isolated"]) - np.nanmean(a["networked"])) for r, a in by.items()}
 
-    # iso - net on measured MAE is the primary H1 metric (07-status); gap closed is reported as a reference
+    # iso - net on measured MAE is the primary H1 metric (docs/design-notes.md, point 5); gap closed is reported as a reference
     return {"seed": seed,
             "iso_minus_net_um": iso_minus_net("mae"),
             "iso_minus_net_truth_um": iso_minus_net("mae_truth"),

@@ -62,7 +62,7 @@ SINGLE = {
     "dust": [0, 25, 50, 100, 200, 400],
 }
 
-# Whole setups, for the Saturday checklist.
+# Whole setups, for the scanning checklist.
 TIERS = {
     "good": Defects(blur_px=1.2, noise=0.01, grad=0.1, radial=0.1, shadow_mm=0.1, dust=10),
     "typical": Defects(blur_px=1.8, noise=0.02, grad=0.3, radial=0.2, shadow_mm=0.3, dust=50, jpeg=90),

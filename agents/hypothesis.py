@@ -1,4 +1,4 @@
-"""Hypothesis agent (spec 6.2; walkthrough Sat night, exploratory).
+"""Hypothesis agent (spec 6.2; exploratory, run between rounds).
 
 Between rounds, for each site: summarize what the site's networked model gets
 wrong, ask a language model (Nemotron) for candidate effects and the test pieces

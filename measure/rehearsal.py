@@ -1,6 +1,6 @@
 """Rehearse the real-printer loop without printers.
 
-Runs `run_experiment` through `RealPrinter` exactly as on Saturday (plate files,
+Runs `run_experiment` through `RealPrinter` exactly as a real run does (plate files,
 approval prompts, scan files on disk, scanner, measurements JSON, receipts,
 checkpoints), but a simulated printer "prints" each plate and renders the two
 scans the operator would have saved.

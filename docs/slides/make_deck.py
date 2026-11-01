@@ -181,7 +181,7 @@ slide("Next", "Print anywhere, trust the part",
   <p class="meta mono">github.com/matte-realize/prebuilt</p></div>
   <figure class="fig small">{plate_svg(label=False)}</figure>
 </div>""",
-      "Close on the plate. Many-machine networks and complex products are direction, not results: see docs/build/10-beyond-the-weekend.md.")
+      "Close on the plate. Many-machine networks and complex products are direction, not results: see docs/future-work.md.")
 
 
 def render() -> str:

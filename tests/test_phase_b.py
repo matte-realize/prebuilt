@@ -163,7 +163,7 @@ def test_cut_network_sends_nothing():
     assert audit(list(res.chains.values())).crossings == 0
 
 
-# ---- oracle as a fair upper bound (07-status finding 4) ----------------------------
+# ---- oracle as a fair upper bound (design notes, point 4) ----------------------------
 
 def test_oracle_mh_steps_scale_with_dimension():
     assert oracle_mh_steps(SITES, Config()) == 7                          # 18 dims vs 8: ceil(3 * 18 / 8)

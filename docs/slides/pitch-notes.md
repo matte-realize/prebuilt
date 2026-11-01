@@ -4,7 +4,7 @@ Deck: `docs/slides/prebuilt-pitch.html` (6 slides, rebuild with `python docs/sli
 
 ## Who's in the room, and what each needs to hear
 
-ScienceClaw judges, Area A·03 Manufacturing & Materials, with a venture fund in the audience (spec §19). Three listeners, one deck:
+ScienceClaw judges, Area A·03 Manufacturing & Materials,, with a venture fund in the audience. Three listeners, one deck:
 
 | Listener | What they're judging | Where it lands | Line to make sure they hear |
 |---|---|---|---|

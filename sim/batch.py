@@ -2,7 +2,7 @@
 
     python -m sim.batch --seeds 256 --sites 2 --out results.json
 
-Handoff contract 3: the arms are unchanged. Each seed runs `run_experiment`
+The arms are unchanged. Each seed runs `run_experiment`
 in its own thread, with Warp printers and a batched posterior injected. When
 every running seed is waiting on a posterior fit or a print, all those waits
 are served together: one `PosteriorBatch` update and one `WarpSim` launch for

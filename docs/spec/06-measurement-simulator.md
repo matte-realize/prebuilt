@@ -9,7 +9,7 @@
 
 ## 10. Hidden-truth multi-site simulator
 
-- Built first (Friday night). Shares the exact code path with real data.
+- Built first. Shares the exact code path with real data.
 - Each simulated site draws its own perturbed machine parameters, measurement noise, and deliberately unmodeled effects (plate-position gradient, orientation-dependent error), with some effects shared across sites and some local.
 - Calibrated to real measurements as they arrive; residuals reported.
 - Implemented in NVIDIA Warp, batched across thousands of simulated sites on Nebius H100s.

@@ -2,8 +2,7 @@
 
     run_experiment(printers, processes, cfg) -> Results
 
-A pure function with no global state. Sweeps call it directly (handoff
-contract 3 in docs/build/06-task-split.md).
+A pure function with no global state. Sweeps call it directly.
 
 Arms, all sharing every plate with equal slot budgets and random placement:
   isolated   one agent, own site's data only, max information gain
@@ -76,18 +75,18 @@ class Config:
     oracle_particles: int | None = None
     # True: isolated and oracle also choose pieces by the agent auction (uniform
     # credibility), so the arms differ only in the data each model sees.
-    # False: the walkthrough's single max-information agent for both.
+    # False: one max-information agent for both (the original plan).
     same_agents: bool = True
     # Metropolis moves per resample for the oracle. Random-walk MH mixes about 1/dim as
     # fast per step, so with the same 3 steps a single site gets, the 18-dim hierarchical
     # oracle carries roughly twice the Monte Carlo error in its predictions and loses to
-    # networked on identical data (07-status finding 4). None = mh_steps scaled by the
+    # networked on identical data (docs/design-notes.md, point 4). None = mh_steps scaled by the
     # oracle's dimension over the largest single site's; 3 = the old behavior.
     oracle_mh_steps: int | None = None
     # Metropolis moves per resample for every single-site fit. All arms are limited by
-    # mixing at 3 (finding 4); T sweeps 3 vs 6 in tuning.py's particles stage.
+    # mixing at 3 (design notes, point 4); tuning.py's particles stage sweeps 3 vs 6.
     mh_steps: int = 3
-    # Diagnostics (docs/build/07-status.md finding 4); defaults are the real design.
+    # Diagnostics (docs/design-notes.md, point 4); defaults are the real design.
     # oracle_data: which arm's measurements the oracle posterior pools ("oracle", or
     #   "networked" = exactly the networked arm's data, so only inference differs).
     oracle_data: str = "oracle"
@@ -120,8 +119,8 @@ class Config:
     seed_pieces: int | None = SEED_PIECES  # calibration pieces on the seed plate (None = all 56)
     # Challenge round (spec 6.5 step 3) and spawn of dormant agents (6.7). Off for the
     # registered claim: they run only in the networked arm, so they change its piece
-    # selection and bring back the confound same_agents removes (07-status, headline
-    # chart). Reported as a secondary simulation analysis with both on.
+    # selection and bring back the confound same_agents removes (docs/design-notes.md,
+    # prereg choices). Reported as a secondary simulation analysis with both on.
     challenge: bool = False
     challenge_eig: float = 0.05      # nats; a proposal the flagger expects to learn less from is "predictable"
     dormant: tuple[str, ...] = ()    # templates that can wake (DORMANT_NAMES = all); () = no spawning
@@ -181,9 +180,9 @@ def run_experiment(
     """Run (or, if `checkpoint` exists, resume) an experiment.
 
     With `checkpoint`, the full state is pickled after the seed plates and after
-    every round, so a crash mid-Saturday loses at most the round in progress.
+    every round, so a crash mid-run loses at most the round in progress.
     `posterior` builds every fit; sweeps pass a GPU or batched implementation
-    with the same API (handoff contracts 2 and 3).
+    with the same API.
     """
     cfg = cfg or Config()
     state = _load(checkpoint) if checkpoint and os.path.exists(checkpoint) else None

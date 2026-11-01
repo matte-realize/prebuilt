@@ -15,13 +15,13 @@ Each site prints a test plate of pins and holes, measures it, and fits a physics
 
 Details: [`hpc/sweeps/relevance/README.md`](hpc/sweeps/relevance/README.md), [`hpc/sweeps/coldstart/README.md`](hpc/sweeps/coldstart/README.md).
 
-**Who it's for:** fleets where fit decides, such as dental labs, print farms and service bureaus: many printers, little data each, data that can't leave. The direction is smaller features (microfluidics, bioprinting), where printer error matters more and data is scarcer ([10-beyond-the-weekend.md](docs/build/10-beyond-the-weekend.md)).
+**Who it's for:** fleets where fit decides, such as dental labs, print farms and service bureaus: many printers, little data each, data that can't leave. The direction is smaller features (microfluidics, bioprinting), where printer error matters more and data is scarcer ([future work](docs/future-work.md)).
 
 ## Try it
 
 ```
 python -m console                                    # full pipeline in the browser: real or simulated sites, hand measurements
-python -m console --share                            # same, with a public link (access key) so teammates can use it
+python -m console --share                            # same, with a public link (access key) so others can use it
 
 python -m viewer.export --open                       # 3D demo (works offline)
 python -m viewer.export --fleet 8 --open             # eight printers in 3D (same setup as the 8-site result, ~4 min to build)
@@ -47,7 +47,7 @@ python -m eval.figures.headline sim.json --truth                # headline chart
 python -m viewer.export --source sim --rounds 3 --open          # 3D demo for one run (world 4 by default)
 python -m measure.rehearsal --rounds 2 --out /tmp/reh           # the real-printer loop, simulated scans
 python -m prereg.check                                          # what the pre-registration still needs
-python run.py --source real                                     # real printers (see the run sheet)
+python run.py --source real                                     # real printers (docs/guides/real-site-run.md)
 ```
 
 ## Where things are
@@ -67,12 +67,12 @@ python run.py --source real                                     # real printers 
 | `prereg/` | Pre-registration and the held-out manifest |
 | `hpc/` | Benchmarks, Nebius jobs, Phase C sweeps, Phase D |
 | `viewer/` | Self-contained HTML page for a run |
-| `console/` | Local web UI that drives a practice run from the browser: approve plates, enter hand measurements, watch scores (`python -m console`, [12-console.md](docs/build/12-console.md)) |
-| `docs/` | Spec, build walkthrough, task split, status, run sheet ([index](docs/README.md)) |
+| `console/` | Local web UI that drives a practice run from the browser: approve plates, enter hand measurements, watch scores (`python -m console`, [guide](docs/guides/console.md)) |
+| `docs/` | Design notes, guides, spec, slides ([index](docs/README.md)) |
 
 ## Reusable tools
 
-Three parts are meant for reuse outside this project (spec §17).
+Three parts are meant for reuse outside this project (spec §16).
 
 ### 1. Process-agnostic test plate
 
@@ -102,7 +102,7 @@ plate = load_plate("plates/out/resin/resin-seed.json")
 ms, info = measure_scan(cv2.imread("scan-holes.png", cv2.IMREAD_GRAYSCALE), plate, "holes")
 ```
 
-On synthetic scans at 400 dpi it's about 2–5 µm RMS (`docs/build/07-status.md` has the stress test). Check your scanner first with a printed paper target: `python -m measure.target <plate.json> target.pdf`, then `python -m measure.target <plate.json> --check <scan>.png`. With caliper spot checks (`measure/manual.py`), a per-plate offset removes the remaining bias.
+On synthetic scans at 400 dpi it's about 2–5 µm RMS ([design notes](docs/design-notes.md#scanner-stress-test-synthetic) have the stress test). Check your scanner first with a printed paper target: `python -m measure.target <plate.json> target.pdf`, then `python -m measure.target <plate.json> --check <scan>.png`. With caliper spot checks (`measure/manual.py`), a per-plate offset removes the remaining bias.
 
 ### 3. Hidden-truth multi-site simulator benchmark
 
@@ -117,6 +117,6 @@ truth = world["resin"].truth(plate)            # noise-free diameters, for scori
 
 `sim.warp_sim` draws thousands of sites and prints batches of plates in one kernel launch, for sweeps.
 
-## Status
+## More
 
-See [docs/build/07-status.md](docs/build/07-status.md) for findings and decisions, [06-task-split.md](docs/build/06-task-split.md) for who owns what, and [09-run-sheet.md](docs/build/09-run-sheet.md) for printer day.
+[docs/README.md](docs/README.md) indexes everything else: [design notes](docs/design-notes.md) (why the experiment is set up the way it is), the [guides](docs/guides/) (console, real-site run, test print), the spec, and the slides.

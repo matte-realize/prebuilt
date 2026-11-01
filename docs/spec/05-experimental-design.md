@@ -24,14 +24,11 @@ Each plate's slots split equally across the four arms; positions randomized by a
 
 ### 8.3 Plate sequence
 
-| Plate | Resin site | PLA site |
-|---|---|---|
-| Seed calibration | Fri night | Sat morning (one round behind) |
-| Round 1 | Sat morning | Sat midday |
-| Round 2 | Sat afternoon | Sat evening |
-| Demo assembly + audit | Sat night (optional) | Sat night (preferred; faster) |
+1. Seed calibration plate at each site.
+2. Rounds 1, 2, … : one plate per site per round, chosen by that site's agents.
+3. Optional: a demo assembly predicted to fit, and the privacy audit.
 
-PLA joins one round behind so H2 tests a genuine new site joining the network.
+In the full design PLA joins one round behind, so H2 tests a genuine new site joining the network.
 
 Every plate carries duplicate pieces. Plates are small, flat, and well supported.
 

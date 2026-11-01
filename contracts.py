@@ -1,4 +1,4 @@
-"""Shared interfaces. Change only together (see docs/build/01-kickoff-layout-contracts.md).
+"""Shared interfaces. Every module depends on these; change them together.
 
 The simulator and the real scanner both implement `Printer`, so nothing
 downstream can tell them apart. `Message` is the only thing that crosses a

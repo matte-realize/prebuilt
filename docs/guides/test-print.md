@@ -1,4 +1,4 @@
-# Build: Formlabs Test Print
+# Formlabs Test Print
 
 One fast resin print to see how the plate prints, scans and compares with the model, before the registered seed run. Nothing from this print goes into receipts or the checkpoint.
 
@@ -28,7 +28,7 @@ In PreForm: import the STL as is. **Don't scale, rotate or move pieces.** Each p
 2. **Scan at 400 dpi or more, grayscale, PNG**, with the plate flat on the glass:
    - `scans/test/resin-test-holes.png`: backlit (light through the holes), lid open, or plate on a lightbox.
    - `scans/test/resin-test-pins.png`: front-lit with the lid closed over a dark sheet, pins down on the glass.
-3. Optional but useful: measure about 10 pieces with calipers into `scans/test/resin-test-caliper.csv` (format: `docs/build/09-run-sheet.md`). The tool then corrects scanner bias.
+3. Optional but useful: measure about 10 pieces with calipers into `scans/test/resin-test-caliper.csv` (format: [real-site-run.md](real-site-run.md), step 4). The tool then corrects scanner bias.
 4. Compare:
 
    ```

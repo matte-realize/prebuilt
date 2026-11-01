@@ -1,26 +1,14 @@
-# Build: Warp GPU Posterior
+# Warp GPU Posterior
 
-Status as of 2026-10-31. Branch `feat/warp-posterior`, not pushed. Owner: T. Handoff contract 2 in [06-task-split.md](06-task-split.md).
+A GPU port of the particle posterior, for many-seed sweeps (`sim/batch.py`) and large particle counts.
 
 ## Result
 
-`model/posterior_warp.py` is a GPU port of `model.posterior.ParticlePosterior`. It has the same public API and runs the same algorithm: resample-move SMC with adaptive tempering, systematic resampling and random-walk Metropolis moves. All tests pass (48 in the full suite), including `tests/test_posterior.py` run unchanged against the Warp class.
+`model/posterior_warp.py` is a GPU port of `model.posterior.ParticlePosterior`. It has the same public API and runs the same algorithm: resample-move SMC with adaptive tempering, systematic resampling and random-walk Metropolis moves. `tests/test_posterior.py` runs unchanged against both classes.
 
-`model/posterior.py` is still the reference. Its only change is a behavior-preserving refactor that moves the layout and API rules into a public `Layout` class shared with the GPU port; particles, weights, summaries and intervals are bit-identical to before. `arms/`, `agents/` and `contracts.py` are unchanged.
+`model/posterior.py` is still the reference. The layout and API rules live in a public `Layout` class shared by both implementations, so for the same seed both start from identical particles and accept the same inputs.
 
-## Commits
-
-| Commit | Files |
-|---|---|
-| `chore: add warp-lang as optional dependency` | `pyproject.toml`. Copied from `feat/warp-sim`; the change is identical, so the branches merge cleanly. |
-| `feat: Warp GPU port of the particle posterior with a batched entry point` | `model/posterior_warp.py` |
-| `test: run posterior tests against both implementations; Warp vs NumPy checks` | `tests/conftest.py`, `tests/test_posterior_warp.py` |
-| `feat: benchmark NumPy vs Warp posterior update and predict` | `hpc/bench_posterior.py` |
-| `refactor: share posterior layout and API helpers for the GPU port` | `model/posterior.py` (Matthew's file; see below) |
-| `fix: address code review in the Warp posterior` | `model/posterior_warp.py`, `tests/test_posterior_warp.py` |
-| `fix: time both predict styles on one fit; match feat/warp-sim pyproject` | `hpc/bench_posterior.py`, `pyproject.toml` |
-
-Install: `uv pip install -e '.[dev,warp]'`. The extra adds `warp-lang>=1.18`.
+Install: `uv pip install -e '.[dev,warp]'` (adds `warp-lang>=1.18`). `sim/batch.py` uses `PosteriorBatch` for many-seed runs.
 
 ## Design
 
@@ -70,7 +58,7 @@ The NumPy loop times are estimated: 8 members were timed and the result scaled t
 
 ### H100
 
-Hardware: Nebius `gpu-h100-sxm` VM, 1 × H100 80GB HBM3, 16 vCPUs (NumPy runs on these), Warp 1.18, idle GPU. Same command and workload, commit 227f483, 2026-10-31. Raw output in `hpc/bench_posterior_h100.txt`.
+Hardware: Nebius `gpu-h100-sxm` VM, 1 × H100 80GB HBM3, 16 vCPUs (NumPy runs on these), Warp 1.18, idle GPU. Same command and workload. Raw output in `hpc/bench_posterior_h100.txt`.
 
 | particles | NumPy update | Warp update | speedup | NumPy predict ×200 | Warp ×200, one call per piece | Warp ×200, batched |
 |---|---|---|---|---|---|---|
@@ -89,19 +77,13 @@ NumPy loop times are estimated the same way (8 members timed, scaled to 64). War
 
 ## Known gaps
 
-- **The benchmark ran on a shared GPU.** Another job (`python -m mirage.dynamics --train`) was using the GPU the whole time. Each wait for the GPU cost about 1.6 ms, so the Warp numbers are pessimistic, especially one-piece-at-a-time predict. The H100 tables above are from an idle GPU.
+- **The laptop benchmark ran on a shared GPU.** Another job used the GPU throughout; each wait cost about 1.6 ms, so the laptop Warp numbers are pessimistic, especially one-piece-at-a-time predict. The H100 tables are from an idle GPU.
 - **Single small posteriors gain nothing.** At 2k particles, per-call overhead cancels out the speedup. Calling `predict`, `log_predictive` or `predict_interval` one piece at a time is limited by GPU round trips. Bulk work should go through `PosteriorBatch`.
 - **Everything is in float64.** At 200k particles, the Metropolis and likelihood kernels dominate, and laptop GPUs are slow at float64. The H100 run confirms it: the 200k update drops from 0.58 s to 0.048 s. There is no float32 mode.
 - **Results match NumPy statistically, not exactly.** The random number streams differ, and the tempering search is a grid search instead of bisection. Both searches assume ESS falls as the step grows.
 - **The physics is duplicated.** The kernels repeat `model/physics.py`. The tests catch drift, but a physics change means updating the kernels too.
-- **`model/posterior.py` was changed on this branch.** The refactor is behavior-preserving and in its own commit, but the file is Matthew's and contract 2 says not to change it alone. He needs to OK it before merge, or that commit gets dropped.
-- **`pyproject.toml` comment.** The `warp` extra's comment names only `sim/warp_sim.py`. It is kept identical to `feat/warp-sim` so the branches merge without a conflict.
 - **Limits:**
   - All members of a batch share `n`, `ess_frac` and `mh_steps`.
   - `mh_steps` must be below 16.
   - There is no CUDA graph capture, so each tempering iteration costs about 50 kernel launches. Search rounds after round 1 are still launched even when every member is done: a host check costs a sync, which measured slower.
-- **Possible slowdown in the NumPy version (not investigated).** Its `predict` takes about 17 ms per piece at 20k particles. Not investigated; `model/posterior.py` is M's.
-
-## Next
-
-- Wire `PosteriorBatch` into `sim/batch.py` for the Phase C many-seed runs.
+- **NumPy `predict` on the shared laptop** measured about 17 ms per piece at 20k particles; on an idle machine it's 0.23 ms per piece at 20k and 0.04 ms at 2k, so the laptop NumPy column was slowed by contention. Rerun it with `OMP_NUM_THREADS=1` on an idle node for clean numbers.

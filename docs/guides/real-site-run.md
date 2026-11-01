@@ -1,27 +1,27 @@
-# Build: Printer-Day Run Sheet
+# Running at Real Sites
 
-For whoever is at the printers. All commands run from the repo root with `.venv/bin/python` (shown as `py`). Times follow [03-saturday.md](03-saturday.md); adjust to real print durations.
+The registered real-printer run, step by step, for whoever is at the printers. All commands run from the repo root with `.venv/bin/python` (shown as `py`). To practice the loop or enter hand measurements in a browser instead, use the [console](console.md).
 
-## 0. Before the room (any time)
+## 0. Before printing
 
-1. `py -m prereg.check` must say **ready for seed**. If it lists `config.*` fields, T's tuning values aren't in yet. Don't print the seed plates without them: the checkpoint locks the config.
+1. `py -m prereg.check` must say **ready for seed**. If it lists `config.*` fields, the config isn't complete. Don't print the seed plates without it: the checkpoint locks the config.
 2. `py -m pytest -q`: everything passes.
 3. Rehearse once: `py -m measure.rehearsal --rounds 1 --out /tmp/reh`. Same prompts and files as the real run, with simulated scans.
 
-## 1. Scanner check (first thing in the room, ~15 min)
+## 1. Scanner check (~15 min)
 
 1. Print `plates/out/resin/resin-seed-target.pdf` at **100% scale** (no "fit to page"). Check the 50 mm bar with calipers.
 2. Scan it at **600 dpi, grayscale, PNG**, then run `py -m measure.target plates/out/resin/resin-seed.json --check <scan>.png`.
 3. Ready when `failed: 0`, `|bias_um|` is under ~20, and `sd_um` is under ~20. A constant bias with a good 50 mm bar points at the scanner's scale; note it, and the caliper offset will correct it per plate.
 
-## 2. Slice check (before 9:00)
+## 2. Slice check
 
 Load `plates/out/resin/resin-seed.stl` in PreForm and `plates/out/pla/pla-seed.stl` in the PLA slicer. Each plate is 100 × 100 mm, 3 mm thick, with 3 mm pins, 16 calibration pieces and 8 held-out. Check:
 - The smallest holes (1.1 mm held-out, 1.5 mm calibration) aren't closed by the slicer, and the 1.5 mm pins aren't dropped.
 - Print flat, plate on the bed, pins up. No supports under the plate for PLA; resin per PreForm's default for a flat part.
 - Don't scale, rotate or move anything in the slicer. Piece identity comes from grid position and the fiducials.
 
-Optional test print (off the books: no receipts, no checkpoint): print the same STL, scan it into `scans/test/` with the usual names, then
+Optional test print (off the books: no receipts, no checkpoint; see [test-print.md](test-print.md)): print the same STL, scan it into `scans/test/` with the usual names, then
 
 ```
 py -m measure.testprint plates/out/resin/resin-seed.json scans/test
@@ -59,20 +59,20 @@ py run.py --source real
    - `no feature (did not print?)`: the piece really is missing. That's fine, it's a printability outcome.
    - `blob touches cell edge (fused?)`: look at the piece. If it's a scanner problem (dust, hair), rescan and rerun.
    - Scanner vs caliper `mae` above ~0.05 mm: rescan (focus, flatness) before going on.
-7. **Fit checks** (walkthrough): push 2–3 printed pins into printed holes from the same plate and write what you feel to `scans/<site>/<plate_id>-fitcheck.csv`:
+7. **Fit checks:** push 2–3 printed pins into printed holes from the same plate and write what you feel to `scans/<site>/<plate_id>-fitcheck.csv`:
    ```
    pin_row,pin_col,hole_row,hole_col,fit
    2,1,5,2,slip
    ```
    `fit` is press, slip or loose. After any round, `py -m eval.fitcheck` compares them with each arm's predicted class and the scanner-implied class.
 
-**Failed plate:** if more than 50% of a plate's pieces fail (`failed_plate_fraction`), the run says so. It moves the scans to `<plate_id>.failed1-*` and waits for scans of a reprint of the same plate file. If the reprint also fails, that plate is dropped from the round (prereg failure rule). A seed plate that fails twice on one printer means one real site plus simulated sites (03-saturday checkpoints).
+**Failed plate:** if more than 50% of a plate's pieces fail (`failed_plate_fraction`), the run says so. It moves the scans to `<plate_id>.failed1-*` and waits for scans of a reprint of the same plate file. If the reprint also fails, that plate is dropped from the round (prereg failure rule). A seed plate that fails twice on one printer means one real site plus simulated sites (fallback tier B: `run.py --source real --sim-site <site>`).
 
-## 5. After the seed plates: hand off to T (~11:00–11:30)
+## 5. After the seed plates: commit the predicted range
 
-0. Read the **seed plate check** the run prints at the end (`eval.prior_check`). `ok` per site means the printer sits inside what the model can represent. A parameter "at its bound" means the real printer is outside the prior: widen that prior in `model/physics.py` and tell T **before** Phase D (the frozen config doesn't include priors, but the prediction depends on them). A residual trend points at a missing term; note it for the slides.
-1. Commit nothing from `scans/` or `receipts/real/` (git-ignored, site data). Give T the checkpoint `receipts/real/state.pkl` directly, or the `scans/<site>/<site>-seed-measurements.json` files.
-2. T runs Phase D: `py -m sim.calibrate --state receipts/real/state.pkl --seeds 200 --out hpc/phase_d/out` (see `hpc/phase_d/README.md`). T fills `predicted_range.range` in `prereg/prereg.yaml` and commits it. Record the commit hash.
+0. Read the **seed plate check** the run prints at the end (`eval.prior_check`). `ok` per site means the printer sits inside what the model can represent. A parameter "at its bound" means the real printer is outside the prior: widen that prior in `model/physics.py` **before** Phase D (the frozen config doesn't include priors, but the prediction depends on them). A residual trend points at a missing term; note it for the slides.
+1. Commit nothing from `scans/` or `receipts/real/` (git-ignored, site data). Phase D needs the checkpoint `receipts/real/state.pkl` (or the `scans/<site>/<site>-seed-measurements.json` files).
+2. Run Phase D: `py -m sim.calibrate --state receipts/real/state.pkl --seeds 200 --out hpc/phase_d/out` (see `hpc/phase_d/README.md`). Fill `predicted_range.range` in `prereg/prereg.yaml` and commits it. Record the commit hash.
 3. `py -m prereg.check --stage round1` must say ready.
 
 ## 6. Rounds 1–3
@@ -82,7 +82,7 @@ py run.py --source real
 3. Between rounds (optional, exploratory): `py -m agents.hypothesis --checkpoint receipts/real/state.pkl`. It needs a Nemotron endpoint: on Brev run `agents/serve_nemotron.sh`, forward port 8000, check with `py -m agents.hypothesis --ping`. Use `--dry-run` without one.
 4. At the end: `py run.py --source real --out real.json` once more, which prints the summary and writes the scores. Then:
    - `py -m eval.audit receipts/real/resin.jsonl receipts/real/pla.jsonl` (privacy audit, must PASS)
-   - `py -m eval.figures.headline sim.json --real real.json` (slide 6; `sim.json` is a `run.py --source sim --seeds N --out` run)
+   - `py -m eval.figures.headline sim.json --real real.json` (`sim.json` is a `run.py --source sim --seeds N --out` run)
    - `py -m viewer.export --checkpoint receipts/real/state.pkl --open` (demo page)
 
 ## If something goes wrong
@@ -94,4 +94,4 @@ py run.py --source real
 | `um/px` doesn't match the dpi | The scanner resampled. Set the dpi explicitly, turn off auto-crop and descreen, and rescan. |
 | The run crashed | Rerun the same command. It resumes from the last checkpoint and logs a `resume` entry; the interrupted round reruns with the same plates. Scans already saved are reused. |
 | `was started with different settings` | Someone changed the prereg config after the seed plate. Revert it. Only the range may change. |
-| 5 PM and behind | Stop adding rounds. Measure what exists (03-saturday). |
+| Out of time | Stop adding rounds. Measure and score what exists. |
