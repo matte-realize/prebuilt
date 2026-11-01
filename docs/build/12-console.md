@@ -93,3 +93,13 @@ console/
 ```
 
 Headless test: `tests/test_real_loop.py::test_console_practice_run_headless`. Corrected designs: `model/compensate.py`, `tests/test_compensate.py`.
+
+## Using it from other machines
+
+```
+brew install cloudflared                # once
+.venv/bin/python -m console --share     # prints a public https link with ?key=...
+.venv/bin/python -m console --host 0.0.0.0   # same Wi-Fi only; also prints a key
+```
+
+`--share` opens a Cloudflare quick tunnel (no account) to the console on this laptop and prints a share link. Whoever opens the link gets a cookie for a day; without the key every page and API call returns 403. Anyone with the link can start and stop runs, so share it only with your team. The link changes each time you start, and works only while this laptop is on and the console is running. Runs, plates and measurements stay on this laptop in `console/runs/`.

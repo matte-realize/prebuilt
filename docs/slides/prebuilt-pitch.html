@@ -347,7 +347,7 @@ body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; 
       'Round 2: it matches pooling all the raw data (green), which never moved.',
       'Round 3: 12% lower error than alone, and still zero measurements crossed.'],
     liar: ['PLA now sends confident, wrong beliefs. Resin trusts it by default.',
-      'Round 1: resin is misled, 82 µm. Its held-out pieces expose the lie.',
+      `Round 1: resin is misled, ${DATA.liar.networked[0].toFixed(0)} µm. Its held-out pieces expose the lie.`,
       'Round 2: trust in PLA drops from 1.00 to 0.01. Resin recovers.',
       'Round 3: back level with learning alone. A liar costs one round.'],
     check: ['PLA lies again. Now resin checks each note against its own plate first.',

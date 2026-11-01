@@ -42,7 +42,6 @@ def curves(path: Path, site: str | None = None) -> dict:
 
 
 DEMO = curves(ROOT / "demo/tier-d/sim.json")
-LIAR = curves(ROOT / "demo/tier-d/bad-site.json", site="resin")
 pct = lambda v: f"{round(v)}%"
 um1 = lambda v: f"{v:.1f}"
 ROWS = "".join(f"<tr><td>{k + 1}</td><td>{DEMO['isolated'][k]}</td><td>{DEMO['networked'][k]}</td>"
@@ -140,12 +139,12 @@ slide("Result · simulation", "Sharing matches pooling the raw data",
 
 slide("Robustness · simulation", "A liar costs one round; with the check, none",
       f"""<div class="cols3">
-  <div class="cell"><span class="big">{LIAR["networked"][0]:.0f}<small> µm</small></span><p>Round 1 at the honest site when PLA broadcasts confident, wrong beliefs (isolated {LIAR["isolated"][0]:.0f}). By round 3 trust in PLA is ~1% and resin is back level ({LIAR["networked"][2]} vs {LIAR["isolated"][2]}).</p></div>
+  <div class="cell"><span class="big">{CHECK["resin_round1_um"]["liar_no_check"]:.0f}<small> µm</small></span><p>Round 1 at the honest site when PLA broadcasts confident, wrong beliefs ({CHECK["resin_round1_um"]["no_notes"]:.1f} with no notes). Its held-out pieces expose the lie: trust in PLA falls to ~1% and resin recovers.</p></div>
   <div class="cell"><span class="big">{CHECK["liar_caught"]}/{CHECK["liar_notes"]}</span><p>lying notes caught on arrival by the consistency check, {CHECK["honest_dropped"]} of {CHECK["honest_notes"]} honest notes dropped. Round 1 at the lied-to site: {CHECK["resin_round1_um"]["liar_no_check"]:.0f} → {CHECK["resin_round1_um"]["liar_check"]:.1f} µm.</p></div>
   <div class="cell"><span class="big">{pct(SITES[-1]["pct"])}</span><p>lower error at {SITES[-1]["sites"]} data-poor sites, better in {SITES[-1]["wins"]} of {SITES[-1]["n"]} worlds: {SITES_TXT} (4 seed pieces, 2 a round, round 3). Many sites that each know little is where sharing pays.</p></div>
 </div>
-<p class="foot">Liar cell: 10 worlds. The check compares each incoming summary with the receiver's own fit (chi-square 0.999) and is an added protocol option, off in the registered config, tested in {CHECK["worlds"]} worlds; this liar is easy to catch, a subtle one would pass and be left to trust. Starting trust at 0.3 instead only trims round 1 ({TRUST["trust 1.0 | liar"][0]:.0f} → {TRUST["trust 0.3 | liar"][0]:.0f} µm). <span class="flag">Simulation only.</span></p>""",
-      "Sources: viewer/evidence.json (consistency_check, sites_needed), demo/tier-d/bad-site.json, hpc/sweeps/coldstart/README.md.")
+<p class="foot">Both cells: the same {CHECK["worlds"]} worlds, round 1. The check compares each incoming summary with the receiver's own fit (chi-square 0.999) and is an added protocol option, off in the registered config, tested in {CHECK["worlds"]} worlds; this liar is easy to catch, a subtle one would pass and be left to trust. Starting trust at 0.3 instead only trims round 1 ({TRUST["trust 1.0 | liar"][0]:.0f} → {TRUST["trust 0.3 | liar"][0]:.0f} µm). <span class="flag">Simulation only.</span></p>""",
+      "Sources: viewer/evidence.json (consistency_check, sites_needed), hpc/sweeps/coldstart/README.md.")
 
 slide("Verifiability", "Every crossing is on a receipt",
       """<div class="split">

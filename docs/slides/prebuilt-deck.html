@@ -213,12 +213,12 @@ body.notes .note { display: block; position: absolute; left: 4cqw; right: 4cqw; 
   <header><span class="kick">Robustness · simulation</span><span class="num">07 / 10</span></header>
   <h2>A liar costs one round; with the check, none</h2>
   <div class="body"><div class="cols3">
-  <div class="cell"><span class="big">82<small> µm</small></span><p>Round 1 at the honest site when PLA broadcasts confident, wrong beliefs (isolated 14). By round 3 trust in PLA is ~1% and resin is back level (12.7 vs 11.8).</p></div>
+  <div class="cell"><span class="big">64<small> µm</small></span><p>Round 1 at the honest site when PLA broadcasts confident, wrong beliefs (11.6 with no notes). Its held-out pieces expose the lie: trust in PLA falls to ~1% and resin recovers.</p></div>
   <div class="cell"><span class="big">180/180</span><p>lying notes caught on arrival by the consistency check, 0 of 540 honest notes dropped. Round 1 at the lied-to site: 64 → 11.6 µm.</p></div>
   <div class="cell"><span class="big">35%</span><p>lower error at 8 data-poor sites, better in 20 of 20 worlds: 11% / 28% / 35% at 2 / 4 / 8 sites (4 seed pieces, 2 a round, round 3). Many sites that each know little is where sharing pays.</p></div>
 </div>
-<p class="foot">Liar cell: 10 worlds. The check compares each incoming summary with the receiver's own fit (chi-square 0.999) and is an added protocol option, off in the registered config, tested in 60 worlds; this liar is easy to catch, a subtle one would pass and be left to trust. Starting trust at 0.3 instead only trims round 1 (39 → 30 µm). <span class="flag">Simulation only.</span></p></div>
-  <aside class="note">Sources: viewer/evidence.json (consistency_check, sites_needed), demo/tier-d/bad-site.json, hpc/sweeps/coldstart/README.md.</aside>
+<p class="foot">Both cells: the same 60 worlds, round 1. The check compares each incoming summary with the receiver's own fit (chi-square 0.999) and is an added protocol option, off in the registered config, tested in 60 worlds; this liar is easy to catch, a subtle one would pass and be left to trust. Starting trust at 0.3 instead only trims round 1 (39 → 30 µm). <span class="flag">Simulation only.</span></p></div>
+  <aside class="note">Sources: viewer/evidence.json (consistency_check, sites_needed), hpc/sweeps/coldstart/README.md.</aside>
 </section>
 <section class="slide" id="s8" aria-label="Slide 8: Every crossing is on a receipt">
   <header><span class="kick">Verifiability</span><span class="num">08 / 10</span></header>

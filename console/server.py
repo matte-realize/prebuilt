@@ -2,17 +2,23 @@
 
     python -m console                 # http://127.0.0.1:8765, opens the browser
     python -m console --port 9000 --no-browser
+    python -m console --share         # public link through a Cloudflare quick tunnel, guarded by an access key
 """
 from __future__ import annotations
 
 import argparse
 import json
 import mimetypes
+import re
+import secrets
+import shutil
+import subprocess
 import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote, urlparse
+from http.cookies import SimpleCookie
+from urllib.parse import parse_qs, unquote, urlparse
 
 from console import runner
 
@@ -22,8 +28,9 @@ HERE = Path(__file__).resolve().parent
 class Console:
     """Holds the one run at a time."""
 
-    def __init__(self, runs_dir: Path = runner.RUNS):
+    def __init__(self, runs_dir: Path = runner.RUNS, key: str | None = None):
         self.runs_dir = Path(runs_dir)
+        self.key = key  # when set, every request needs it (?key= once, then a cookie)
         self.run: runner.Run | None = None
         self.lock = threading.Lock()
         self._defaults = None
@@ -67,10 +74,28 @@ def make_handler(con: Console):
         def _json(self, obj, code: int = 200):
             self._send(code, json.dumps(obj).encode(), "application/json")
 
+        def _authorized(self) -> bool:
+            if not con.key:
+                return True
+            jar = SimpleCookie(self.headers.get("Cookie") or "")
+            return "pb_key" in jar and secrets.compare_digest(jar["pb_key"].value, con.key)
+
+        def _deny(self):
+            self._send(403, b"Prebuilt console: open the share link that includes ?key=...", "text/plain; charset=utf-8")
+
         def do_GET(self):
-            path = urlparse(self.path).path
+            u = urlparse(self.path)
+            path = u.path
             if path in ("/", "/index.html"):
+                given = parse_qs(u.query).get("key", [""])[0]
+                if con.key and given and secrets.compare_digest(given, con.key):
+                    cookie = f"pb_key={con.key}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400"
+                    return self._send(302, b"", "text/plain", {"Location": "/", "Set-Cookie": cookie})
+                if not self._authorized():
+                    return self._deny()
                 return self._send(200, (HERE / "index.html").read_bytes(), "text/html; charset=utf-8")
+            if not self._authorized():
+                return self._deny()
             if path == "/api/state":
                 return self._json(con.state())
             if path.startswith("/runs/"):
@@ -88,6 +113,8 @@ def make_handler(con: Console):
 
         def do_POST(self):
             path = urlparse(self.path).path
+            if not self._authorized():
+                return self._deny()
             try:
                 n = int(self.headers.get("Content-Length") or 0)
                 body = json.loads(self.rfile.read(n) or b"{}")
@@ -121,28 +148,60 @@ def make_handler(con: Console):
     return Handler
 
 
-def serve(port: int = 8765, host: str = "127.0.0.1", runs_dir: Path = runner.RUNS) -> ThreadingHTTPServer:
+def serve(port: int = 8765, host: str = "127.0.0.1", runs_dir: Path = runner.RUNS,
+          key: str | None = None) -> ThreadingHTTPServer:
     runner._router()  # route run-thread prints into the run's log
-    srv = ThreadingHTTPServer((host, port), make_handler(Console(runs_dir)))
+    srv = ThreadingHTTPServer((host, port), make_handler(Console(runs_dir, key)))
     srv.daemon_threads = True
     return srv
 
 
+def tunnel(port: int) -> tuple[subprocess.Popen, str]:
+    """Start a Cloudflare quick tunnel to the local port; return the process and its public https URL."""
+    exe = shutil.which("cloudflared")
+    if not exe:
+        raise SystemExit("--share needs cloudflared: brew install cloudflared")
+    proc = subprocess.Popen([exe, "tunnel", "--no-autoupdate", "--url", f"http://127.0.0.1:{port}"],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+    for line in proc.stderr:
+        m = re.search(r"https://[a-z0-9-]+\.trycloudflare\.com", line)
+        if m:
+            threading.Thread(target=lambda: [None for _ in proc.stderr], daemon=True).start()  # keep draining
+            return proc, m.group(0)
+    raise SystemExit("cloudflared exited before giving a URL")
+
+
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Prebuilt console: drive a practice run from the browser")
+    ap = argparse.ArgumentParser(description="Prebuilt console: drive a run from the browser")
     ap.add_argument("--port", type=int, default=8765)
+    ap.add_argument("--host", default="127.0.0.1", help="0.0.0.0 to serve your local network")
+    ap.add_argument("--share", action="store_true", help="public link via a Cloudflare quick tunnel, with an access key")
+    ap.add_argument("--key", help="access key (default: random when sharing or serving beyond localhost)")
     ap.add_argument("--no-browser", action="store_true")
     a = ap.parse_args()
-    srv = serve(a.port)
-    url = f"http://127.0.0.1:{a.port}/"
-    print(f"Prebuilt console at {url}  (Ctrl-C to quit)")
+    key = a.key or (secrets.token_urlsafe(16) if a.share or a.host != "127.0.0.1" else None)
+    srv = serve(a.port, a.host, key=key)
+    local = f"http://127.0.0.1:{a.port}/" + (f"?key={key}" if key else "")
+    print(f"Prebuilt console at {local}  (Ctrl-C to quit)")
+    proc = None
+    if a.share:
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        proc, public = tunnel(a.port)
+        print(f"Share link (anyone with it can drive the console): {public}/?key={key}", flush=True)
+    elif a.host != "127.0.0.1":
+        print(f"On your network: http://<this machine's IP>:{a.port}/?key={key}")
     if not a.no_browser:
-        threading.Timer(0.5, webbrowser.open, (url,)).start()
+        threading.Timer(0.5, webbrowser.open, (local,)).start()
     try:
-        srv.serve_forever()
+        if proc:
+            proc.wait()
+        else:
+            srv.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
+        if proc:
+            proc.terminate()
         srv.server_close()
 
 

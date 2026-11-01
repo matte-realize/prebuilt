@@ -21,6 +21,8 @@ Details: [`hpc/sweeps/relevance/README.md`](hpc/sweeps/relevance/README.md), [`h
 
 ```
 python -m console                                    # full pipeline in the browser: real or simulated sites, hand measurements
+python -m console --share                            # same, with a public link (access key) so teammates can use it
+
 python -m viewer.export --open                       # 3D demo (works offline)
 open docs/slides/prebuilt-pitch.html                 # 3-minute pitch; demo on slide 3 (P, L, C)
 python -m model.compensate --checkpoint <state.pkl> --site resin --kind hole --target 5.0   # corrected design size
