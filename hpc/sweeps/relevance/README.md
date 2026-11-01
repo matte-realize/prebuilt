@@ -172,3 +172,23 @@ Random piece selection (`Config.selection="random"`, every arm) vs the agent auc
 | Together vs alone with agents | +10.0%, 44/60, p<0.001 |
 
 - **The agents' piece choices don't beat random** in either arm. The network gain survives without them (noisier with random pieces). Consistent with section 1: the win is sharing between sites, not the agent layer.
+
+## 9. Micro-scale: does the gain grow on small features? (frozen config, 60 worlds, 3 rounds)
+
+`microscale.py` / `analyze_microscale.py`, results in `results/microscale.jsonl.gz` and `results/microscale-summary.json`. Same frozen config and worlds; only the plate changes (patched per worker, defaults untouched): agents propose 0.4–1.0 mm instead of 1.5–7.0 mm, library 0.3–1.2 mm. "Fine" printers scale the simulator's 50% failure diameters by 0.2, a hypothetical finer process; "default" keeps them. Round 3, true-size error on held-out pieces that printed, paired per world.
+
+| Pair, plate, printer | Held-out failed | Alone | Together | Gain (median) | Worlds better | Error / feature size |
+|---|---|---|---|---|---|---|
+| resin + PLA, normal | 8% | 12.9 µm | 11.1 µm | +10.0% | 44/60, p<0.001 | 0.37% → 0.32% |
+| resin + PLA, small, fine | 9% | 12.6 µm | 11.3 µm | +9.1% | 38/60, p=0.05 | 2.0% → 1.9% |
+| resin + PLA, small, default | 93% | 67.8 µm | 62.4 µm | +4.7% | 25/45, p=0.55 | 6.3% → 5.9% |
+| resin + resin, normal | 3% | 10.6 µm | 9.5 µm | +8.9% | 37/60, p=0.09 | 0.34% → 0.30% |
+| resin + resin, small, fine | 7% | 10.4 µm | 9.6 µm | +7.2% | 41/60, p=0.006 | 1.7% → 1.6% |
+| resin + resin, small, default | 89% | 39.3 µm | 33.9 µm | +9.6% | 35/60, p=0.25 | 4.1% → 3.5% |
+
+- **The sharing gain does not grow on small features.** It holds at 7–9% on a sub-millimetre plate (normal plate: 9–10%). The absolute error is about the same (~10–13 µm), so relative to the part it is about five times larger (2% of a 0.7 mm feature vs 0.4% of a 4.5 mm one). Likely why the gain doesn't grow: the shared `size_coef / d` term is easier for each site to learn alone when the pieces are small, so the other site's notes add less.
+- **With the simulator's own failure model, these printers can't make the small plate.** 89–93% of held-out pieces fail, PLA scores no held-out piece in 15 of 60 worlds, and the comparison is noise. The "fine" rows assume a process that can print the features.
+- **The physics doesn't extrapolate far below 1 mm.** Under the priors, the PLA hole model (`poly_k / d`) predicts a negative diameter for 95% of printers at 0.3 mm and 74% at 0.5 mm; resin holes go negative for 14% at 0.3 mm. The terms that dominate at micro scale (resin overcure and light scatter, nozzle limits) aren't modelled, and a real micro-scale process would also measure with less noise than 30–40 µm. Read the small-plate rows as "the method still works on the model as written", not as a micro-scale prediction.
+- Consistency: the normal resin + PLA row reproduces section 8 (+10.0%, 44/60).
+
+So for the pitch: the micro-scale angle stays a direction, not a result. What simulation supports is narrower: on sub-millimetre features the gain holds (7–9%) while the same error is a five times larger fraction of the part.
