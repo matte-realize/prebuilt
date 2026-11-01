@@ -40,5 +40,5 @@ The full design. Where the build differs from it, the build and the pre-registra
 ## Also
 
 - Pre-registration: [`prereg/prereg.yaml`](../prereg/prereg.yaml) (its sha256 is recorded in [`eval/figures/README.md`](../eval/figures/README.md)). It is kept byte-for-byte as committed, so its comments still name the original build docs: `docs/build/05-prereg-and-slides.md` was the template, "07-status" findings are now the [design notes](design-notes.md), and "the walkthrough" is the original build plan; all are in git history
-- Slides: [`slides/prebuilt-pitch.html`](slides/prebuilt-pitch.html) (3-minute pitch), [`slides/pitch-notes.md`](slides/pitch-notes.md) (script and Q&A), [`slides/prebuilt-deck.html`](slides/prebuilt-deck.html) (full deck)
+- Slides: [`slides/prebuilt-pitch.pdf`](slides/prebuilt-pitch.pdf) (also [`.pptx`](slides/prebuilt-pitch.pptx), built by `slides/make_pptx.js`, and [`.html`](slides/prebuilt-pitch.html), built by `slides/make_pitch.py`)
 - Backup demo, pure simulation: [`demo/tier-d/`](../demo/tier-d/)

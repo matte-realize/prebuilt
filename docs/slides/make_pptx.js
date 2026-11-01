@@ -119,6 +119,9 @@ function lineChart(slide, data, x, y, w, h, title) {
   });
 }
 
+const NOTES_OUT = process.env.PREBUILT_NOTES_OUT;   // presenter copy with speaker notes, kept outside the repo
+const note = (slide, t) => { if (NOTES_OUT) slide.addNotes(t); };
+
 async function main() {
   LOGO = await png(fs.readFileSync(path.join(ROOT, "assets/logo.svg"), "utf8"), 512);
   let s;
@@ -141,8 +144,8 @@ async function main() {
   }
   card(s, 6.55, 1.95, 2.9, 2.85, C.card);
   plate(s, 6.85, 2.12, 2.3);
-  T(s, "The test plate: 24 pins and holes. Print it, measure it, know your printer.", { x: 6.8, y: 4.45, w: 2.45, h: 0.32, fontSize: 9.5, color: C.muted });
-  s.addNotes("0:00–0:40. Hold up the printed plate. Every printer is wrong in its own way: published measurements show desktop resin printers missing by up to a quarter of a millimetre. In a hospital or dental lab that decides whether a crown seats or a guide fits. And those labs can't pool what they learn, because patient scans and process recipes can't leave. So every lab starts from scratch. Prebuilt: every printer learns from every other, and no data leaves.");
+  T(s, "Our test plate on a Formlabs Form Studio 1: a 1.50 mm pin printed at 1.44 mm.", { x: 6.8, y: 4.45, w: 2.45, h: 0.32, fontSize: 9.5, color: C.muted });
+  note(s, "0:00–0:40. Hold up the printed plate. Every printer is wrong in its own way: published measurements show desktop resin printers missing by up to a quarter of a millimetre. In a hospital or dental lab that decides whether a crown seats or a guide fits. And those labs can't pool what they learn, because patient scans and process recipes can't leave. So every lab starts from scratch. Prebuilt: every printer learns from every other, and no data leaves.");
 
   // 2 · how it works
   s = pres.addSlide({ masterName: "DARK" });
@@ -162,41 +165,49 @@ async function main() {
   card(s, M, 3.52, W - 2 * M, 0.6, C.card2);
   await tile(s, "FaLock", M + 0.18, 3.6, 0.44, C.teal);
   T(s, [{ text: "Never leaves the lab: ", options: { bold: true, color: C.teal } },
-        { text: "patient scans, part geometry, measurements, machine settings. A replayable audit checks every crossing.", options: { color: C.ink } }],
+        { text: "patient scans, part geometry, measurements, machine settings. Every crossing is audited; claims were registered before the first print.", options: { color: C.ink } }],
     { x: M + 0.8, y: 3.52, w: 8.0, h: 0.6, fontSize: 12.5, valign: "middle" });
   card(s, M, 4.25, W - 2 * M, 0.6, C.card2);
   T(s, [{ text: "What's new: ", options: { bold: true, color: C.accent } },
         { text: "correcting printer error (Huang et al. 2015) and learning across printers (Wei et al. 2023) are proven, but pool the data. Prebuilt does it privately.", options: { color: C.ink } }],
     { x: M + 0.25, y: 4.25, w: W - 2 * M - 0.5, h: 0.6, fontSize: 12.5, valign: "middle" });
-  s.addNotes("0:40–1:15. Each lab prints this plate and fits a model of its own machine, locally. The only thing that leaves is three numbers, logged on a receipt, and an audit replays every crossing. Every ingredient is published: correcting printer error from a learned model works, and printers learn faster together. What nobody had done is that without the data leaving the lab.");
+  note(s, "0:40–1:15. Each lab prints this plate and fits a model of its own machine, locally. The only thing that leaves is three numbers, logged on a receipt, and an audit replays every crossing. Every ingredient is published: correcting printer error from a learned model works, and printers learn faster together. What nobody had done is that without the data leaving the lab.");
 
   // 3 · results
   s = pres.addSlide({ masterName: "DARK" });
   head(s, "Results · simulation", "Parts that fit, and new labs get there faster");
-  const stats = [
-    ["9 µm", "size error from a corrected design, against 132 µm drawn as-is.", C.accent],
-    [`${Math.round(SITES[2].pct)}%`, `lower error for data-poor labs when eight share (won ${SITES[2].wins} of ${SITES[2].n} fleets).`, C.teal],
-    ["12%", "lower error with just two labs, matching pooling all raw data.", C.ink],
-    ["0 rounds", `lost to a lying lab: ${CHECK.liar_caught} of ${CHECK.liar_notes} lies caught, ${CHECK.honest_dropped} honest notes dropped.`, C.amber],
-  ];
-  stats.forEach(([big, sub, col], i) => {
-    const x = M + i * 2.25;
-    card(s, x, 1.45, 2.08, 2.0);
-    T(s, big, { x: x + 0.2, y: 1.62, w: 1.8, h: 0.65, fontFace: HEAD, fontSize: big.length > 4 ? 24 : 32, bold: true, color: col, valign: "middle" });
-    T(s, sub, { x: x + 0.2, y: 2.35, w: 1.72, h: 1.05, fontSize: 12, color: C.muted });
-  });
-  const rig = [
-    ["Registered first", "Claims committed, with a hash, before the first print."],
-    ["Negative control", "Printers that share no physics gain nothing: the gain is real."],
-    ["Real printer", "A Form Studio 1 pin: 1.44 mm for 1.50, inside the ±0.08 mm spec."],
-  ];
-  rig.forEach(([h, d], i) => {
-    const x = M + i * 3.0;
-    card(s, x, 3.62, 2.8, 1.15, C.card2);
-    T(s, h, { x: x + 0.22, y: 3.75, w: 2.4, h: 0.3, fontFace: HEAD, fontSize: 13, bold: true, color: C.teal });
-    T(s, d, { x: x + 0.22, y: 4.08, w: 2.4, h: 0.65, fontSize: 11.5, color: C.muted });
-  });
-  s.addNotes("1:15–2:10. In simulation, scored against the true printed size. What a lab gets: a corrected design that misses by 9 microns instead of 132. What the network adds: labs with little data get 35% lower error when eight share, so new labs need fewer test prints. Even two labs match pooling all the raw data, and a lying lab costs nothing with the consistency check. Underneath: claims registered before printing, a negative control showing the gain is real, and a real Form Studio 1 pin inside the vendor spec.");
+  const axis = { catAxisLabelColor: C.muted, catAxisLabelFontSize: 10, catAxisLabelFontFace: "+mn-lt", catAxisLineShow: false,
+    valGridLine: { style: "none" }, catGridLine: { style: "none" }, showLegend: false,
+    showTitle: true, titleFontSize: 11, titleColor: C.ink, titleFontFace: "+mn-lt" };
+  const bars = (x, title, labels, values, fmt, colors, max) => {
+    card(s, x, 1.42, 2.9, 2.1);
+    s.addChart(pres.charts.BAR, [{ name: title, labels, values }], { ...axis,
+      x: x + 0.08, y: 1.48, w: 2.74, h: 2.0, barDir: "col", chartColors: colors, barGapWidthPct: 45, title,
+      showValue: true, dataLabelPosition: "outEnd", dataLabelFormatCode: fmt, dataLabelColor: C.ink, dataLabelFontSize: 12, dataLabelFontFace: "+mn-lt",
+      valAxisHidden: true, valAxisMinVal: 0, valAxisMaxVal: max });
+  };
+  bars(M, "Size error per part, µm", ["Drawn as-is", "Corrected"], [132, 9], '0" µm"', [C.accent], 160);
+  bars(M + 3.0, "Lower error than a lab alone", SITES.map((r) => `${r.sites} labs`), SITES.map((r) => Math.round(r.pct)), '0"%"', [C.teal], 42);
+  card(s, M + 6.0, 1.42, 2.9, 2.1);
+  s.addChart(pres.charts.LINE, [
+    { name: "Lab alone", labels: ["R1", "R2", "R3"], values: LIAR.isolated },
+    { name: "Network, no check", labels: ["R1", "R2", "R3"], values: LIAR.networked },
+    { name: "Network + check", labels: ["R1", "R2", "R3"], values: CHECKED.networked },
+  ], { ...axis, x: M + 6.08, y: 1.48, w: 2.74, h: 2.0, title: "One lab lies: error, µm", chartColors: [C.slate, C.amber, C.teal], lineSize: 2.5,
+    lineDataSymbol: "circle", lineDataSymbolSize: 6, showLegend: true, legendPos: "b", legendFontSize: 8.5, legendColor: C.muted, legendFontFace: "+mn-lt",
+    valAxisLabelColor: C.muted, valAxisLabelFontSize: 9, valAxisLabelFontFace: "+mn-lt", valAxisLineShow: false, valAxisMinVal: 0,
+    valGridLine: { color: C.line, size: 0.5 } });
+  const Hd = (t) => ({ text: t, options: { bold: true, color: C.muted, fontSize: 9.5, fill: { color: C.card2 } } });
+  const row = (cells, i) => cells.map((c) => ({ text: c, options: { fill: { color: i % 2 ? C.bg : C.card } } }));
+  s.addTable([
+    [Hd("Head to head, simulated fleets"), Hd("Lower error"), Hd("Fleets won"), Hd("p")],
+    row(["Network vs a lab learning alone (2 labs)", "12.3%", "75 / 100", "<0.001"], 0),
+    row(["Pooling all raw data, the upper bound", "12.2%", "64 / 100", ""], 1),
+    row([`Eight data-poor labs vs alone`, `${SITES[2].pct.toFixed(1)}%`, `${SITES[2].wins} / ${SITES[2].n}`, "<0.001"], 2),
+    row(["Control: printers that share no physics", "no gain", "19 / 60", ""], 3),
+  ], { x: M, y: 3.68, w: W - 2 * M, colW: [4.6, 1.8, 1.5, 1.0], fontFace: BODY, fontSize: 11, color: C.ink,
+    border: { type: "solid", pt: 0.5, color: C.line }, rowH: 0.25, valign: "middle", margin: [0.02, 0.1, 0.02, 0.1] });
+  note(s, "1:15–2:10. In simulation, scored against the true printed size. Left: a corrected design misses by 9 microns instead of 132. Middle: labs with little data get lower error the more labs share, 35% at eight, so new labs need fewer test prints. Right: a lying lab spikes error in round one; with the consistency check, nothing happens. The table: two labs already match pooling all the raw data, and when printers share no physics there's no gain, so the gain is real.");
 
   // 4 · who + where + close
   s = pres.addSlide({ masterName: "DARK" });
@@ -222,9 +233,9 @@ async function main() {
   s.addImage({ data: LOGO, x: M, y: 4.3, w: 0.45, h: 0.45, altText: "Prebuilt logo" });
   T(s, "Print anywhere, trust the part.", { x: M + 0.6, y: 4.28, w: 6, h: 0.5, fontFace: HEAD, fontSize: 24, bold: true, valign: "middle" });
   T(s, "github.com/matte-realize/prebuilt", { x: 6.6, y: 4.38, w: 2.85, h: 0.3, fontSize: 11, color: C.faint, align: "right", valign: "middle" });
-  s.addNotes("2:10–3:00. Who needs this: anyone whose precision is a trade secret. Today, hospital, dental and bio labs that legally can't pool patient data. Next, chip makers and GPU packaging lines where every nanometre is yield, defense and aerospace under export control, MEMS and nanotech. Same problem, same constraint, and the network gets more valuable with every member. From microns today to nanometres next. Print anywhere, trust the part.");
+  note(s, "2:10–3:00. Who needs this: anyone whose precision is a trade secret. Today, hospital, dental and bio labs that legally can't pool patient data. Next, chip makers and GPU packaging lines where every nanometre is yield, defense and aerospace under export control, MEMS and nanotech. Same problem, same constraint, and the network gets more valuable with every member. From microns today to nanometres next. Print anywhere, trust the part.");
 
-  const out = path.join(__dirname, "prebuilt-pitch.pptx");
+  const out = NOTES_OUT || path.join(__dirname, "prebuilt-pitch.pptx");
   await pres.writeFile({ fileName: out });
   console.log(out);
 }

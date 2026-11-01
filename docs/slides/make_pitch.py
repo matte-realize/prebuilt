@@ -7,9 +7,10 @@ deck_template.html for present mode and speaker notes, always in the dark theme.
 figure is read from committed results: demo/tier-d/*.json (the three-round charts),
 viewer/evidence.json (sites chart, consistency check) and plates/out/resin/resin-seed.json
 (the plate); the rest is quoted from hpc/sweeps/relevance/README.md. Icons: icons.json
-(react-icons Font Awesome, exported once). Script and Q&A: docs/slides/pitch-notes.md.
+(react-icons Font Awesome, exported once).
 """
 import json
+import re
 from collections import defaultdict
 from pathlib import Path
 
@@ -99,6 +100,21 @@ def sites_svg() -> str:
     return "".join(parts) + "</svg>"
 
 
+def bars_svg(title: str, labels: list, values: list, unit: str, cls: str, top: float) -> str:
+    W, H, X0, Y0, Y1 = 300, 220, 18, 180, 46
+    n = len(values); bw = 64 if n == 2 else 58; gap = (W - 2 * X0 - n * bw) / max(n - 1, 1)
+    y = lambda v: Y0 - (Y0 - Y1) * v / top
+    parts = [f'<svg viewBox="0 0 {W} {H}" class="sites-chart" role="img" aria-label="{title}">',
+             f'<text x="{W / 2}" y="18" text-anchor="middle" class="ct">{title}</text>',
+             f'<line x1="{X0}" x2="{W - X0}" y1="{Y0}" y2="{Y0}" class="axis"/>']
+    for i, (lab, v) in enumerate(zip(labels, values)):
+        x = X0 + i * (bw + gap)
+        parts.append(f'<rect x="{x:.1f}" y="{y(v):.1f}" width="{bw}" height="{max(Y0 - y(v), 3):.1f}" rx="3" class="bar {cls}"/>'
+                     f'<text x="{x + bw / 2:.1f}" y="{min(y(v), Y0 - 3) - 8:.1f}" text-anchor="middle" class="val">{v}{unit}</text>'
+                     f'<text x="{x + bw / 2:.1f}" y="{Y0 + 20}" text-anchor="middle" class="lab">{lab}</text>')
+    return "".join(parts) + "</svg>"
+
+
 LEGEND = ('<p class="legend"><span class="k iso"></span>Learning alone<span class="k net"></span>Prebuilt network'
           '<span class="k ora"></span>Pooled raw data</p>')
 
@@ -112,9 +128,9 @@ SLIDES = [
     <div class="row">{tile("FaTooth")}<div><b>In medicine, that decides the fit</b><span>Crowns, surgical guides and microfluidic chips must fit first time. A crown margin allows ~120 µm.</span></div></div>
     <div class="row">{tile("FaLock")}<div><b>And labs can't pool what they learn</b><span>Patient scans and process recipes can't leave, so every lab re-learns its printer from scratch.</span></div></div>
   </div>
-  <figure class="card fig">{plate_svg()}<figcaption>The test plate: 24 pins and holes. Print it, measure it, know your printer.</figcaption></figure>
+  <figure class="card fig">{plate_svg()}<figcaption>Our test plate on a Formlabs Form Studio 1: a 1.50 mm pin printed at 1.44 mm.</figcaption></figure>
 </div>""",
-     "0:00–0:40. Hold up the printed plate. Every printer is wrong in its own way; in a hospital or dental lab that decides the fit; and those labs can't pool what they learn. Prebuilt: every printer learns from every other, and no data leaves."),
+     ""),
 
     ("", "How it works", "Learn locally, share three numbers",
      f"""<div class="steps">
@@ -122,23 +138,23 @@ SLIDES = [
   <div class="card step">{tile("FaRulerCombined")}<b>2&nbsp; Learn your printer</b><span>A physics model of your machine, fit locally on your own data.</span></div>
   <div class="card step">{tile("FaExchangeAlt")}<b>3&nbsp; Share three numbers</b><span>Mean and spread of 3 parameters every printer shares, logged on a receipt.</span></div>
 </div>
-<div class="card banner">{tile("FaLock", "teal")}<p><b>Never leaves the lab:</b> patient scans, part geometry, measurements, machine settings. A replayable audit checks every crossing.</p></div>
+<div class="card banner">{tile("FaLock", "teal")}<p><b>Never leaves the lab:</b> patient scans, part geometry, measurements, machine settings. Every crossing is audited; claims were registered before the first print.</p></div>
 <div class="card banner"><p><b class="gap">What's new:</b> correcting printer error (Huang et al. 2015) and learning across printers (Wei et al. 2023) are proven, but pool the data. Prebuilt does it privately.</p></div>""",
-     "0:40–1:15. Three numbers out, nothing else, and an audit replays every crossing. Every ingredient is published; what nobody had done is doing it without the data leaving the lab."),
+     ""),
 
     ("", "Results · simulation", "Parts that fit, and new labs get there faster",
-     f"""<div class="stats">
-  <div class="card stat"><span class="n net">9&nbsp;µm</span><span>size error from a corrected design, against 132 µm drawn as-is.</span></div>
-  <div class="card stat"><span class="n ora">{round(SITES[2]["pct"])}%</span><span>lower error for data-poor labs when eight share (won {SITES[2]["wins"]} of {SITES[2]["n"]} fleets).</span></div>
-  <div class="card stat"><span class="n">12%</span><span>lower error with just two labs, matching pooling all raw data.</span></div>
-  <div class="card stat"><span class="n amb sm">0 rounds</span><span>lost to a lying lab: {CHECK["liar_caught"]} of {CHECK["liar_notes"]} lies caught, {CHECK["honest_dropped"]} honest notes dropped.</span></div>
+     f"""<div class="charts three">
+  <div class="card">{bars_svg("Size error per part, µm", ["Drawn as-is", "Corrected"], [132, 9], " µm", "net", 160)}</div>
+  <div class="card">{bars_svg("Lower error than a lab alone", [f'{r["sites"]} labs' for r in SITES], [round(r["pct"]) for r in SITES], "%", "ora", 42)}</div>
+  <div class="card">{line_svg({"isolated": LIAR["isolated"], "networked": LIAR["networked"], "oracle": CHECKED["networked"]}, "One lab lies: error, µm")}<p class="legend"><span class="k iso"></span>Lab alone<span class="k net"></span>Network, no check<span class="k ora"></span>Network + check</p></div>
 </div>
-<div class="steps">
-  <div class="card step rig"><b>Registered first</b><span>Claims committed, with a hash, before the first print.</span></div>
-  <div class="card step rig"><b>Negative control</b><span>Printers that share no physics gain nothing: the gain is real.</span></div>
-  <div class="card step rig"><b>Real printer</b><span>A Form Studio 1 pin: 1.44 mm for 1.50, inside the ±0.08&nbsp;mm spec.</span></div>
-</div>""",
-     "1:15–2:10. What a lab gets, what the network adds, and the rigor underneath."),
+<table class="bench"><thead><tr><th>Head to head, simulated fleets</th><th>Lower error</th><th>Fleets won</th><th>p</th></tr></thead><tbody>
+<tr><td>Network vs a lab learning alone (2 labs)</td><td>12.3%</td><td>75 / 100</td><td>&lt;0.001</td></tr>
+<tr><td>Pooling all raw data, the upper bound</td><td>12.2%</td><td>64 / 100</td><td></td></tr>
+<tr><td>Eight data-poor labs vs alone</td><td>{SITES[2]["pct"]:.1f}%</td><td>{SITES[2]["wins"]} / {SITES[2]["n"]}</td><td>&lt;0.001</td></tr>
+<tr><td>Control: printers that share no physics</td><td>no gain</td><td>19 / 60</td><td></td></tr>
+</tbody></table>""",
+     ""),
 
     ("", "Who it's for", "For anyone whose precision is a trade secret",
      f"""<div class="who2">
@@ -157,7 +173,7 @@ SLIDES = [
 </div>
 <div class="card banner"><p><b class="gap">Value grows with every member:</b> {round(SITES[0]["pct"])}% → {round(SITES[1]["pct"])}% → {round(SITES[2]["pct"])}% lower error at 2 / 4 / 8 labs. From microns today to nanometres next.</p></div>
 <p class="endline">{logo("logo-sm")}<span>Print anywhere, trust the part.</span><span class="meta">github.com/matte-realize/prebuilt</span></p>""",
-     "2:10–3:00. Anyone whose precision is a trade secret: medical and bio today; chips, defense, MEMS and nanotech next. Print anywhere, trust the part."),
+     ""),
 ]
 
 EXTRA_CSS = """
@@ -210,6 +226,9 @@ body { background: #05090f; }
 .banner p { margin: 0; font-size: 1.65cqw; max-width: none; } .banner b { color: var(--teal); }
 .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 2cqw; }
 .charts .card { padding: 1cqw 1.4cqw; }
+.charts.three { grid-template-columns: repeat(3, 1fr); gap: 1.6cqw; } .charts.three .legend { font-size: 1.05cqw; gap: .4cqw 1.6cqw; }
+.sites-chart .bar.net { fill: var(--accent); } .sites-chart .bar.ora { fill: var(--ora); }
+.bench { font-size: 1.35cqw; } .bench th, .bench td { padding: .55cqw 1.2cqw; }
 .lchart { width: 100%; height: auto; display: block; }
 .lchart .ct, .sites-chart .ct { font: 600 15px var(--body); fill: var(--ink); }
 .lchart .grid { stroke: var(--line); stroke-width: 1; } .lchart .tick { font: 12px var(--body); fill: var(--muted); }
@@ -276,11 +295,11 @@ def render() -> str:
   <header><span class="kick">{logo()}{kicker}</span><span class="num">{i} / {len(SLIDES)}</span></header>
   <h2>{title}</h2>
   <div class="body">{body}</div>
-  <aside class="note">{note}</aside>
 </section>""")
     html = (HERE / "deck_template.html").read_text()
     html = html.replace("<title>Prebuilt Deck</title>", "<title>Prebuilt Pitch</title>")
     html = html.replace("</style>", EXTRA_CSS + "</style>", 1)
+    html = re.sub(r'<button id="notes"[^>]*>.*?</button>', "", html)
     return html.replace("%%SLIDES%%", "\n".join(sections))
 
 
