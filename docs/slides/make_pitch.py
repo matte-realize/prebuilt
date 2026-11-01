@@ -62,7 +62,7 @@ def plate_svg() -> str:
 
 def line_svg(data: dict, title: str) -> str:
     """Static three-round chart: learning alone, network, pooled raw data."""
-    W, H, X0, X1, Y0, Y1 = 440, 260, 46, 420, 210, 40
+    W, H, X0, X1, Y0, Y1 = 440, 260, 50, 396, 210, 40
     top = max(20, -(-max(max(v) for v in data.values()) // 10) * 10)
     x = lambda k: X0 + (X1 - X0) * k / 2
     y = lambda v: Y0 - (Y0 - Y1) * v / top
@@ -218,6 +218,8 @@ body { background: #05090f; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 1cqw; }
 .tile { display: inline-grid; place-items: center; width: 4.6cqw; height: 4.6cqw; border-radius: .9cqw; flex: none;
   color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); border: 1px solid var(--accent); font-size: 2.3cqw; }
+.tile svg { width: 55%; height: 55%; display: block; }
+.slide .body p.foot, .slide .body p.legend, .slide .body p.q, .slide .body p.tag, .slide .body p.sub, .slide .body p.big-close { max-width: none; }
 .tile.teal { color: var(--teal); background: color-mix(in srgb, var(--teal) 16%, transparent); border-color: var(--teal); }
 .foot { font-size: 1.25cqw; color: var(--muted); border-top: 0; padding-top: 0; max-width: none; }
 .muted { color: var(--muted); }
